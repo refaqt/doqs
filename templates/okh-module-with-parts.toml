@@ -1,0 +1,13 @@
+# Template fragment — merge into a module okh.toml
+
+[[part]]
+name = "Example Part"
+source = ["cad/parts/example/example.FCStd"]
+export = [
+  "cad/parts/example/exports/example.step",
+  "cad/parts/example/exports/example.dxf",
+  "cad/parts/example/exports/example.stl",
+]
+material = "6061-T6 aluminium"
+mass = 100.0
+tsdc = "MEC"

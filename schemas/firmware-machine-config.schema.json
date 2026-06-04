@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/org/doqs/schemas/firmware-machine-config.schema.json",
+  "title": "Firmware machine runtime config",
+  "type": "object",
+  "properties": {
+    "machine_name": { "type": "string" },
+    "steps_per_mm": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      }
+    },
+    "max_feedrate_mm_s": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      }
+    }
+  }
+}

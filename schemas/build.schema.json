@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/org/doqs/schemas/build.schema.json",
+  "title": "DOQS build lockfile",
+  "type": "object",
+  "required": ["schema", "machine"],
+  "properties": {
+    "schema": { "const": "doqs-build-v1" },
+    "machine": { "type": "string" },
+    "built-date": { "type": "string", "format": "date" },
+    "owner": { "type": "string" },
+    "location": { "type": "string" },
+    "base": {
+      "type": "object",
+      "properties": {
+        "repo": { "type": "string", "format": "uri" },
+        "version": { "type": "string" }
+      }
+    },
+    "module": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "version"],
+        "properties": {
+          "path": { "type": "string" },
+          "version": { "type": "string" },
+          "model": { "type": "string" },
+          "adapter": { "type": "string" }
+        }
+      }
+    },
+    "modification": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["date", "description"],
+        "properties": {
+          "date": { "type": "string" },
+          "description": { "type": "string" },
+          "bom-impact": { "type": "string" }
+        }
+      }
+    }
+  }
+}
