@@ -5,6 +5,8 @@ import json
 import tomllib
 from pathlib import Path
 
+from naming_rules import is_under_doqs_submodule
+
 
 def repo_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent
@@ -51,7 +53,7 @@ def walk_parents(root: Path) -> dict[str, list[dict]]:
     used_by: dict[str, list[dict]] = {}
 
     for okh in root.rglob("okh.toml"):
-        if "doqs" in okh.parts:
+        if is_under_doqs_submodule(okh, root):
             continue
         parent = okh.parent.relative_to(root)
         parent_key = "." if str(parent) == "." else str(parent).replace("\\", "/")
@@ -81,7 +83,7 @@ def main() -> None:
     graph: dict = {}
 
     for okh in sorted(root.rglob("okh.toml")):
-        if "doqs" in okh.parts:
+        if is_under_doqs_submodule(okh, root):
             continue
         rel = okh.parent.relative_to(root)
         key = "." if str(rel) == "." else str(rel).replace("\\", "/")

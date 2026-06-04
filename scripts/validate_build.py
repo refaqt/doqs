@@ -1,6 +1,11 @@
 """Validate that build.toml lockfiles represent interface-consistent compositions."""
+from __future__ import annotations
+
+import argparse
 from pathlib import Path
 import tomllib
+
+from naming_rules import repo_root_from_script
 
 
 def load_module_manifest(root: Path, mod_entry: dict) -> dict:
@@ -55,12 +60,11 @@ def validate(build_path: Path, repo_root: Path) -> list[str]:
     return errors
 
 
-def repo_root() -> Path:
-    return Path(__file__).resolve().parent.parent.parent
-
-
 if __name__ == "__main__":
-    root = repo_root()
+    parser = argparse.ArgumentParser(description="Validate build lockfiles.")
+    parser.add_argument("--root", type=Path, default=None)
+    args = parser.parse_args()
+    root = args.root.resolve() if args.root else repo_root_from_script()
     all_ok = True
     for build_file in sorted((root / "builds").rglob("build.toml")):
         errs = validate(build_file, root)

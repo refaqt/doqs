@@ -1,0 +1,9 @@
+---
+description: Enforce DOQS naming conventions and run validators after structural or BOM changes.
+globs:
+  - "**/okh.toml"
+  - "**/bom/*.csv"
+  - "**/modules/**"
+---
+
+After changing module paths, `okh.toml`, or BOM files, read `doqs/skills/doqs-naming/SKILL.md` and run `python doqs/scripts/validate_all.py` from the machine repository root.

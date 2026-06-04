@@ -1,0 +1,2 @@
+id,name,spec,category,qty,unit,unit_cost_eur,unit_mass_g,equiv_class,supplier_1,supplier_1_pn,supplier_2,supplier_2_pn,supplier_3,supplier_3_pn,notes
+SW-001,Limit Switch,"SPDT 5A lever",electrical,2,pc,3.20,18,SPDT-5A-LEVER,Generic,LM-9,,,,

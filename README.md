@@ -15,11 +15,11 @@ git clone --recurse-submodules https://github.com/refaqt/qarve.git
 Run scripts from the **machine repository root** (parent of this folder):
 
 ```powershell
-python doqs/scripts/validate_okh.py
-python doqs/scripts/validate_build.py
+python doqs/scripts/validate_all.py
 python doqs/scripts/build_graph.py
-python doqs/scripts/check_links.py
 ```
+
+Individual scripts: `validate_okh.py`, `check_names.py`, `check_links.py`, `validate_build.py`.
 
 ## Documentation
 
@@ -28,7 +28,9 @@ python doqs/scripts/check_links.py
 | [docs/architecture.md](docs/architecture.md) | Full DOQS system specification |
 | [docs/readiness-levels.md](docs/readiness-levels.md) | OTRL / ODRL definitions for `okh.toml` |
 | [docs/naming.md](docs/naming.md) | Naming conventions (machines, modules, parts) |
+| [docs/naming-lexicon.md](docs/naming-lexicon.md) | Approved vocabulary for display names |
 | [docs/agent-guide.md](docs/agent-guide.md) | How Cursor/agents use `.cursor` vs this submodule |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | PR gates and submodule workflow |
 
 ## Layout
 
@@ -36,7 +38,9 @@ python doqs/scripts/check_links.py
 doqs/
   docs/           # Canonical specifications
   scripts/        # Validators and generators (run from machine repo root)
-  templates/      # dev-log, ADR, mistake, OKH fragments
+  skills/         # Cursor skills (install into machine .cursor/skills/)
+  data/           # Machine-readable lexicon for validators
+  templates/      # dev-log, ADR, mistake, OKH fragments, Cursor rules
   schemas/        # JSON Schema for lockfiles, firmware config
   spec/otrl.ttl   # Source ontology (IOP Alliance Open Know-How)
 ```

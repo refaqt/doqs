@@ -97,7 +97,7 @@ git commit -m "chore(modules): extract x-axis to standalone repo"
 
 ## Folder Structure
 
-Every module — at every nesting depth — uses the same set of first-level folders. The project root (`cnc-mill/`) and a leaf module (`modules/x-axis/modules/belt-drive/`) have identical structures; only their contents differ in scope.
+Every module — at every nesting depth — uses the same set of first-level folders. The project root (`cnc-mill/`) and a leaf module (`modules/x-axis/modules/drive-belt/`) have identical structures; only their contents differ in scope.
 
 ### First-Level Folders (Every Module)
 
@@ -211,7 +211,7 @@ cnc-mill/
 │       │       └── assembly-guide.md
 │       │
 │       └── modules/                 # Nested sub-modules (same layout recursively)
-│           └── belt-drive/
+│           └── drive-belt/
 │               ├── okh.toml
 │               ├── bom/
 │               ├── cad/
@@ -251,7 +251,7 @@ import '../../modules/spindle/architecture/spindle.sysml'::Spindle::*;
 From a nested sub-module importing a sibling:
 
 ```sysml
-// modules/x-axis/modules/belt-drive/architecture/belt-drive.sysml
+// modules/x-axis/modules/drive-belt/architecture/drive-belt.sysml
 import '../../../architecture/x-axis.sysml'::XAxis::*;
 ```
 
@@ -293,6 +293,16 @@ Software can deprecate v1 the moment v2 ships. Hardware cannot. A v1.0 machine s
 | Cross-version bridging       | Adapter modules under `modules/adapters/`                                                                                   |
 
 The remaining sections specify each mechanism in detail.
+
+### Naming and versioning conventions
+
+Module slugs, BOM part IDs, display-name lexicon, and version fields are defined in [naming.md](naming.md) and [naming-lexicon.md](naming-lexicon.md). Validators enforce them at build time:
+
+- `doqs/scripts/check_names.py` — folder slugs, BOM `id` format (`PREFIX-NNN`), headers, model slugs, lexicon warnings
+- `doqs/scripts/validate_okh.py` — semver in `version` (no `v` prefix); optional `--expected-version` before tagging
+- `doqs/scripts/validate_all.py` — single command running all validation gates
+
+**Version surfaces:** `okh.toml` `version` is authoritative; Git tags use a `v` prefix; lockfiles pin `vX.Y.Z`; FreeCAD `Comment` points to `okh.toml` without per-release bumps; drawing title blocks get `Rev: X.Y.Z` at export. See ADR [2026-06-04_naming-and-versioning.md](decisions/2026-06-04_naming-and-versioning.md).
 
 ### Versions: Tags + LTS Branches
 
@@ -856,7 +866,7 @@ description = "Mounts onto frame top surface"
 
 # Nested sub-module with its own manifest
 [[hasComponent]]
-component = "https://github.com/refaqt/qarve/blob/main/modules/x-axis/modules/belt-drive/okh.toml"
+component = "https://github.com/refaqt/qarve/blob/main/modules/x-axis/modules/drive-belt/okh.toml"
 
 # Individually manufactured parts — defined inline
 [[part]]
@@ -933,7 +943,7 @@ if __name__ == "__main__":
     root = Path(__file__).parent.parent
     all_ok = True
     for manifest in sorted(root.rglob("okh.toml")):
-        if "doqs" in manifest.parts:
+        if "doqs" in manifest.relative_to(root).parts:
             continue
         errors = validate(manifest)
         rel = manifest.relative_to(root)
@@ -948,8 +958,10 @@ if __name__ == "__main__":
 
 Related validators (documented in their own sections):
 
+- `doqs/scripts/check_names.py` — module slugs, BOM ids, model slugs, naming lexicon ([naming.md](naming.md)).
+- `doqs/scripts/validate_all.py` — runs `validate_okh`, `check_names`, `check_links`, and `validate_build` in sequence.
 - `doqs/scripts/validate_build.py` — checks that lockfiles in `builds/` represent interface-consistent compositions.
-- `doqs/scripts/build_graph.py` — regenerates `graph/usage-graph.json` from all manifests and lockfiles.
+- `doqs/scripts/build_graph.py` — regenerates `graph/usage-graph.json` from all manifests and lockfiles (generator, not a gate).
 
 ---
 
@@ -1219,7 +1231,7 @@ Supplier columns 2 and 3 may be empty but must always be present.
 Example row:
 
 ```
-SW-01,Limit Switch,"SPDT 5A lever",electrical,4,pc,3.20,18,SPDT-5A-LEVER,Omron,X20-1,Honeywell,V7-2,Generic,LM-9,
+SW-001,Limit Switch,"SPDT 5A lever",electrical,4,pc,3.20,18,SPDT-5A-LEVER,Omron,X20-1,Honeywell,V7-2,Generic,LM-9,
 ```
 
 **Parameter table convention** (`cad/params/default.csv` plus optional `cad/params/<model>.csv` overrides):
@@ -1579,7 +1591,8 @@ The `graph/usage-graph.json` file is generated but **is** committed — it serve
 - [ ] Run `cad/sync_params.py` inside FreeCAD to update geometry
 - [ ] If BOM changed, update module `bom/bom.csv`; run `process_bom.py`
 - [ ] Run `bom/aggregate_bom.py` (project root)
-- [ ] If CAD changed, export `.step`, `.dxf`, `.stl` to `cad/exports/`
+- [ ] If CAD changed, export `.step`, `.dxf`, `.stl` to `cad/exports/`; set drawing title block `Rev` to current `okh.toml` `version`
+- [ ] FreeCAD document `Comment`: stable `Module: <slug> — see okh.toml` (do not bump per patch release)
 
 **Manifests:**
 
@@ -1598,10 +1611,9 @@ The `graph/usage-graph.json` file is generated but **is** committed — it serve
 
 **Validation & commit:**
 
-- [ ] Run `doqs/scripts/validate_okh.py` — all manifests must pass
-- [ ] Run `doqs/scripts/validate_build.py` — all lockfiles must be interface-consistent
+- [ ] Run `doqs/scripts/validate_all.py` (or individually: `validate_okh.py`, `check_names.py`, `check_links.py`, `validate_build.py`)
+- [ ] Before tagging: `doqs/scripts/validate_okh.py --expected-version X.Y.Z`
 - [ ] Run `doqs/scripts/build_graph.py` — regenerate `graph/usage-graph.json`
-- [ ] Run `doqs/scripts/check_links.py` — all cross-module references must resolve
 - [ ] Commit with a conventional commit message
-- [ ] Tag versions where appropriate (semver on module repos, patch tags on LTS branches)
+- [ ] Tag versions where appropriate (semver in `okh.toml`, Git tag `vX.Y.Z`, patch tags on LTS branches)
 - [ ] Push submodule repos before the main repo

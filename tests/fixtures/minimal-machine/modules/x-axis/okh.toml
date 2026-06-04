@@ -1,0 +1,11 @@
+okhv = "OKH-LOSHv1.0"
+name = "X-Axis Module"
+repo = "https://example.com/minimal-machine/tree/main/modules/x-axis"
+version = "0.1.0"
+license = "MIT"
+licensor = "DOQS Tests"
+function = "X-axis motion module (fixture)"
+bom = "bom/bom.csv"
+
+[[model]]
+name = "default"

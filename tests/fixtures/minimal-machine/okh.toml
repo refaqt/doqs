@@ -1,0 +1,7 @@
+okhv = "OKH-LOSHv1.0"
+name = "Minimal Test Machine"
+repo = "https://example.com/minimal-machine"
+version = "0.1.0"
+license = "MIT"
+licensor = "DOQS Tests"
+function = "Fixture machine for doqs validator tests"

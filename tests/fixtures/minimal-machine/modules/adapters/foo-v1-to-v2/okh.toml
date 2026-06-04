@@ -1,0 +1,7 @@
+okhv = "OKH-LOSHv1.0"
+name = "Foo Adapter"
+repo = "https://example.com/minimal-machine/tree/main/modules/adapters/foo-v1-to-v2"
+version = "0.1.0"
+license = "MIT"
+licensor = "DOQS Tests"
+function = "Adapter between foo v1 and v2 interfaces (fixture)"
