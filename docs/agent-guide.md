@@ -33,6 +33,7 @@ Agents doing structural or process work should read:
 | File | When |
 |------|------|
 | `doqs/docs/architecture.md` | Non-trivial design, new modules, versioning, interfaces, builds |
+| `doqs/docs/decisions/2026-06-24_freecad-master-sketches-body.md` | FreeCAD top-down design, master sketches, assembly Insert failures |
 | `doqs/docs/readiness-levels.md` | Setting or explaining OTRL/ODRL in `okh.toml` |
 | `doqs/docs/naming.md` | Naming modules, parts, repos |
 | `doqs/docs/naming-lexicon.md` | BOM and part display names |
