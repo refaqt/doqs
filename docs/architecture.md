@@ -1402,6 +1402,30 @@ LFS must be configured in each extracted module repo individually.
 
 **Exports after significant changes:** `.step` (geometry interchange), `.dxf` (2D drawings), `.stl` (GitHub 3D browser preview). Commit alongside the `.FCStd`.
 
+### Top-down design and master sketches
+
+Top-down CAD — a master sketch in an assembly file driving geometry in child part files via `SubShapeBinder` — is supported, but FreeCAD tracks dependencies at the **document** level. If a part Binder-links into the same document the assembly will insert it from, FreeCAD sees a cycle (assembly → part → assembly) and refuses insertion.
+
+**Required pattern in the assembly file:** put master sketches in a dedicated `PartDesign::Body` (e.g. `Body_master`) under a `Master sketches` group. Sketches must use **that Body's origin planes**, not the `Assembly` object's origin planes. Child parts bind to sketches inside the Body. The Assembly object holds joints and inserted part links only.
+
+```
+assembly.FCStd
+├── Assembly
+├── Master sketches (Group)
+│   └── Body_master
+│       └── Sketch …
+└── parts/…  (inserted as App::Link; each may Binder → Body_master sketches)
+```
+
+See ADR [2026-06-24_freecad-master-sketches-body.md](decisions/2026-06-24_freecad-master-sketches-body.md).
+
+**Alternatives when a cycle cannot be avoided:**
+
+| Approach | When to use |
+| -------- | ----------- |
+| **Skeleton document** | Master sketches shared across multiple assemblies or modules; both assembly and parts link *into* a separate `skeleton.FCStd` (or the module's params file) |
+| **Parameter spreadsheet** | Dimensions and offsets only — no projected geometry; use `params.csv` aliases instead of Binders ([Linking CSV Parameters to FreeCAD](#linking-csv-parameters-to-freecad)) |
+
 ---
 
 ## AI Agent Workflow (Cursor / Claude Code)
