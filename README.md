@@ -25,7 +25,7 @@ Individual scripts: `validate_okh.py`, `check_names.py`, `check_links.py`, `vali
 
 | Doc | Purpose |
 |-----|---------|
-| [docs/architecture.md](docs/architecture.md) | Full DOQS system specification |
+| [docs/architecture.md](docs/architecture.md) | Full DOQS system specification (module layout, `simulation/`, versioning, interfaces) |
 | [docs/readiness-levels.md](docs/readiness-levels.md) | OTRL / ODRL definitions for `okh.toml` |
 | [docs/naming.md](docs/naming.md) | Naming conventions (machines, modules, parts) |
 | [docs/naming-lexicon.md](docs/naming-lexicon.md) | Approved vocabulary for display names |

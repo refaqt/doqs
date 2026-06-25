@@ -39,6 +39,14 @@ Declared in `[[model]]` / `cad/params/<model>.csv`:
 - Same charset as module slugs: `default`, `500mm`, `500mm-hd`
 - No bare dimensions in module folder names
 
+## Simulation case slugs
+
+Folders under `simulation/cases/` and matching `simulation/results/`:
+
+- Same kebab-case charset as module slugs: `carriage-deflection`, `thermal-soak`
+- Name the **study**, not dimensions or materials — put numeric values in case config files
+- See [Architecture — Simulation](architecture.md#simulation) for layout and traceability rules
+
 ## BOM part IDs
 
 **Pattern:** `^[A-Z]{2,4}-[0-9]{3}$` (e.g. `MEC-001`, `SW-001`)

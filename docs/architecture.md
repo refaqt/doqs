@@ -5,7 +5,7 @@
 
 All project files are **text-first**. Binary files are used only where unavoidable (e.g., FreeCAD `.FCStd` files). Every text file must be readable, diffable, and editable by both humans and AI agents (Cursor, Claude Code, etc.). The project lives on GitHub, so everything must be Git-friendly.
 
-Every **module** — from an individual manufactured part up to the complete machine — is treated as a potentially independent, publishable unit from the start. The folder structure is **identical at every nesting level**. The project root is itself a module.
+Every **module** — from an individual manufactured part up to the complete machine — is treated as a potentially independent, publishable unit from the start. The folder structure is **identical at every nesting level** (`bom/`, `cad/`, `architecture/`, `simulation/`, etc.). The project root is itself a module.
 
 ---
 
@@ -108,6 +108,7 @@ Every module — at every nesting depth — uses the same set of first-level fol
 | `architecture/`  | SysML files — requirements, block definitions, **interfaces (ports)**                              |
 | `docs/`          | Narrative prose only: dev-log, mistakes, decisions, prompts-log                                    |
 | `manufacturing/` | Fabrication drawings, G-code, assembly guides                                                      |
+| `simulation/`    | Design-time analysis: case definitions, run scripts, result summaries                             |
 | `modules/`       | Sub-modules (each with this same structure). Adapters live under `modules/adapters/` by convention |
 
 **Special folders at the project root only:**
@@ -161,6 +162,11 @@ cnc-mill/
 │   └── notes/
 │       └── assembly-guide.md
 │
+├── simulation/
+│   ├── README.md
+│   ├── cases/
+│   └── results/
+│
 ├── modules/
 │   └── x-axis/                      # ← identical structure at every depth
 │       ├── okh.toml
@@ -210,6 +216,14 @@ cnc-mill/
 │       │   └── notes/
 │       │       └── assembly-guide.md
 │       │
+│       ├── simulation/
+│       │   ├── README.md
+│       │   ├── cases/
+│       │   │   └── carriage-deflection/
+│       │   └── results/
+│       │       └── carriage-deflection/
+│       │           └── summary.md
+│       │
 │       └── modules/                 # Nested sub-modules (same layout recursively)
 │           └── drive-belt/
 │               ├── okh.toml
@@ -218,6 +232,7 @@ cnc-mill/
 │               ├── architecture/
 │               ├── docs/
 │               ├── manufacturing/
+│               ├── simulation/
 │               └── modules/
 │
 ├── firmware/                        # See Firmware section
@@ -543,7 +558,7 @@ Versions follow semver: `1.0` and `1.1` are compatible (minor change adds option
 
 ### Adapter Modules
 
-When a breaking interface change occurs, the bridge between old and new is itself a module. Adapter modules live under `modules/adapters/` and have the same internal structure as any other module — `bom/`, `cad/`, `architecture/`, etc. — but their function is explicitly to translate between interface versions.
+When a breaking interface change occurs, the bridge between old and new is itself a module. Adapter modules live under `modules/adapters/` and have the same internal structure as any other module — `bom/`, `cad/`, `architecture/`, `simulation/`, etc. — but their function is explicitly to translate between interface versions.
 
 ```
 modules/adapters/
@@ -554,6 +569,7 @@ modules/adapters/
     architecture/      ← provides v1 interface, consumes v2 interface
     docs/
     manufacturing/
+    simulation/
 ```
 
 In its `okh.toml`:
@@ -1120,6 +1136,43 @@ def export_params(doc=None, csv_path=None):
 
 ---
 
+## Simulation
+
+Every module has a `simulation/` folder for **design-time analysis** — physics and behavioral studies (FEA, thermal, kinematics, dynamics, etc.) that validate requirements declared in `architecture/`. This is distinct from:
+
+- **`architecture/`** — SysML requirements and logical model (what must be true)
+- **`cad/`** — geometry (what it looks like)
+- **`firmware/`** — runtime control software at the project root (unit tests such as `test_kinematics.cpp` stay there)
+
+Simulation is **tool-agnostic** (CalculiX, OpenFOAM, custom Python, etc.). The folder convention is the same at every module depth, including extracted Git submodules — paths are unchanged, same as CAD and SysML.
+
+### Directory layout
+
+```
+simulation/
+├── README.md          # Tools, versions, how to reproduce
+├── cases/             # Text-first case definitions (TOML/YAML/JSON, scripts, input decks)
+│   └── <case-slug>/   # One folder per study (kebab-case; see naming.md)
+└── results/           # Committed summaries; heavy binaries gitignored or LFS
+    └── <case-slug>/
+        ├── summary.md # Human/agent-readable pass/fail + key numbers
+        └── exports/   # Optional plots/meshes (gitignored by default)
+```
+
+**Text-first.** Case definitions and `results/<case-slug>/summary.md` are source artefacts — readable, diffable, and agent-editable. Large binaries (meshes, plots, VTK) belong in `results/<case-slug>/exports/` and are gitignored by default (or tracked via Git LFS if a small set of reference outputs is needed).
+
+**Requirement traceability.** Each `summary.md` should cite the SysML requirement(s) it verifies (by name, e.g. `TravelRequirement`, `PositioningAccuracy`). Do not duplicate authoritative constraints into simulation results — requirements stay in `architecture/*.sysml`.
+
+**Parametric models.** When a study depends on dimensions, note which `[[model]]` / `cad/params/` set was used (e.g. `default`, `500mm`).
+
+**CAD inputs.** Studies may reference geometry from `cad/exports/` (e.g. `.step` files). Keep relative paths from the module root so submodule extraction does not break links.
+
+**Empty modules.** A module may have no studies yet — `simulation/` can be omitted until the first case is added, or exist with only a `README.md`. There is no validator enforcement for this folder.
+
+**Case slugs.** Use the same kebab-case charset as module folder names (`carriage-deflection`, not `carriage_deflection` or `500mm-travel`). Do not encode dimensions or materials in case folder names — put values in case config files.
+
+---
+
 ## Firmware
 
 Firmware is a software project and follows a software project structure. Each target (motion controller board, pendant display, etc.) is its own sub-project. Firmware will eventually be extracted into its own repo, following the same submodule pattern as hardware modules.
@@ -1476,7 +1529,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 <type>(<scope>): <short description>
 ```
 
-Types: `feat`, `fix`, `docs`, `cad`, `arch`, `okh`, `firmware`, `chore`, `refactor`, `interface`, `model`, `build`
+Types: `feat`, `fix`, `docs`, `cad`, `arch`, `okh`, `firmware`, `sim`, `chore`, `refactor`, `interface`, `model`, `build`
 
 ```
 docs(dev-log): 2025-06-10 Z-axis bearing selection
@@ -1484,6 +1537,7 @@ cad(x-axis): update carriage plate to 8mm thickness
 arch(x-axis): add TravelRequirement in SysML
 okh(x-axis): add [[part]] entries for carriage and motor mount
 firmware(controller): add homing sequence
+sim(x-axis): add carriage deflection case
 params(x-axis): increase rail_length to 420mm
 interface(frame): bump FrameMountInterface to v2.0 (breaking)
 model(x-axis): add 500mm-hd model override
@@ -1581,7 +1635,7 @@ Thumbs.db
 **/bom/bom_output.md
 bom/bom.csv            # root-level aggregated BOM is generated
 **/cad/params.csv      # active model, generated by resolve_params.py
-analysis/results/*.md
+**/simulation/results/**/exports/
 ```
 
 Module-level `bom/bom.csv` files are source data and are committed. The root-level `bom/bom.csv` is generated by `aggregate_bom.py` and is gitignored. Similarly, every module's `cad/params.csv` is generated by `resolve_params.py` from `cad/params/default.csv` (+ optional model override) and is gitignored; only the inputs in `cad/params/` are committed.
@@ -1590,7 +1644,7 @@ The `graph/usage-graph.json` file is generated but **is** committed — it serve
 
 ### GitHub Settings
 
-- **Labels:** `cad`, `firmware`, `docs`, `okh`, `arch`, `interface`, `model`, `build`, `lts-backport`, `module:x-axis`, `module:spindle`
+- **Labels:** `cad`, `firmware`, `docs`, `okh`, `arch`, `interface`, `model`, `simulation`, `build`, `lts-backport`, `module:x-axis`, `module:spindle`
 - **Milestones** for design phases (e.g., `v0.1 — Proof of Concept`) and per major version (e.g., `v2.0 — Production Release`)
 - **Releases** with CHANGELOG entries for each tagged version, including patch releases on LTS branches
 - GitHub topics `open-hardware` and `okh` on all repos for discoverability
@@ -1617,6 +1671,8 @@ The `graph/usage-graph.json` file is generated but **is** committed — it serve
 - [ ] Run `bom/aggregate_bom.py` (project root)
 - [ ] If CAD changed, export `.step`, `.dxf`, `.stl` to `cad/exports/`; set drawing title block `Rev` to current `okh.toml` `version`
 - [ ] FreeCAD document `Comment`: stable `Module: <slug> — see okh.toml` (do not bump per patch release)
+- [ ] If geometry or loads changed, update affected `simulation/cases/<case-slug>/` inputs
+- [ ] Re-run studies and update `simulation/results/<case-slug>/summary.md`; cite SysML requirement names verified
 
 **Manifests:**
 
