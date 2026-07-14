@@ -39,6 +39,7 @@ Agents doing structural or process work should read:
 | `doqs/docs/naming.md` | Naming modules, parts, repos |
 | `doqs/docs/naming-lexicon.md` | BOM and part display names |
 | `doqs/skills/doqs-naming/SKILL.md` | Applying naming rules and validation commands |
+| `doqs/skills/freecad/SKILL.md` | FreeCAD debugging, workbench issues, assembly/Binder problems |
 | `doqs/templates/` | Creating dev-log, ADR, mistake, OKH entries |
 
 The machine’s `docs/architecture.md` is a **short overview + pointer** to `doqs/docs/architecture.md`, not a second full spec.
@@ -58,7 +59,24 @@ New-Item -ItemType SymbolicLink -Path ".cursor/skills/doqs-naming" -Target "doqs
 
 Add a project rule from [doqs/templates/cursor-rule-doqs-naming.mdc](../templates/cursor-rule-doqs-naming.mdc) to `.cursor/rules/` in the machine repo.
 
-### 4. If the submodule is missing or empty
+### 4. FreeCAD skill in the machine repo
+
+Install the skill from the submodule so Cursor (and any agent reading `doqs/skills/`) can load it:
+
+**Symlink (preferred):**
+
+```powershell
+# From machine repo root (PowerShell, admin may be required on Windows)
+New-Item -ItemType SymbolicLink -Path ".cursor/skills/freecad" -Target "doqs/skills/freecad"
+```
+
+**Copy** when symlinks are unavailable (e.g. some CI clones).
+
+Add a project rule from [doqs/templates/cursor-rule-freecad.mdc](../templates/cursor-rule-freecad.mdc) to `.cursor/rules/` in the machine repo.
+
+The canonical skill path is `doqs/skills/freecad/SKILL.md` — agents without Cursor can read it directly after submodule checkout.
+
+### 5. If the submodule is missing or empty
 
 ```powershell
 git submodule update --init --recursive

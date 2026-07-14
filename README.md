@@ -38,7 +38,7 @@ Individual scripts: `validate_okh.py`, `check_names.py`, `check_links.py`, `vali
 doqs/
   docs/           # Canonical specifications
   scripts/        # Validators and generators (run from machine repo root)
-  skills/         # Cursor skills (install into machine .cursor/skills/)
+  skills/         # Agent skills (doqs-naming, freecad; install into machine .cursor/skills/)
   data/           # Machine-readable lexicon for validators
   templates/      # dev-log, ADR, mistake, OKH fragments, Cursor rules
   schemas/        # JSON Schema for lockfiles, firmware config
