@@ -47,6 +47,18 @@ Folders under `simulation/cases/` and matching `simulation/results/`:
 - Name the **study**, not dimensions or materials — put numeric values in case config files
 - See [Architecture — Simulation](architecture.md#simulation) for layout and traceability rules
 
+## Measurement campaign slugs
+
+Folders under `measurement/cases/` and matching `measurement/results/`, and the `campaign` column of
+`measurement/data-index.csv`:
+
+- Same kebab-case charset as module slugs: `tap-tests`, `stability-tests`, `thermal-drift`
+- Name the **study**, not the conditions — spindle speed, feed, material and axis are data, and belong
+  in the manifest columns and case config, never in the folder name
+- Individual runs inside a campaign are dated directories, `YYYY-MM-DD_NNN[_variant]/`, e.g.
+  `2026-05-07_001_stepper` — the date and sequence stay in the run folder, not in the campaign slug
+- See [Architecture — Measurement](architecture.md#measurement) for layout and manifest rules
+
 ## BOM part IDs
 
 **Pattern:** `^[A-Z]{2,4}-[0-9]{3}$` (e.g. `MEC-001`, `SW-001`)

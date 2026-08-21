@@ -34,6 +34,8 @@ Agents doing structural or process work should read:
 |------|------|
 | `doqs/docs/architecture.md` | Non-trivial design, new modules, versioning, interfaces, builds |
 | `doqs/docs/architecture.md` (Simulation section) | Adding or interpreting design-time analysis cases under `simulation/` |
+| `doqs/docs/architecture.md` (Measurement section) | Recording physical test campaigns under `measurement/`, or referencing data held outside Git |
+| `doqs/docs/architecture.md` (Software section) | Adding host-side applications or analysis libraries under `software/` |
 | `doqs/docs/decisions/2026-06-24_freecad-master-sketches-body.md` | FreeCAD top-down design, master sketches, assembly Insert failures |
 | `doqs/docs/readiness-levels.md` | Setting or explaining OTRL/ODRL in `okh.toml` |
 | `doqs/docs/naming.md` | Naming modules, parts, repos |

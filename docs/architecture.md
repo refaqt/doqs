@@ -109,13 +109,15 @@ Every module — at every nesting depth — uses the same set of first-level fol
 | `docs/`          | Narrative prose only: dev-log, mistakes, decisions, prompts-log                                    |
 | `manufacturing/` | Fabrication drawings, G-code, assembly guides                                                      |
 | `simulation/`    | Design-time analysis: case definitions, run scripts, result summaries                             |
+| `measurement/`   | Physical test campaigns: protocols, result summaries, external-data manifests                     |
 | `modules/`       | Sub-modules (each with this same structure). Adapters live under `modules/adapters/` by convention |
 
 **Special folders at the project root only:**
 
 | Folder      | Contents                                                                    |
 | ----------- | --------------------------------------------------------------------------- |
-| `firmware/` | Software projects — see Firmware section                                    |
+| `firmware/` | Embedded software targets — see Firmware section                            |
+| `software/` | Host-side software (desktop apps, analysis libraries) — see Software section |
 | `builds/`   | Lockfiles for physical machine instances — see Builds & Lockfiles section   |
 | `graph/`    | Generated reverse-usage graph (`usage-graph.json`) — see Versioning section |
 | `doqs/`     | Tools submodule (`github.com/refaqt/doqs`)                                     |
@@ -166,6 +168,12 @@ cnc-mill/
 │   ├── README.md
 │   ├── cases/
 │   └── results/
+│
+├── measurement/                     # Physical test campaigns — see Measurement section
+│   ├── README.md
+│   ├── cases/
+│   ├── results/
+│   └── data-index.csv               # Manifest of data held in external storage
 │
 ├── modules/
 │   └── x-axis/                      # ← identical structure at every depth
@@ -224,6 +232,15 @@ cnc-mill/
 │       │       └── carriage-deflection/
 │       │           └── summary.md
 │       │
+│       ├── measurement/
+│       │   ├── README.md
+│       │   ├── cases/
+│       │   │   └── carriage-stiffness/
+│       │   ├── results/
+│       │   │   └── carriage-stiffness/
+│       │   │       └── summary.md
+│       │   └── data-index.csv
+│       │
 │       └── modules/                 # Nested sub-modules (same layout recursively)
 │           └── drive-belt/
 │               ├── okh.toml
@@ -236,6 +253,9 @@ cnc-mill/
 │               └── modules/
 │
 ├── firmware/                        # See Firmware section
+│   └── ...
+│
+├── software/                        # See Software section
 │   └── ...
 │
 ├── builds/                          # Lockfiles for physical machine instances
@@ -1142,7 +1162,8 @@ Every module has a `simulation/` folder for **design-time analysis** — physics
 
 - **`architecture/`** — SysML requirements and logical model (what must be true)
 - **`cad/`** — geometry (what it looks like)
-- **`firmware/`** — runtime control software at the project root (unit tests such as `test_kinematics.cpp` stay there)
+- **`firmware/`** / **`software/`** — control and host-side code at the project root (unit tests such as `test_kinematics.cpp` stay there)
+- **`measurement/`** — the same quantity measured on real hardware rather than predicted
 
 Simulation is **tool-agnostic** (CalculiX, OpenFOAM, custom Python, etc.). The folder convention is the same at every module depth, including extracted Git submodules — paths are unchanged, same as CAD and SysML.
 
@@ -1170,6 +1191,99 @@ simulation/
 **Empty modules.** A module may have no studies yet — `simulation/` can be omitted until the first case is added, or exist with only a `README.md`. There is no validator enforcement for this folder.
 
 **Case slugs.** Use the same kebab-case charset as module folder names (`carriage-deflection`, not `carriage_deflection` or `500mm-travel`). Do not encode dimensions or materials in case folder names — put values in case config files.
+
+---
+
+## Measurement
+
+Every module may have a `measurement/` folder for **physical test campaigns** - data recorded from real
+hardware. It is the empirical counterpart to `simulation/`: where a simulation case predicts behaviour,
+a measurement campaign records what the built machine actually did.
+
+Keep the distinction sharp:
+
+- **`simulation/`** - design-time prediction (FEA, dynamics, thermal). No hardware involved.
+- **`measurement/`** - a campaign run on physical hardware, with instruments, at a date, in a configuration.
+- **`architecture/`** - the requirement each of the above is trying to verify.
+
+Measurement is **tool-agnostic** (DAQ vendor software, oscilloscopes, custom Python rigs). Like CAD and
+SysML, the folder convention is identical at every module depth, including extracted submodules.
+
+### Directory layout
+
+```
+measurement/
+|-- README.md          # Instruments, sensors, calibration, how to reproduce a run
+|-- cases/             # Text-first campaign definitions (protocol, channel maps, sensor config)
+|   `-- <case-slug>/   # One folder per campaign type (kebab-case; see naming.md)
+|-- results/           # Committed summaries; raw data lives in external storage
+|   `-- <case-slug>/
+|       |-- summary.md # Findings, key numbers, which requirement this verifies
+|       `-- exports/   # Optional small reference plots (gitignored by default)
+`-- data-index.csv     # Manifest of the raw data held outside Git - see below
+```
+
+**Text-first, same as simulation.** The campaign definition and `summary.md` are source artefacts:
+readable, diffable, agent-editable. What differs from simulation is the scale of the raw output -
+measurement campaigns routinely produce gigabytes, which is what `data-index.csv` exists to handle.
+
+**Requirement traceability.** Each `summary.md` cites the SysML requirement(s) it verifies, by name.
+Where a matching simulation case exists, cite it too - a measured-vs-predicted comparison is the whole
+point of keeping both folders.
+
+**Configuration provenance.** Record which `[[model]]` / `cad/params/` set the hardware was built to,
+and which firmware version was flashed. A measurement is meaningless without knowing what was measured.
+
+### External data references
+
+Raw measurement data does not belong in Git. Instrument captures are large, binary, vendor-specific,
+and never merge. Git LFS is not the answer either: LFS bills storage *and* bandwidth, so a growing
+archive of multi-gigabyte captures becomes expensive precisely as the project matures.
+
+**The rule: raw data lives in external storage; Git holds a manifest that describes it.**
+
+Each module with measurement data commits a `measurement/data-index.csv` - one row per file:
+
+```csv
+campaign,relpath,tier,bytes,sha256,recorded_utc,notes
+tap-tests,2026-05-07_001/Alu_x_S24000_F1800_1.WDH,raw,8183296,3f2a...,2026-05-07T09:14:02Z,
+tap-tests,2026-05-07_001/Alu_x_S24000_F1800_1.CSV,export,1310720,9c41...,2026-05-07T09:14:02Z,8-channel export
+```
+
+| Column | Meaning |
+| ------ | ------- |
+| `campaign` | Case slug this file belongs to - matches a folder under `cases/` |
+| `relpath` | Path relative to the storage root, stable across mounts |
+| `tier` | `raw` (instrument original), `export` (derived selection), `derived` (analysis output) |
+| `bytes`, `sha256` | Integrity - lets any consumer verify a fetched file, and detects silent loss |
+| `recorded_utc` | When the measurement was taken, not when the file was written |
+| `notes` | Free text |
+
+Extra columns may be appended for campaign-specific metadata (axis, position, material, spindle speed,
+feed). Keep the seven above as the stable prefix so generic tooling can read any manifest.
+
+**Where the data actually lives** is declared once in `measurement/README.md`: the storage backend, the
+root path or bucket, and how to obtain access. Consumers resolve the root from an environment variable
+rather than hardcoding it, so the same manifest works on every machine:
+
+```
+Storage : Google Drive (shared drive "Projects")
+Root    : $MACHINE_DATA_ROOT, default "H:/Shared drives/.../Data"
+Access  : request from the project owner
+```
+
+**Why a manifest is worth the effort.** It makes the archive queryable without downloading any of it -
+*"which tap tests ran on aluminium above 20 000 rpm?"* is answered from a committed CSV. It survives the
+storage backend changing (only the README and the root variable move). It gives AI agents a complete
+picture of the experimental record within their context budget. And the checksums turn "the data is on
+a shared drive somewhere" into something you can actually verify.
+
+**Empty modules.** A module may have no campaigns yet - `measurement/` can be omitted until the first
+one, or exist with only a `README.md`. There is no validator enforcement for this folder.
+
+**Case slugs.** Same kebab-case charset as module folders (`tap-tests`, `stability-tests`,
+`thermal-drift`). Name the *study*, not the conditions - spindle speeds and materials are data, and
+belong in the manifest and case config, never in the folder name.
 
 ---
 
@@ -1207,6 +1321,48 @@ firmware/
 
 **When to extract firmware to its own repo:**
 Apply the same test as hardware modules: when the firmware is stable enough to reuse in another machine project. Use `git subtree split --prefix=firmware/motion-controller` and the same submodule pattern.
+
+---
+
+## Software
+
+`firmware/` covers code that runs *on the machine*. `software/` covers code that runs *beside* it -
+host-side applications, analysis libraries, calibration and identification tooling, GUIs. Both are
+software projects and follow the same shape; they are separated because their build, test and
+deployment stories have nothing in common, and conflating them makes the root confusing.
+
+Use `software/` when the code needs a PC to run: a desktop control application, a library that
+post-processes `measurement/` data, a script that generates excitation signals. Use `firmware/` when
+the code is flashed to a target board.
+
+```
+software/
+|
+|-- README.md                    # Overview: what these projects are, how to install
+|
+`-- identification/              # One folder per application or library
+    |-- README.md                # Purpose, install, how to run
+    |-- pyproject.toml           # Build system config (or package.json, Cargo.toml, ...)
+    |-- src/
+    |   `-- <package>/           # Importable package - not a flat pile of scripts
+    |-- tests/
+    |-- config/                  # Runtime config, committed
+    `-- docs/
+        |-- dev-log/
+        `-- decisions/
+```
+
+**Make it a package, not loose scripts.** A folder of sibling scripts that import each other by bare
+name only works when run from exactly one directory, and breaks the moment anything moves. Declare a
+real package with a build config from the start.
+
+**Analysis code belongs here, its outputs do not.** A script that turns raw captures into an FRF lives
+in `software/`; the FRF it produced is a `derived` row in a `measurement/data-index.csv`, and the
+conclusion drawn from it is a `measurement/results/<case>/summary.md`.
+
+**When to extract to its own repo:** the same test as hardware modules and firmware - when it is stable
+enough to reuse in another machine project. Use `git subtree split --prefix=software/<name>` and the
+same submodule pattern.
 
 ---
 
@@ -1636,6 +1792,7 @@ Thumbs.db
 bom/bom.csv            # root-level aggregated BOM is generated
 **/cad/params.csv      # active model, generated by resolve_params.py
 **/simulation/results/**/exports/
+**/measurement/results/**/exports/
 ```
 
 Module-level `bom/bom.csv` files are source data and are committed. The root-level `bom/bom.csv` is generated by `aggregate_bom.py` and is gitignored. Similarly, every module's `cad/params.csv` is generated by `resolve_params.py` from `cad/params/default.csv` (+ optional model override) and is gitignored; only the inputs in `cad/params/` are committed.
