@@ -1,4 +1,4 @@
 {
   "name": "DOQS",
-  "install": "sudo apt-get update && sudo apt-get install -y python-is-python3 && python -m compileall -q scripts"
+  "install": "sudo apt-get update && sudo apt-get install -y python-is-python3"
 }
