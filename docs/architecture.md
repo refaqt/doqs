@@ -106,7 +106,7 @@ Every module — at every nesting depth — uses the same set of first-level fol
 | `bom/`           | Bill of materials (CSV source data + processing script)                                            |
 | `cad/`           | FreeCAD files: `assemblies/`, `parts/`, `exports/`, `params/` (model overrides)                    |
 | `architecture/`  | SysML files — requirements, block definitions, **interfaces (ports)**                              |
-| `docs/`          | Narrative prose only: dev-log, mistakes, decisions, prompts-log                                    |
+| `docs/`          | Narrative prose: activity log, mistakes, decisions (see [refaqt-agents](https://github.com/refaqt/refaqt-agents) for entry format) |
 | `manufacturing/` | Fabrication drawings, G-code, assembly guides                                                      |
 | `simulation/`    | Design-time analysis: case definitions, run scripts, result summaries                             |
 | `measurement/`   | Physical test campaigns: protocols, result summaries, external-data manifests                     |
@@ -151,14 +151,12 @@ cnc-mill/
 │   └── machine.sysml                # Imports from module architecture/ folders
 │
 ├── docs/                            # Narrative documentation only
-│   ├── dev-log/
+│   ├── log/                         # Chronological activity record (all roles)
 │   │   └── YYYY-MM-DD_topic.md
-│   ├── mistakes/
+│   ├── mistakes/                    # Incidents and prevention rules
 │   │   └── YYYY-MM-DD_topic.md
-│   ├── decisions/
-│   │   └── YYYY-MM-DD_topic.md
-│   └── prompts-log/
-│       └── YYYY-MM.md               # AI interaction log
+│   └── decisions/                   # Architecture Decision Records
+│       └── YYYY-MM-DD_topic.md
 │
 ├── manufacturing/
 │   └── notes/
@@ -214,7 +212,7 @@ cnc-mill/
 │       │   └── x-axis.sysml
 │       │
 │       ├── docs/
-│       │   ├── dev-log/
+│       │   ├── log/
 │       │   ├── mistakes/
 │       │   └── decisions/
 │       │
@@ -1310,7 +1308,7 @@ firmware/
     ├── config/
     │   └── machine.json         # Runtime machine config: speeds, limits, steps/mm
     └── docs/
-        ├── dev-log/
+        ├── log/
         └── decisions/
 ```
 
@@ -1348,7 +1346,7 @@ software/
     |-- tests/
     |-- config/                  # Runtime config, committed
     `-- docs/
-        |-- dev-log/
+        |-- log/
         `-- decisions/
 ```
 
@@ -1370,43 +1368,17 @@ same submodule pattern.
 
 ### Markdown (`.md`) — Narrative Documentation
 
-Used for: dev log, mistakes log, decisions, README files, assembly guides.
+Used for: activity log, mistakes log, decisions, README files, assembly guides.
 
-**Dev log entry** (`doqs/templates/dev-log-entry.md`):
+**Narrative doc folders** (machine repo `docs/`):
 
-```markdown
-# YYYY-MM-DD — Topic Title
+| Folder | Purpose |
+|--------|---------|
+| `docs/log/` | Chronological activity record across all roles |
+| `docs/mistakes/` | Incidents and prevention rules |
+| `docs/decisions/` | Architecture Decision Records (ADRs) |
 
-## Goal
-## Work Done
-## Decisions Made
-## Open Questions
-- [ ]
-## Next Steps
-- [ ]
-```
-
-**ADR template** (`doqs/templates/adr.md`):
-
-```markdown
-# ADR-NNN — Title
-- **Date:** YYYY-MM-DD
-- **Status:** Proposed | Accepted | Deprecated | Superseded by ADR-NNN
-## Context
-## Decision
-## Consequences
-```
-
-**Mistakes log entry** (`doqs/templates/mistake-entry.md`):
-
-```markdown
-# YYYY-MM-DD — Short Description
-## What Happened
-## Why It Happened
-## Consequence
-## How to Avoid It
-## Related Files / Commits
-```
+Agents follow `.agents/rules/living-docs.md` and the `log` / `mistake-log` skills in [refaqt-agents](https://github.com/refaqt/refaqt-agents) for entry format and update triggers.
 
 ### TOML (`.toml`) — OKH Manifests
 
@@ -1637,44 +1609,6 @@ See ADR [2026-06-24_freecad-master-sketches-body.md](decisions/2026-06-24_freeca
 
 ---
 
-## AI Agent Workflow (Cursor / Claude Code)
-
-### Prompts Log
-
-Add to `.cursorrules` (Cursor) or `AGENTS.md` (Claude Code) at the project root:
-
-```markdown
-## Logging Rule
-
-After completing any task, append an entry to
-`docs/prompts-log/YYYY-MM.md` (use the current year-month).
-
-Format:
----
-### HH:MM — Short task title
-
-**Prompt:** "..."
-
-**Actions:**
-- ...
-
-**Files changed:**
-- `path/to/file` — created / modified / deleted
-
-**Outcome:** One sentence.
----
-```
-
-### General Patterns
-
-1. **Point the agent at specific files.** e.g.: *"Look at `modules/x-axis/bom/bom.csv` and generate `[[part]]` entries using `doqs/templates/okh-module-with-parts.toml`."*
-2. **Use JSON or CSV for agent output.** Validate against the schema, then commit.
-3. **Never ask the agent to edit `.FCStd` files.** Geometry changes happen in FreeCAD manually.
-4. **After OKH generation**, run `doqs/scripts/validate_okh.py`.
-5. **After param changes**, run `cad/sync_params.py` inside FreeCAD.
-
----
-
 ## Git & GitHub Conventions
 
 ### Commit Messages
@@ -1688,7 +1622,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 Types: `feat`, `fix`, `docs`, `cad`, `arch`, `okh`, `firmware`, `sim`, `chore`, `refactor`, `interface`, `model`, `build`
 
 ```
-docs(dev-log): 2025-06-10 Z-axis bearing selection
+docs(log): 2025-06-10 Z-axis bearing selection
 cad(x-axis): update carriage plate to 8mm thickness
 arch(x-axis): add TravelRequirement in SysML
 okh(x-axis): add [[part]] entries for carriage and motor mount
@@ -1813,9 +1747,9 @@ The `graph/usage-graph.json` file is generated but **is** committed — it serve
 
 **Documentation & decisions:**
 
-- [ ] Create dev log entry (`docs/dev-log/YYYY-MM-DD_topic.md`)
-- [ ] If a mistake was made, add entry to `docs/mistakes/`
-- [ ] If a decision was made, write ADR (`docs/decisions/`)
+- [ ] Record session work in `docs/log/` if warranted (see `.agents/skills/log/SKILL.md`)
+- [ ] If a mistake was made, add entry to `docs/mistakes/` (see `.agents/skills/mistake-log/SKILL.md`)
+- [ ] If a decision was made, write ADR in `docs/decisions/` (see `.agents/templates/adr.md`)
 
 **Design:**
 

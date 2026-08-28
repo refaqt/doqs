@@ -29,8 +29,10 @@ Individual scripts: `validate_okh.py`, `check_names.py`, `check_links.py`, `vali
 | [docs/readiness-levels.md](docs/readiness-levels.md) | OTRL / ODRL definitions for `okh.toml` |
 | [docs/naming.md](docs/naming.md) | Naming conventions (machines, modules, parts) |
 | [docs/naming-lexicon.md](docs/naming-lexicon.md) | Approved vocabulary for display names |
-| [docs/agent-guide.md](docs/agent-guide.md) | How Cursor/agents use `.cursor` vs this submodule |
+| [docs/agent-guide.md](docs/agent-guide.md) | DOQS spec files agents should read; validation commands |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | PR gates and submodule workflow |
+
+Agent **setup and skills** (logging, FreeCAD debugging, DOQS naming): [refaqt/refaqt-agents](https://github.com/refaqt/refaqt-agents) at `.agents/` in machine repos.
 
 ## Layout
 
@@ -38,9 +40,8 @@ Individual scripts: `validate_okh.py`, `check_names.py`, `check_links.py`, `vali
 doqs/
   docs/           # Canonical specifications
   scripts/        # Validators and generators (run from machine repo root)
-  skills/         # Agent skills (doqs-naming, freecad; install into machine .cursor/skills/)
   data/           # Machine-readable lexicon for validators
-  templates/      # dev-log, ADR, mistake, OKH fragments, Cursor rules
+  templates/      # OKH fragments, measurement templates
   schemas/        # JSON Schema for lockfiles, firmware config
   spec/otrl.ttl   # Source ontology (IOP Alliance Open Know-How)
 ```
