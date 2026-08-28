@@ -50,6 +50,8 @@ See [docs/naming.md](docs/naming.md) and [docs/naming-lexicon.md](docs/naming-le
 
 See [docs/agent-guide.md](docs/agent-guide.md) for validation commands and agent spec pointers.
 
+When bumping doqs after the agent-instructions restructure, also bump the **refaqt-agents** submodule (`.agents/`) and retarget any skill symlinks from `doqs/skills/` to `.agents/skills/` (`freecad`, `doqs-naming`).
+
 ## Developing doqs itself
 
 From this repository root:
