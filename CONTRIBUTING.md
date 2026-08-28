@@ -48,7 +48,9 @@ See [docs/naming.md](docs/naming.md) and [docs/naming-lexicon.md](docs/naming-le
 2. In the machine repo: `git submodule update --remote doqs` (or pin a specific commit).
 3. Commit the submodule pointer on the machine repo.
 
-See [docs/agent-guide.md](docs/agent-guide.md) for Cursor skills and CI examples.
+See [docs/agent-guide.md](docs/agent-guide.md) for validation commands and agent spec pointers.
+
+When bumping doqs after the agent-instructions restructure, also bump the **refaqt-agents** submodule (`.agents/`) and retarget any skill symlinks from `doqs/skills/` to `.agents/skills/` (`freecad`, `doqs-naming`).
 
 ## Developing doqs itself
 

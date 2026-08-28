@@ -131,4 +131,4 @@ Flags: `--root PATH`, `--strict-lexicon`, `--warnings-only` (naming), `--expecte
 
 - [Architecture](architecture.md) — folder layout, BOM columns, design session checklist
 - [CONTRIBUTING.md](../CONTRIBUTING.md) — PR validation gates
-- [Agent guide](agent-guide.md) — Cursor skill install
+- [Agent reference](agent-guide.md) — spec files to read and validation commands
