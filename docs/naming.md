@@ -123,6 +123,7 @@ Individual checks:
 ```powershell
 python doqs/scripts/check_names.py
 python doqs/scripts/validate_okh.py
+python doqs/scripts/validate_licenses.py
 ```
 
 Flags: `--root PATH`, `--strict-lexicon`, `--warnings-only` (naming), `--expected-version` (OKH).

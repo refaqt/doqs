@@ -112,6 +112,8 @@ Every module — at every nesting depth — uses the same set of first-level fol
 | `measurement/`   | Physical test campaigns: protocols, result summaries, external-data manifests                     |
 | `modules/`       | Sub-modules (each with this same structure). Adapters live under `modules/adapters/` by convention |
 
+Each first-level content folder that exists carries a short `LICENSE` pointer; see [Licensing](#licensing).
+
 **Special folders at the project root only:**
 
 | Folder      | Contents                                                                    |
@@ -129,17 +131,24 @@ cnc-mill/
 │
 ├── okh.toml                         # Machine-level OKH manifest
 ├── README.md
-├── LICENSE                          # e.g. CERN-OHL-S-2.0
+├── LICENSE                          # overview: CERN-OHL-S / GPL-3.0 / CC BY-SA
+├── TRADEMARKS.md                    # reserved marks (not licensed)
+├── LICENSES/                        # full legal texts
+│   ├── CERN-OHL-S-2.0.txt
+│   ├── GPL-3.0.txt
+│   └── CC-BY-SA-4.0.txt
 ├── CONTRIBUTING.md
 ├── CHANGELOG.md
 ├── .gitmodules
 ├── .gitattributes                   # Git LFS config
 │
 ├── bom/                             # Top-level BOM (GENERATED from modules)
+│   ├── LICENSE                      # CERN-OHL-S v2.0
 │   ├── bom.csv                      # Do not edit by hand
 │   └── aggregate_bom.py
 │
 ├── cad/                             # Top-level assembly CAD
+│   ├── LICENSE                      # CERN-OHL-S v2.0
 │   ├── README.md                    # FreeCAD version, workbench, path config
 │   ├── assemblies/
 │   │   └── machine.FCStd            # Links to module parts via relative paths
@@ -148,9 +157,11 @@ cnc-mill/
 │       └── machine.stl
 │
 ├── architecture/                    # Top-level SysML
+│   ├── LICENSE                      # CERN-OHL-S v2.0
 │   └── machine.sysml                # Imports from module architecture/ folders
 │
 ├── docs/                            # Narrative documentation only
+│   ├── LICENSE                      # CC BY-SA 4.0
 │   ├── log/                         # Chronological activity record (all roles)
 │   │   └── YYYY-MM-DD_topic.md
 │   ├── mistakes/                    # Incidents and prevention rules
@@ -159,25 +170,28 @@ cnc-mill/
 │       └── YYYY-MM-DD_topic.md
 │
 ├── manufacturing/
+│   ├── LICENSE                      # CERN-OHL-S v2.0
 │   └── notes/
 │       └── assembly-guide.md
 │
 ├── simulation/
+│   ├── LICENSE                      # GPL-3.0
 │   ├── README.md
 │   ├── cases/
 │   └── results/
 │
 ├── measurement/                     # Physical test campaigns — see Measurement section
+│   ├── LICENSE                      # CC BY-SA 4.0
 │   ├── README.md
 │   ├── cases/
 │   ├── results/
 │   └── data-index.csv               # Manifest of data held in external storage
 │
 ├── modules/
+│   ├── LICENSE                      # CERN-OHL-S v2.0 (embedded modules inherit this)
 │   └── x-axis/                      # ← identical structure at every depth
 │       ├── okh.toml
 │       ├── README.md
-│       ├── LICENSE
 │       │
 │       ├── bom/
 │       │   ├── bom.csv              # Source BOM for this module
@@ -251,12 +265,15 @@ cnc-mill/
 │               └── modules/
 │
 ├── firmware/                        # See Firmware section
+│   ├── LICENSE                      # GPL-3.0
 │   └── ...
 │
 ├── software/                        # See Software section
+│   ├── LICENSE                      # GPL-3.0
 │   └── ...
 │
 ├── builds/                          # Lockfiles for physical machine instances
+│   ├── LICENSE                      # CERN-OHL-S v2.0
 │   ├── README.md
 │   ├── example-baseline.toml        # Template for new builds
 │   └── serial-0042/
@@ -270,6 +287,43 @@ cnc-mill/
 └── doqs/                            # Separate tools repo, included as submodule
     └── ...
 ```
+
+`doqs/` and `graph/` have no directory `LICENSE` stubs — the tools submodule and generated graph are outside this content-type mapping.
+
+### Licensing
+
+Every Git repository (the machine repo, and each extracted module repo) uses a **content-type split**, not a single blanket licence:
+
+| Content | Directories | Licence |
+| --- | --- | --- |
+| Hardware | `cad/`, `architecture/`, `manufacturing/`, `bom/`, `builds/`, `modules/` | CERN-OHL-S v2.0 |
+| Firmware & software | `firmware/`, `software/`, `simulation/` | GPL-3.0 |
+| Media & documentation | `docs/`, `measurement/` | CC BY-SA 4.0 |
+
+Layout at each Git repository root:
+
+- `LICENSE` — overview mapping directories to licences
+- `LICENSES/` — full legal texts (`CERN-OHL-S-2.0.txt`, `GPL-3.0.txt`, `CC-BY-SA-4.0.txt`)
+- `TRADEMARKS.md` — organisation and project names/logos are reserved marks, not covered by the licences above
+- A short `LICENSE` pointer in each mapped first-level directory that exists
+- Root `okh.toml` `license = "CERN-OHL-S-2.0"` (OKH describes the hardware project; a comment points at the split)
+- `README.md` Licence section naming the three licences
+
+Embedded modules inherit via `modules/LICENSE`. When a module is extracted to its own GitHub repo, run the apply script at that repo root so it gets the full kit.
+
+Templates live in `doqs/templates/licensing/`. From the machine repository root:
+
+```powershell
+python doqs/scripts/apply_licenses.py           # write missing/outdated files
+python doqs/scripts/apply_licenses.py --check   # generated files only
+python doqs/scripts/validate_licenses.py        # generated files + README + okh.toml
+```
+
+`apply_licenses.py` does not rewrite `README.md` or `okh.toml`. Extra exclusion paragraphs in a directory `LICENSE` (for third-party vendor files) are allowed; validators check required phrases, not byte-for-byte identity.
+
+Organisation in `TRADEMARKS.md` comes from `okh.toml` `organisation` when set, otherwise `REFAQT`. Project name comes from `okh.toml` `name`.
+
+---
 
 ### Cross-Module SysML Imports
 
@@ -333,6 +387,7 @@ Module slugs, BOM part IDs, display-name lexicon, and version fields are defined
 
 - `doqs/scripts/check_names.py` — folder slugs, BOM `id` format (`PREFIX-NNN`), headers, model slugs, lexicon warnings
 - `doqs/scripts/validate_okh.py` — semver in `version` (no `v` prefix); optional `--expected-version` before tagging
+- `doqs/scripts/validate_licenses.py` — split-licence files at each Git repo root
 - `doqs/scripts/validate_all.py` — single command running all validation gates
 
 **Version surfaces:** `okh.toml` `version` is authoritative; Git tags use a `v` prefix; lockfiles pin `vX.Y.Z`; FreeCAD `Comment` points to `okh.toml` without per-release bumps; drawing title blocks get `Rev: X.Y.Z` at export. See ADR [2026-06-04_naming-and-versioning.md](decisions/2026-06-04_naming-and-versioning.md).
@@ -811,6 +866,8 @@ name = "CNC Milling Machine"
 repo = "https://github.com/refaqt/qarve"
 version = "0.1.0"
 release = "https://github.com/refaqt/qarve/releases/tag/v0.1.0"
+# Hardware licence (this manifest describes the hardware project).
+# Firmware/software is GPL-3.0; docs/media is CC BY-SA 4.0. See README.md / LICENSE.
 license = "CERN-OHL-S-2.0"
 licensor = ["Your Name"]
 organisation = "Your Organisation"
@@ -993,7 +1050,8 @@ if __name__ == "__main__":
 Related validators (documented in their own sections):
 
 - `doqs/scripts/check_names.py` — module slugs, BOM ids, model slugs, naming lexicon ([naming.md](naming.md)).
-- `doqs/scripts/validate_all.py` — runs `validate_okh`, `check_names`, `check_links`, and `validate_build` in sequence.
+- `doqs/scripts/validate_all.py` — runs `validate_okh`, `validate_licenses`, `check_names`, `check_links`, and `validate_build` in sequence.
+- `doqs/scripts/validate_licenses.py` — split-licence files (`LICENSE`, `LICENSES/`, `TRADEMARKS.md`, directory stubs). Use `apply_licenses.py` to write them.
 - `doqs/scripts/validate_build.py` — checks that lockfiles in `builds/` represent interface-consistent compositions.
 - `doqs/scripts/build_graph.py` — regenerates `graph/usage-graph.json` from all manifests and lockfiles (generator, not a gate).
 
@@ -1782,7 +1840,8 @@ The `graph/usage-graph.json` file is generated but **is** committed — it serve
 
 **Validation & commit:**
 
-- [ ] Run `doqs/scripts/validate_all.py` (or individually: `validate_okh.py`, `check_names.py`, `check_links.py`, `validate_build.py`)
+- [ ] If this is a new repo or a new first-level content directory, run `doqs/scripts/apply_licenses.py` and add a README Licence section
+- [ ] Run `doqs/scripts/validate_all.py` (or individually: `validate_okh.py`, `validate_licenses.py`, `check_names.py`, `check_links.py`, `validate_build.py`)
 - [ ] Before tagging: `doqs/scripts/validate_okh.py --expected-version X.Y.Z`
 - [ ] Run `doqs/scripts/build_graph.py` — regenerate `graph/usage-graph.json`
 - [ ] Commit with a conventional commit message

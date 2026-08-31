@@ -2,6 +2,8 @@ okhv = "OKH-LOSHv1.0"
 name = "Minimal Test Machine"
 repo = "https://example.com/minimal-machine"
 version = "0.1.0"
-license = "MIT"
+# Hardware licence (this manifest describes the hardware project).
+# Firmware/software is GPL-3.0; docs/media is CC BY-SA 4.0. See README.md / LICENSE.
+license = "CERN-OHL-S-2.0"
 licensor = "DOQS Tests"
 function = "Fixture machine for doqs validator tests"

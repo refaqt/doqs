@@ -5,6 +5,7 @@ import argparse
 from pathlib import Path
 import tomllib
 
+from license_rules import HARDWARE_LICENSE
 from naming_rules import OKH_VERSION, is_under_doqs_submodule, repo_root_from_script
 
 REQUIRED = ["okhv", "name", "repo", "version", "license", "licensor", "function"]
@@ -17,6 +18,12 @@ def validate(p: Path, *, expected_version: str | None = None) -> list[str]:
     for field in REQUIRED:
         if field not in data:
             errors.append(f"Missing: {field}")
+    license_val = data.get("license")
+    if license_val is not None and str(license_val) != HARDWARE_LICENSE:
+        errors.append(
+            f"license must be {HARDWARE_LICENSE!r} "
+            f"(hardware; see LICENSE for the split), got: {license_val!r}"
+        )
     version = data.get("version")
     if version is not None:
         if not OKH_VERSION.match(str(version)):

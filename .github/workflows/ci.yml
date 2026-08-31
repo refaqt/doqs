@@ -20,3 +20,5 @@ jobs:
         run: python scripts/check_names.py --root tests/fixtures/minimal-machine
       - name: OKH validate on fixture machine
         run: python scripts/validate_okh.py --root tests/fixtures/minimal-machine
+      - name: Licence layout on fixture machine
+        run: python scripts/validate_licenses.py --root tests/fixtures/minimal-machine
