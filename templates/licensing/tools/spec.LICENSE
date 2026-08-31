@@ -1,0 +1,10 @@
+This directory contains the OTRL ontology copied from
+[iop-alliance/OpenKnowHow](https://github.com/iop-alliance/OpenKnowHow).
+
+`otrl.ttl` is licensed under the GNU General Public License version 3.0 or
+later (GPL-3.0-or-later). See the SPDX header in the file.
+
+Full text of GPL-3.0: [`/LICENSES/GPL-3.0.txt`](../LICENSES/GPL-3.0.txt)
+
+See the repository root [`LICENSE`](../LICENSE) for the DOQS tools-repo
+licensing overview, and [`TRADEMARKS.md`](../TRADEMARKS.md) for reserved marks.

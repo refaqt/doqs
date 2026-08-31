@@ -20,6 +20,7 @@ Develop tools in `github.com/refaqt/doqs`, then bump the submodule pointer in ea
 |------|------|
 | `doqs/docs/architecture.md` | Non-trivial design, new modules, versioning, interfaces, builds, licensing |
 | `doqs/docs/architecture.md` (Licensing section) | Adding `LICENSE` / `LICENSES/` / `TRADEMARKS.md` to a machine or extracted-module repo |
+| `doqs/LICENSE` | Tools-repo licence split (GPL-3.0 software, CC BY-SA docs) — not the machine CERN-OHL-S kit |
 | `doqs/docs/architecture.md` (Simulation section) | Adding or interpreting design-time analysis under `simulation/` |
 | `doqs/docs/architecture.md` (Measurement section) | Physical test campaigns under `measurement/` |
 | `doqs/docs/architecture.md` (Software section) | Host-side applications under `software/` |

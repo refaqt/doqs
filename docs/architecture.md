@@ -292,7 +292,9 @@ cnc-mill/
 
 ### Licensing
 
-Every Git repository (the machine repo, and each extracted module repo) uses a **content-type split**, not a single blanket licence:
+The **DOQS tools repository** (`refaqt/doqs`) is not a machine repo. It uses GPL-3.0 for software (`scripts/`, `schemas/`, `tests/`) and CC BY-SA 4.0 for documentation (`docs/`, `templates/`, `data/`). `spec/otrl.ttl` remains GPL-3.0-or-later from IOP Alliance. See the `LICENSE` file in that repository. `apply_licenses.py --root <doqs>` detects the tools repo and writes that kit instead of the machine three-way split.
+
+**Machine and extracted-module repositories** use a **content-type split**, not a single blanket licence:
 
 | Content | Directories | Licence |
 | --- | --- | --- |
