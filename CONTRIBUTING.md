@@ -38,11 +38,11 @@ Commit updated `graph/usage-graph.json` with the change.
 |--------|---------|
 | `validate_all.py` | Runs all gates below in order |
 | `validate_okh.py` | Required OKH fields, `license = "CERN-OHL-S-2.0"`, file refs, semver `version` |
-| `validate_licenses.py` | Split-licence files, README Licence section, `TRADEMARKS.md` |
+| `validate_licenses.py` | Split-licence files, README Licence section, `TRADEMARKS.md` (machine kit or tools kit) |
 | `check_names.py` | Module slugs, BOM ids/headers, model slugs, lexicon |
 | `check_links.py` | SysML imports, OKH relative paths |
 | `validate_build.py` | Lockfile interface compatibility |
-| `apply_licenses.py` | Writes the licence kit (not a CI gate; `--check` reports generated files) |
+| `apply_licenses.py` | Writes the licence kit (not a CI gate; `--check` reports generated files; `--root .` on this repo writes the tools kit) |
 
 Optional flags: `--root PATH`, `--strict-lexicon`, `--expected-version X.Y.Z`.
 
@@ -71,6 +71,10 @@ python -m unittest discover -s tests -p "test_*.py"
 python scripts/check_names.py --root tests/fixtures/minimal-machine
 python scripts/validate_okh.py --root tests/fixtures/minimal-machine
 python scripts/validate_licenses.py --root tests/fixtures/minimal-machine
+python scripts/validate_licenses.py --root .
+python scripts/apply_licenses.py --check --root .
 ```
+
+The last two check the **tools-repo** kit (GPL-3.0 / CC BY-SA). Do not run the machine apply script against this repository without `--root` pointing at a machine fixture — `apply_licenses.py --root .` writes the tools kit, not CERN-OHL-S.
 
 CI runs the same checks on push and pull request.

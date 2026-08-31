@@ -1,0 +1,57 @@
+DOQS — Licence overview
+
+This repository is the Documentation System: validators, schemas, templates,
+and the canonical architecture specification. It is not a hardware machine
+repo.
+
+Each kind of content is licensed separately. Full legal texts are in
+[`LICENSES/`](LICENSES/); this file explains which licence applies where.
+
+Machine repositories that include this repo as a `doqs/` submodule use a
+different, three-way split (CERN-OHL-S hardware, GPL-3.0 firmware/software,
+CC BY-SA docs). That layout is documented in
+[`docs/architecture.md`](docs/architecture.md#licensing) and written by
+`scripts/apply_licenses.py`. Templates for those files live in
+[`templates/licensing/`](templates/licensing/).
+
+## Software — GPL-3.0
+
+Applies to: [`scripts/`](scripts/), [`schemas/`](schemas/), [`tests/`](tests/)
+(except the machine-repo fixture, see below), and other original source code
+in this repository.
+
+Full text: [`LICENSES/GPL-3.0.txt`](LICENSES/GPL-3.0.txt)
+
+## Documentation — CC BY-SA 4.0
+
+Applies to: [`docs/`](docs/), [`templates/`](templates/), [`data/`](data/),
+this file, README, CONTRIBUTING, and other project-authored documentation.
+
+Excluded: third-party material that is not authored by this project remains
+under its original copyright. In particular:
+
+- [`spec/otrl.ttl`](spec/otrl.ttl) is copied from
+  [iop-alliance/OpenKnowHow](https://github.com/iop-alliance/OpenKnowHow)
+  and is GPL-3.0-or-later (see the file header).
+- Legal texts under [`templates/licensing/LICENSES/`](templates/licensing/LICENSES/)
+  are the CERN-OHL-S v2.0, GPL-3.0, and CC BY-SA 4.0 documents themselves.
+
+Full text: [`LICENSES/CC-BY-SA-4.0.txt`](LICENSES/CC-BY-SA-4.0.txt)
+
+## Test fixture
+
+[`tests/fixtures/minimal-machine/`](tests/fixtures/minimal-machine/) is a
+miniature **machine** repository used by the validators. It uses the machine
+content-type split (CERN-OHL-S / GPL-3.0 / CC BY-SA), not the tools-repo
+mapping above.
+
+## Directory-level pointers
+
+Each top-level content directory also contains a short `LICENSE` file
+restating which of the above applies to that directory.
+
+## Trademarks
+
+The REFAQT name and logo, and the DOQS name and logo, are trademarks and are
+not covered by any of the licences above. See
+[`TRADEMARKS.md`](TRADEMARKS.md).

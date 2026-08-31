@@ -1,0 +1,11 @@
+Files in this directory are software, licensed under the
+GNU General Public License version 3.0 (GPL-3.0).
+
+Full text: [`/LICENSES/GPL-3.0.txt`](../LICENSES/GPL-3.0.txt)
+
+The fixture at [`fixtures/minimal-machine/`](fixtures/minimal-machine/) is a
+miniature machine repository and uses the machine content-type split
+(CERN-OHL-S / GPL-3.0 / CC BY-SA), not the tools-repo mapping.
+
+See the repository root [`LICENSE`](../LICENSE) for the full licensing
+overview, and [`TRADEMARKS.md`](../TRADEMARKS.md) for reserved marks.

@@ -1,9 +1,13 @@
-"""Split-licensing helpers for DOQS machine and extracted-module repos.
+"""Split-licensing helpers for DOQS machine, extracted-module, and tools repos.
 
-Canonical layout (per Git repository root): CERN-OHL-S-2.0 for hardware
+Machine / extracted-module Git roots: CERN-OHL-S-2.0 for hardware
 directories, GPL-3.0 for firmware/software/simulation, CC BY-SA 4.0 for
 docs/measurement, plus root LICENSE overview, LICENSES/ full texts, and
-TRADEMARKS.md. See docs/architecture.md (Licensing).
+TRADEMARKS.md.
+
+The DOQS tools repository itself uses GPL-3.0 for software and CC BY-SA 4.0
+for documentation (no CERN-OHL-S; there is no hardware here). See
+docs/architecture.md (Licensing).
 """
 from __future__ import annotations
 
@@ -48,7 +52,30 @@ STUB_MARKERS: dict[str, tuple[str, ...]] = {
     "hardware": ("CERN-OHL-S", "LICENSES"),
     "software": ("GPL-3.0", "LICENSES"),
     "media": ("CC BY-SA", "LICENSES"),
+    "upstream": ("OpenKnowHow", "GPL-3.0"),
 }
+
+# Tools-repo (refaqt/doqs) mapping — not a machine repo.
+TOOLS_PROJECT_NAME = "DOQS"
+TOOLS_DIR_KIND: dict[str, str] = {
+    "scripts": "software",
+    "schemas": "software",
+    "tests": "software",
+    "docs": "media",
+    "templates": "media",
+    "data": "media",
+    "spec": "upstream",
+}
+TOOLS_FULL_TEXT_FILES: dict[str, tuple[str, ...]] = {
+    "GPL-3.0.txt": FULL_TEXT_FILES["GPL-3.0.txt"],
+    "CC-BY-SA-4.0.txt": FULL_TEXT_FILES["CC-BY-SA-4.0.txt"],
+}
+TOOLS_ROOT_LICENSE_MARKERS = (
+    "GPL-3.0",
+    "CC BY-SA",
+    "TRADEMARKS.md",
+    "LICENSES",
+)
 
 _GITMODULE_PATH = re.compile(r"^\s*path\s*=\s*(.+)$")
 _README_HEADING = re.compile(r"(?im)^#{1,6}\s+licen[cs]e\b")
@@ -107,7 +134,28 @@ def expected_trademarks(project_name: str, organisation: str) -> str:
 
 
 def expected_stub(kind: str) -> str:
+    if kind == "upstream":
+        return read_template("tools/spec.LICENSE")
     return read_template(f"dir/{kind}.LICENSE")
+
+
+def expected_tools_root_license() -> str:
+    return read_template("tools/LICENSE")
+
+
+def expected_tools_trademarks() -> str:
+    return read_template("tools/TRADEMARKS.md")
+
+
+def expected_tools_readme_section() -> str:
+    return read_template("tools/README-licence-section.md")
+
+
+def is_doqs_tools_repo(root: Path) -> bool:
+    """True if root is the DOQS tools/spec repository, not a machine repo."""
+    return (root / "scripts" / "license_rules.py").is_file() and (
+        root / "templates" / "licensing"
+    ).is_dir()
 
 
 def expected_readme_section(project_name: str, organisation: str) -> str:
@@ -283,6 +331,146 @@ def _write_if_needed(
         content += "\n"
     path.write_text(content, encoding="utf-8")
     return f"wrote {path}"
+
+
+def mapped_tools_dirs(root: Path) -> list[tuple[Path, str]]:
+    """Existing first-level directories that need a tools-repo LICENSE stub."""
+    found: list[tuple[Path, str]] = []
+    for name, kind in TOOLS_DIR_KIND.items():
+        d = root / name
+        if d.is_dir():
+            found.append((d, kind))
+    return found
+
+
+def check_tools_generated_files(root: Path) -> list[str]:
+    """Errors for the DOQS tools-repo licence kit."""
+    errors: list[str] = []
+    if not _file_ok(root / "LICENSE", TOOLS_ROOT_LICENSE_MARKERS):
+        errors.append(
+            "LICENSE missing or incomplete (must name GPL-3.0, CC BY-SA, "
+            "TRADEMARKS.md, and LICENSES/)"
+        )
+    if not _file_ok(root / "TRADEMARKS.md", ("trademark", TOOLS_PROJECT_NAME)):
+        errors.append(
+            f"TRADEMARKS.md missing or incomplete (must mention "
+            f"{TOOLS_PROJECT_NAME!r} and trademarks)"
+        )
+    licenses_dir = root / "LICENSES"
+    if not licenses_dir.is_dir():
+        errors.append("LICENSES/ directory missing")
+    else:
+        for filename, markers in TOOLS_FULL_TEXT_FILES.items():
+            path = licenses_dir / filename
+            if not _file_ok(path, markers):
+                errors.append(
+                    f"LICENSES/{filename} missing or is not the expected licence text"
+                )
+        if (licenses_dir / "CERN-OHL-S-2.0.txt").is_file():
+            errors.append(
+                "LICENSES/CERN-OHL-S-2.0.txt must not be at the tools-repo root "
+                "(machine-repo texts live in templates/licensing/LICENSES/)"
+            )
+    for directory, kind in mapped_tools_dirs(root):
+        stub = directory / "LICENSE"
+        if not _file_ok(stub, STUB_MARKERS[kind]):
+            rel = directory.relative_to(root)
+            errors.append(
+                f"{rel}/LICENSE missing or does not declare the {kind} licence"
+            )
+    return errors
+
+
+def check_tools_readme(root: Path) -> list[str]:
+    path = root / "README.md"
+    if not path.is_file():
+        return ["README.md missing (needs a Licence section)"]
+    text = path.read_text(encoding="utf-8")
+    if not _README_HEADING.search(text):
+        return ["README.md has no Licence/License heading"]
+    lowered = text.lower()
+    names_ok = all(token in lowered for token in ("gpl-3.0", "cc by-sa"))
+    if names_ok or _README_LICENSE_LINK.search(text):
+        return []
+    return [
+        "README.md Licence section must name GPL-3.0 and CC BY-SA, "
+        "or link to LICENSE"
+    ]
+
+
+def check_tools_repo(root: Path) -> list[str]:
+    """All licence-layout errors for the DOQS tools repository."""
+    return check_tools_generated_files(root) + check_tools_readme(root)
+
+
+def advice_tools_messages(root: Path) -> list[str]:
+    notes: list[str] = []
+    if check_tools_readme(root):
+        notes.append(
+            "Add this Licence section to README.md:\n"
+            + expected_tools_readme_section()
+        )
+    return notes
+
+
+def apply_tools_repo(root: Path) -> list[str]:
+    """Write missing/invalid tools-repo licence files. Returns action messages."""
+    actions: list[str] = []
+    wrote = _write_if_needed(
+        root / "LICENSE",
+        expected_tools_root_license(),
+        TOOLS_ROOT_LICENSE_MARKERS,
+    )
+    if wrote:
+        actions.append(wrote)
+    wrote = _write_if_needed(
+        root / "TRADEMARKS.md",
+        expected_tools_trademarks(),
+        ("trademark", TOOLS_PROJECT_NAME),
+    )
+    if wrote:
+        actions.append(wrote)
+    for filename, markers in TOOLS_FULL_TEXT_FILES.items():
+        dest = root / "LICENSES" / filename
+        source = TEMPLATES_DIR / "LICENSES" / filename
+        wrote = _write_if_needed(
+            dest, source.read_text(encoding="utf-8"), markers
+        )
+        if wrote:
+            actions.append(wrote)
+    for directory, kind in mapped_tools_dirs(root):
+        wrote = _write_if_needed(
+            directory / "LICENSE",
+            expected_stub(kind),
+            STUB_MARKERS[kind],
+        )
+        if wrote:
+            actions.append(wrote)
+    return actions
+
+
+def check_any_repo(root: Path) -> list[str]:
+    if is_doqs_tools_repo(root):
+        return check_tools_repo(root)
+    return check_repo(root)
+
+
+def check_any_generated_files(root: Path) -> list[str]:
+    if is_doqs_tools_repo(root):
+        return check_tools_generated_files(root)
+    return check_generated_files(root)
+
+
+def apply_any_repo(root: Path) -> list[str]:
+    if is_doqs_tools_repo(root):
+        return apply_tools_repo(root)
+    return apply_repo(root)
+
+
+def advice_any_messages(root: Path) -> list[str]:
+    if is_doqs_tools_repo(root):
+        return advice_tools_messages(root)
+    return advice_messages(root)
 
 
 def apply_repo(root: Path) -> list[str]:

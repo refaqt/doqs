@@ -13,7 +13,14 @@ _SCRIPTS = _REPO / "scripts"
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
-from license_rules import HARDWARE_LICENSE, apply_repo, check_repo  # noqa: E402
+from license_rules import (  # noqa: E402
+    HARDWARE_LICENSE,
+    apply_repo,
+    apply_tools_repo,
+    check_repo,
+    check_tools_repo,
+    is_doqs_tools_repo,
+)
 
 _FIXTURE = _REPO / "tests" / "fixtures" / "minimal-machine"
 
@@ -163,6 +170,77 @@ class TestLicenseApplyAndCheck(unittest.TestCase):
         validate = self._run("validate_licenses.py")
         self.assertEqual(validate.returncode, 0, validate.stdout + validate.stderr)
         self.assertIn("modules/spindle", validate.stdout)
+
+
+class TestToolsRepoLicense(unittest.TestCase):
+    def test_doqs_root_is_tools_repo(self):
+        self.assertTrue(is_doqs_tools_repo(_REPO))
+        self.assertFalse(is_doqs_tools_repo(_FIXTURE))
+
+    def test_validate_licenses_tools_root(self):
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(_SCRIPTS / "validate_licenses.py"),
+                "--root",
+                str(_REPO),
+            ],
+            capture_output=True,
+            text=True,
+            cwd=_REPO,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("tools", result.stdout)
+
+    def test_apply_check_tools_root(self):
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(_SCRIPTS / "apply_licenses.py"),
+                "--check",
+                "--root",
+                str(_REPO),
+            ],
+            capture_output=True,
+            text=True,
+            cwd=_REPO,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("tools", result.stdout)
+
+    def test_apply_tools_repo_does_not_write_cern_ohl(self):
+        tmp = Path(tempfile.mkdtemp(prefix="doqs-tools-lic-"))
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        root = tmp / "doqs"
+        shutil.copytree(
+            _REPO, root, ignore=shutil.ignore_patterns(".git", "__pycache__")
+        )
+        (root / "LICENSE").unlink()
+        (root / "TRADEMARKS.md").unlink()
+        shutil.rmtree(root / "LICENSES")
+        for rel in (
+            "scripts/LICENSE",
+            "schemas/LICENSE",
+            "tests/LICENSE",
+            "docs/LICENSE",
+            "data/LICENSE",
+            "templates/LICENSE",
+            "spec/LICENSE",
+        ):
+            (root / rel).unlink()
+
+        self.assertTrue(is_doqs_tools_repo(root))
+        actions = apply_tools_repo(root)
+        self.assertTrue(actions)
+        errors = check_tools_repo(root)
+        self.assertEqual(errors, [])
+        self.assertTrue((root / "LICENSES" / "GPL-3.0.txt").is_file())
+        self.assertTrue((root / "LICENSES" / "CC-BY-SA-4.0.txt").is_file())
+        self.assertFalse((root / "LICENSES" / "CERN-OHL-S-2.0.txt").exists())
+        overview = (root / "LICENSE").read_text(encoding="utf-8")
+        self.assertIn("GPL-3.0", overview)
+        self.assertIn("CC BY-SA", overview)
+        self.assertIn("not a hardware machine", overview.lower())
 
 
 if __name__ == "__main__":

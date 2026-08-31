@@ -38,18 +38,30 @@ Agent **setup and skills** (logging, FreeCAD debugging, DOQS naming): [refaqt/re
 
 ```
 doqs/
-  docs/           # Canonical specifications
-  scripts/        # Validators and generators (run from machine repo root)
-  data/           # Machine-readable lexicon for validators
+  LICENSE         # overview: GPL-3.0 software, CC BY-SA docs
+  TRADEMARKS.md
+  LICENSES/       # GPL-3.0.txt, CC-BY-SA-4.0.txt
+  docs/           # Canonical specifications (CC BY-SA 4.0)
+  scripts/        # Validators and generators (GPL-3.0)
+  data/           # Machine-readable lexicon (CC BY-SA 4.0)
   templates/      # OKH fragments, measurement templates, split-licence kit
-  schemas/        # JSON Schema for lockfiles, firmware config
-  spec/otrl.ttl   # Source ontology (IOP Alliance Open Know-How)
+  schemas/        # JSON Schema for lockfiles, firmware config (GPL-3.0)
+  spec/otrl.ttl   # Source ontology (IOP Alliance, GPL-3.0-or-later)
 ```
 
 ## Licence
 
-Tooling and docs in this repository: follow the repository licence you choose for `refaqt/doqs`.
+This tools repository uses different licences for different kinds of content:
+
+- **Software** (`scripts/`, `schemas/`, `tests/`) —
+  [GPL-3.0](LICENSES/GPL-3.0.txt)
+- **Documentation** (`docs/`, `templates/`, `data/`) —
+  [CC BY-SA 4.0](LICENSES/CC-BY-SA-4.0.txt)
+
+`spec/otrl.ttl` is GPL-3.0-or-later from [iop-alliance/OpenKnowHow](https://github.com/iop-alliance/OpenKnowHow).
 
 Machine repos that include this submodule use a **content-type split** (CERN-OHL-S hardware, GPL-3.0 firmware/software, CC BY-SA docs). See [docs/architecture.md](docs/architecture.md#licensing) and `python doqs/scripts/apply_licenses.py`.
 
-`spec/otrl.ttl` is copied from [iop-alliance/OpenKnowHow](https://github.com/iop-alliance/OpenKnowHow) (GPL-3.0-or-later) — see file header.
+The REFAQT name and logo, and the DOQS name and logo, are trademarks and are not covered by the above — see [TRADEMARKS.md](TRADEMARKS.md).
+
+See [LICENSE](LICENSE) for the full overview and directory mapping.

@@ -22,3 +22,5 @@ jobs:
         run: python scripts/validate_okh.py --root tests/fixtures/minimal-machine
       - name: Licence layout on fixture machine
         run: python scripts/validate_licenses.py --root tests/fixtures/minimal-machine
+      - name: Licence layout on doqs tools repo
+        run: python scripts/validate_licenses.py --root .
