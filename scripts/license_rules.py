@@ -168,8 +168,16 @@ def expected_okh_comment() -> str:
     return read_template("okh-license-comment.toml")
 
 
+# Tooling submodules that are not extracted machine modules.
+_TOOLING_SUBMODULE_NAMES = frozenset({"doqs", ".agents"})
+
+
 def iter_submodule_paths(root: Path) -> list[Path]:
-    """Submodule working trees under root, excluding the doqs/ tools submodule."""
+    """Extracted-module submodule working trees under root.
+
+    Skips tooling submodules (`doqs/`, `.agents/`) and any listed path that
+    has no `okh.toml` (not a machine or module Git root).
+    """
     gitmodules = root / ".gitmodules"
     if not gitmodules.is_file():
         return []
@@ -184,15 +192,15 @@ def iter_submodule_paths(root: Path) -> list[Path]:
             parts = child.relative_to(root.resolve()).parts
         except ValueError:
             continue
-        if "doqs" in parts:
+        if any(part in _TOOLING_SUBMODULE_NAMES for part in parts):
             continue
-        if child.is_dir():
+        if child.is_dir() and (child / "okh.toml").is_file():
             paths.append(child)
     return paths
 
 
 def iter_repo_roots(root: Path) -> list[Path]:
-    """root plus extracted-module submodule roots (not doqs/)."""
+    """root plus extracted-module submodule roots (not doqs/ or .agents/)."""
     roots = [root.resolve()]
     for sub in iter_submodule_paths(root):
         roots.extend(iter_repo_roots(sub))
