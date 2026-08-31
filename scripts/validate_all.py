@@ -8,6 +8,7 @@ from pathlib import Path
 
 SCRIPTS = (
     "validate_okh.py",
+    "validate_licenses.py",
     "check_names.py",
     "check_links.py",
     "validate_build.py",

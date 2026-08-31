@@ -6,10 +6,16 @@ DOQS is the **tools and specification** repository. Machine design work happens 
 
 1. Clone with submodules: `git clone --recurse-submodules …`
 2. Work from the **machine repository root** (parent of `doqs/`).
-3. After OKH, BOM, or path changes, run:
+3. After OKH, BOM, path, or licence-file changes, run:
 
 ```powershell
 python doqs/scripts/validate_all.py
+```
+
+To create or refresh split-licence files (`LICENSE`, `LICENSES/`, `TRADEMARKS.md`, directory stubs):
+
+```powershell
+python doqs/scripts/apply_licenses.py
 ```
 
 4. Before a release tag, confirm manifest versions:
@@ -31,10 +37,12 @@ Commit updated `graph/usage-graph.json` with the change.
 | Script | Purpose |
 |--------|---------|
 | `validate_all.py` | Runs all gates below in order |
-| `validate_okh.py` | Required OKH fields, file refs, semver `version` |
+| `validate_okh.py` | Required OKH fields, `license = "CERN-OHL-S-2.0"`, file refs, semver `version` |
+| `validate_licenses.py` | Split-licence files, README Licence section, `TRADEMARKS.md` |
 | `check_names.py` | Module slugs, BOM ids/headers, model slugs, lexicon |
 | `check_links.py` | SysML imports, OKH relative paths |
 | `validate_build.py` | Lockfile interface compatibility |
+| `apply_licenses.py` | Writes the licence kit (not a CI gate; `--check` reports generated files) |
 
 Optional flags: `--root PATH`, `--strict-lexicon`, `--expected-version X.Y.Z`.
 
@@ -46,7 +54,8 @@ See [docs/naming.md](docs/naming.md) and [docs/naming-lexicon.md](docs/naming-le
 
 1. Commit and push changes in **doqs**.
 2. In the machine repo: `git submodule update --remote doqs` (or pin a specific commit).
-3. Commit the submodule pointer on the machine repo.
+3. Run `python doqs/scripts/apply_licenses.py` so the split-licence files match the current spec, then `python doqs/scripts/validate_all.py`.
+4. Commit the submodule pointer (and any generated licence files) on the machine repo.
 
 See [docs/agent-guide.md](docs/agent-guide.md) for validation commands and agent spec pointers.
 
@@ -60,6 +69,8 @@ From this repository root:
 python -m compileall scripts
 python -m unittest discover -s tests -p "test_*.py"
 python scripts/check_names.py --root tests/fixtures/minimal-machine
+python scripts/validate_okh.py --root tests/fixtures/minimal-machine
+python scripts/validate_licenses.py --root tests/fixtures/minimal-machine
 ```
 
 CI runs the same checks on push and pull request.

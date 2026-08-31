@@ -1,0 +1,43 @@
+{{PROJECT_NAME}} — Licence overview
+
+This repository contains hardware designs, firmware/software, and media/
+documentation. Each is licensed separately, under the licence conventionally
+used for that kind of work. The full legal text of each licence is in
+[`LICENSES/`](LICENSES/); this file explains which licence applies where.
+
+## Hardware — CERN-OHL-S v2.0
+
+Applies to: [`cad/`](cad/), [`architecture/`](architecture/),
+[`manufacturing/`](manufacturing/), [`bom/`](bom/), [`builds/`](builds/),
+[`modules/`](modules/), and any other mechanical/electrical design files,
+schematics, CAD models, and manufacturing drawings in this repository.
+
+Full text: [`LICENSES/CERN-OHL-S-2.0.txt`](LICENSES/CERN-OHL-S-2.0.txt)
+
+## Firmware & software — GPL-3.0
+
+Applies to: [`firmware/`](firmware/), [`software/`](software/),
+[`simulation/`](simulation/), and any other source code in this repository.
+
+Full text: [`LICENSES/GPL-3.0.txt`](LICENSES/GPL-3.0.txt)
+
+## Media & documentation — CC BY-SA 4.0
+
+Applies to: [`docs/`](docs/), [`measurement/`](measurement/), this file, and
+other project-authored text, images, drawings, and documentation.
+
+Excluded: third-party material that is not authored by this project remains
+under its original copyright and is not covered by this licence.
+
+Full text: [`LICENSES/CC-BY-SA-4.0.txt`](LICENSES/CC-BY-SA-4.0.txt)
+
+## Directory-level pointers
+
+Each top-level directory listed above also contains its own short `LICENSE`
+file restating which of the above applies to that directory.
+
+## Trademarks
+
+The {{ORGANISATION}} name and logo, and the {{PROJECT_NAME}} name and logo, are
+trademarks and are not covered by any of the licences above. See
+[`TRADEMARKS.md`](TRADEMARKS.md).

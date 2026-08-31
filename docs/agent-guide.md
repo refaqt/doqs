@@ -18,7 +18,8 @@ Develop tools in `github.com/refaqt/doqs`, then bump the submodule pointer in ea
 
 | File | When |
 |------|------|
-| `doqs/docs/architecture.md` | Non-trivial design, new modules, versioning, interfaces, builds |
+| `doqs/docs/architecture.md` | Non-trivial design, new modules, versioning, interfaces, builds, licensing |
+| `doqs/docs/architecture.md` (Licensing section) | Adding `LICENSE` / `LICENSES/` / `TRADEMARKS.md` to a machine or extracted-module repo |
 | `doqs/docs/architecture.md` (Simulation section) | Adding or interpreting design-time analysis under `simulation/` |
 | `doqs/docs/architecture.md` (Measurement section) | Physical test campaigns under `measurement/` |
 | `doqs/docs/architecture.md` (Software section) | Host-side applications under `software/` |
@@ -49,6 +50,14 @@ From the **machine repository root** after OKH, BOM, or path changes:
 ```powershell
 python doqs/scripts/validate_all.py
 ```
+
+For a new repo, or after adding a first-level content directory (`cad/`, `firmware/`, …):
+
+```powershell
+python doqs/scripts/apply_licenses.py
+```
+
+`validate_all.py` runs, in order: `validate_okh.py`, `validate_licenses.py`, `check_names.py`, `check_links.py`, `validate_build.py`.
 
 Before tagging:
 
