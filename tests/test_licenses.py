@@ -150,13 +150,18 @@ class TestLicenseApplyAndCheck(unittest.TestCase):
         )
         doqs = self.root / "doqs"
         doqs.mkdir()
+        agents = self.root / ".agents"
+        agents.mkdir()
         (self.root / ".gitmodules").write_text(
             "[submodule \"modules/spindle\"]\n"
             "\tpath = modules/spindle\n"
             "\turl = https://example.com/spindle.git\n"
             "[submodule \"doqs\"]\n"
             "\tpath = doqs\n"
-            "\turl = https://github.com/refaqt/doqs.git\n",
+            "\turl = https://github.com/refaqt/doqs.git\n"
+            "[submodule \".agents\"]\n"
+            "\tpath = .agents\n"
+            "\turl = https://github.com/refaqt/refaqt-agents.git\n",
             encoding="utf-8",
         )
 
@@ -166,6 +171,7 @@ class TestLicenseApplyAndCheck(unittest.TestCase):
         self.assertTrue((extracted / "cad" / "LICENSE").is_file())
         self.assertTrue((extracted / "LICENSES" / "GPL-3.0.txt").is_file())
         self.assertFalse((doqs / "LICENSE").exists())
+        self.assertFalse((agents / "LICENSE").exists())
 
         validate = self._run("validate_licenses.py")
         self.assertEqual(validate.returncode, 0, validate.stdout + validate.stderr)

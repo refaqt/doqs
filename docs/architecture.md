@@ -311,7 +311,7 @@ Layout at each Git repository root:
 - Root `okh.toml` `license = "CERN-OHL-S-2.0"` (OKH describes the hardware project; a comment points at the split)
 - `README.md` Licence section naming the three licences
 
-Embedded modules inherit via `modules/LICENSE`. When a module is extracted to its own GitHub repo, run the apply script at that repo root so it gets the full kit.
+Embedded modules inherit via `modules/LICENSE`. When a module is extracted to its own GitHub repo, run the apply script at that repo root so it gets the full kit. Tooling submodules (`doqs/`, `.agents/`) are not scanned as machine roots.
 
 Templates live in `doqs/templates/licensing/`. From the machine repository root:
 
