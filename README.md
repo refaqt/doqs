@@ -6,10 +6,12 @@ Machine repositories (e.g. [qarve](https://github.com/refaqt/qarve)) include thi
 
 ## Use in a machine repo
 
-Clone with submodules:
+Clone with submodules, then from the **machine repository root** run `bash setup-tooling.sh` (agents, any OS) so `doqs/` and `.agents/` track latest `main`. Humans on Windows may double-click `setup-tooling.bat`. Copy those helpers from [`templates/setup-tooling/`](templates/setup-tooling/) to the consumer root (copy-once; do not run them from this templates folder). CI may still check out the recorded pin.
 
 ```powershell
 git clone --recurse-submodules https://github.com/refaqt/qarve.git
+cd qarve
+bash setup-tooling.sh
 ```
 
 Run scripts from the **machine repository root** (parent of this folder):
@@ -44,7 +46,8 @@ doqs/
   docs/           # Canonical specifications (CC BY-SA 4.0)
   scripts/        # Validators and generators (GPL-3.0)
   data/           # Machine-readable lexicon (CC BY-SA 4.0)
-  templates/      # OKH fragments, measurement templates, split-licence kit
+  templates/      # OKH fragments, measurement templates, split-licence kit,
+                  # setup-tooling/ (copy-once helpers for consumer repo roots)
   schemas/        # JSON Schema for lockfiles, firmware config (GPL-3.0)
   spec/otrl.ttl   # Source ontology (IOP Alliance, GPL-3.0-or-later)
 ```

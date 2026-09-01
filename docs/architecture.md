@@ -1745,7 +1745,19 @@ git push origin release/v1.x v1.7.4
 - New features
 - Anything that would change the geometry exported in `cad/exports/`
 
+### Tooling submodules (`doqs/`, `.agents/`)
+
+Machine repos mount this tools repo at `doqs/` and [refaqt-agents](https://github.com/refaqt/refaqt-agents) at `.agents/`. Those are **tooling** submodules, not extracted machine modules.
+
+Copy the helpers from [`templates/setup-tooling/`](../templates/setup-tooling/) to the **consumer repo root** (copy-once; doqs scripts do not write consumer-root files). After clone, agents run `bash setup-tooling.sh` from that root; humans on Windows may double-click `setup-tooling.bat`. The helpers run `git submodule sync --recursive` then `git submodule update --init --recursive --remote` so the working tree tracks `main`. Set `branch = main` only on tooling submodules.
+
+The committed gitlink remains a pin. Do not commit dirty gitlinks after `--remote` unless freezing a pin. CI may still check out the recorded pin (`submodules: recursive`, not `--remote`).
+
+`AGENTS.md` first-step wording lives in [refaqt-agents templates](https://github.com/refaqt/refaqt-agents/blob/main/templates/AGENTS.md), not in this repository.
+
 ### Working with Git Submodules
+
+Extracted **machine-module** submodules (for example `modules/x-axis`) stay SHA-pinned. Bump the pointer when you adopt a new module version:
 
 ```bash
 # Clone with all submodules
