@@ -5,8 +5,9 @@ DOQS is the **tools and specification** repository. Machine design work happens 
 ## Machine repo workflow
 
 1. Clone with submodules: `git clone --recurse-submodules …`
-2. Work from the **machine repository root** (parent of `doqs/`).
-3. After OKH, BOM, path, or licence-file changes, run:
+2. From the **machine repository root** (parent of `doqs/`), run `bash setup-tooling.sh` (agents, any OS) so `doqs/` and `.agents/` track latest `main`. Humans on Windows may double-click `setup-tooling.bat`. Copy those helpers from [`templates/setup-tooling/`](templates/setup-tooling/) if the consumer root does not have them yet. Do not run them from the templates folder.
+3. Work from the **machine repository root** (parent of `doqs/`).
+4. After OKH, BOM, path, or licence-file changes, run:
 
 ```powershell
 python doqs/scripts/validate_all.py
@@ -18,13 +19,13 @@ To create or refresh split-licence files (`LICENSE`, `LICENSES/`, `TRADEMARKS.md
 python doqs/scripts/apply_licenses.py
 ```
 
-4. Before a release tag, confirm manifest versions:
+5. Before a release tag, confirm manifest versions:
 
 ```powershell
 python doqs/scripts/validate_okh.py --expected-version X.Y.Z
 ```
 
-5. Regenerate the usage graph when composition changes (not part of `validate_all`):
+6. Regenerate the usage graph when composition changes (not part of `validate_all`):
 
 ```powershell
 python doqs/scripts/build_graph.py
@@ -52,14 +53,22 @@ See [docs/naming.md](docs/naming.md) and [docs/naming-lexicon.md](docs/naming-le
 
 ## Updating the doqs submodule in a machine repo
 
+Daily use: run `bash setup-tooling.sh` from the machine repo root (working tree tracks `main`; do not commit the dirty gitlink).
+
+To **freeze a pin** (optional, not daily workflow):
+
 1. Commit and push changes in **doqs**.
-2. In the machine repo: `git submodule update --remote doqs` (or pin a specific commit).
+2. In the machine repo, run the helper or `git submodule update --remote doqs`, then commit the submodule pointer (or pin a specific commit).
 3. Run `python doqs/scripts/apply_licenses.py` so the split-licence files match the current spec, then `python doqs/scripts/validate_all.py`.
-4. Commit the submodule pointer (and any generated licence files) on the machine repo.
+4. Commit any generated licence files on the machine repo.
 
 See [docs/agent-guide.md](docs/agent-guide.md) for validation commands and agent spec pointers.
 
 When bumping doqs after the agent-instructions restructure, also bump the **refaqt-agents** submodule (`.agents/`) and retarget any skill symlinks from `doqs/skills/` to `.agents/skills/` (`freecad`, `doqs-naming`).
+
+## Branching
+
+Every task that changes the repo must start on a **new git branch** off `main`, unless the user explicitly says otherwise. Do not land task work as commits directly on `main`.
 
 ## Developing doqs itself
 

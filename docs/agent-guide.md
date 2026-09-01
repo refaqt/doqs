@@ -6,13 +6,15 @@ This document lists **what to read from the `doqs/` submodule** when doing struc
 
 ## Submodule
 
-Machine repos include DOQS as a Git submodule at `doqs/`. Without it, validators and templates are unavailable:
+Machine repos include DOQS as a Git submodule at `doqs/`. Without it, validators and templates are unavailable. From the **consumer repo root** (not from `doqs/templates/setup-tooling/`):
 
-```powershell
-git submodule update --init --recursive
+```bash
+bash setup-tooling.sh
 ```
 
-Develop tools in `github.com/refaqt/doqs`, then bump the submodule pointer in each machine repo.
+That helper is a copy-once file at the consumer root (see [`templates/setup-tooling/`](../templates/setup-tooling/)). Humans on Windows may double-click `setup-tooling.bat` instead. Agents must not run the `.bat`.
+
+Develop tools in `github.com/refaqt/doqs`. Daily work uses the helper (latest `main` in the working tree). Commit the submodule pointer only when freezing a pin. CI may still check out the recorded pin.
 
 ## Spec files to read
 
