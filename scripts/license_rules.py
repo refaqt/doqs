@@ -61,6 +61,7 @@ TOOLS_DIR_KIND: dict[str, str] = {
     "scripts": "software",
     "schemas": "software",
     "tests": "software",
+    "tools": "software",
     "docs": "media",
     "templates": "media",
     "data": "media",

@@ -33,6 +33,12 @@ python doqs/scripts/build_graph.py
 
 Commit updated `graph/usage-graph.json` with the change.
 
+Graphical SysML editing uses SysON in Docker; from the machine repo root see [docs/syson.md](docs/syson.md). Humans double-click `syson.bat`. Agents:
+
+```powershell
+python doqs/scripts/syson.py ui
+```
+
 ## PR validation gates
 
 | Script | Purpose |

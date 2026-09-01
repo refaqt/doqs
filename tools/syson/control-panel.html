@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SysON control panel</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --fg: #1a1a1a;
+      --muted: #444;
+      --border: #ccc;
+      --bg: #fafafa;
+      --btn: #3d2b6b;
+      --btn-text: #fff;
+      --danger: #8b1a1a;
+    }
+    body {
+      font-family: Segoe UI, system-ui, sans-serif;
+      line-height: 1.45;
+      max-width: 52rem;
+      margin: 1.5rem auto;
+      padding: 0 1rem 2rem;
+      color: var(--fg);
+      background: var(--bg);
+    }
+    h1 { font-size: 1.35rem; margin: 0 0 0.35rem; }
+    .meta { color: var(--muted); margin-bottom: 1.25rem; }
+    .note {
+      border: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.25rem;
+      background: #fff;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 8.5rem 1fr;
+      gap: 0.75rem 1rem;
+      align-items: start;
+      padding: 0.9rem 0;
+      border-top: 1px solid var(--border);
+    }
+    button {
+      font: inherit;
+      font-weight: 600;
+      padding: 0.45rem 0.7rem;
+      background: var(--btn);
+      color: var(--btn-text);
+      border: 0;
+      cursor: pointer;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    button.danger { background: var(--danger); }
+    .explain { color: var(--muted); font-size: 0.95rem; }
+    #log {
+      width: 100%;
+      min-height: 12rem;
+      box-sizing: border-box;
+      font-family: Consolas, ui-monospace, monospace;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+      background: #fff;
+      border: 1px solid var(--border);
+      padding: 0.75rem;
+    }
+    h2 { font-size: 1.05rem; margin: 1.5rem 0 0.5rem; }
+    a { color: var(--btn); }
+  </style>
+</head>
+<body>
+  <h1>SysON control panel</h1>
+  <p class="meta" id="meta">Loading repository…</p>
+  <p class="note">
+    This page is <strong>not</strong> the SysON editor. Use the buttons here to
+    start, save, and stop. <strong>Open</strong> then opens the graphical editor
+    in another tab (<code>localhost:8080</code>). Close the small console window
+    that appeared when you double-clicked <code>syson.bat</code> to quit this panel.
+  </p>
+
+  <div class="row">
+    <button type="button" data-command="open">Open</button>
+    <p class="explain">
+      Starts Docker/SysON if needed, creates this repo’s project if it is missing,
+      imports <code>architecture/*.sysml</code>, and opens the graphical editor.
+      Later clicks keep diagrams already in SysON. The first run can take several
+      minutes while images download. Docker Desktop must already be running.
+    </p>
+  </div>
+  <div class="row">
+    <button type="button" data-command="save">Save</button>
+    <p class="explain">
+      Writes SysON models back over <code>architecture/*.sysml</code> so you can
+      review them in git. Do <strong>not</strong> use SysON’s homepage
+      <strong>Download</strong> — that zip is JSON, not SysML. After Save, look
+      at <code>git diff</code>: comments and types like <code>: Real</code> may change.
+    </p>
+  </div>
+  <div class="row">
+    <button type="button" class="danger" data-command="reload" data-confirm="This deletes diagrams in SysON">Reload</button>
+    <p class="explain">
+      Deletes this repo’s SysON project and re-imports from git.
+      <strong>Diagrams are lost.</strong> Use only when the files on disk should
+      replace what is currently in SysON.
+    </p>
+  </div>
+  <div class="row">
+    <button type="button" data-command="stop">Stop</button>
+    <p class="explain">
+      Stops the SysON Docker containers. Diagrams stay in the local Docker volume
+      and come back the next time you Open.
+    </p>
+  </div>
+  <div class="row">
+    <button type="button" data-command="status">Status</button>
+    <p class="explain">
+      Shows whether Docker is running, which <code>.sysml</code> files were found,
+      and which SysON projects exist.
+    </p>
+  </div>
+
+  <h2>Log</h2>
+  <pre id="log">Ready. Click a button above.</pre>
+
+  <script>
+    const logEl = document.getElementById("log");
+    const buttons = [...document.querySelectorAll("button[data-command]")];
+
+    function setBusy(busy) {
+      buttons.forEach((b) => { b.disabled = busy; });
+    }
+
+    async function loadMeta() {
+      const res = await fetch("/api/meta");
+      const data = await res.json();
+      document.getElementById("meta").textContent =
+        "Repository folder: " + data.folder + "  ·  SysON project: " + data.project;
+    }
+
+    async function run(command) {
+      setBusy(true);
+      logEl.textContent = "Running “" + command + "”…\n";
+      try {
+        const res = await fetch("/run/" + command, {
+          method: "POST",
+          signal: AbortSignal.timeout(600000),
+        });
+        const data = await res.json();
+        const prefix = data.ok ? "Done.\n\n" : "Failed.\n\n";
+        logEl.textContent = prefix + (data.output || "(no output)");
+      } catch (err) {
+        logEl.textContent = "Request failed: " + err;
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const confirmMsg = button.getAttribute("data-confirm");
+        if (confirmMsg && !window.confirm(confirmMsg)) {
+          return;
+        }
+        run(button.getAttribute("data-command"));
+      });
+    });
+
+    loadMeta().catch((err) => {
+      document.getElementById("meta").textContent =
+        "Could not load repository info: " + err;
+    });
+  </script>
+</body>
+</html>

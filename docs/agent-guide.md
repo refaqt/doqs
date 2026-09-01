@@ -21,6 +21,7 @@ Develop tools in `github.com/refaqt/doqs`. Daily work uses the helper (latest `m
 | File | When |
 |------|------|
 | `doqs/docs/architecture.md` | Non-trivial design, new modules, versioning, interfaces, builds, licensing |
+| `doqs/docs/syson.md` | Graphical SysML in SysON (`syson.bat` or `python doqs/scripts/syson.py ui`) |
 | `doqs/docs/architecture.md` (Licensing section) | Adding `LICENSE` / `LICENSES/` / `TRADEMARKS.md` to a machine or extracted-module repo |
 | `doqs/LICENSE` | Tools-repo licence split (GPL-3.0 software, CC BY-SA docs) — not the machine CERN-OHL-S kit |
 | `doqs/docs/architecture.md` (Simulation section) | Adding or interpreting design-time analysis under `simulation/` |

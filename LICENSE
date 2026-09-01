@@ -16,9 +16,9 @@ CC BY-SA docs). That layout is documented in
 
 ## Software — GPL-3.0
 
-Applies to: [`scripts/`](scripts/), [`schemas/`](schemas/), [`tests/`](tests/)
-(except the machine-repo fixture, see below), and other original source code
-in this repository.
+Applies to: [`scripts/`](scripts/), [`schemas/`](schemas/), [`tests/`](tests/),
+[`tools/`](tools/) (except the machine-repo fixture, see below), and other
+original source code in this repository.
 
 Full text: [`LICENSES/GPL-3.0.txt`](LICENSES/GPL-3.0.txt)
 

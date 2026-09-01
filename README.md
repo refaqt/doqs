@@ -21,13 +21,14 @@ python doqs/scripts/validate_all.py
 python doqs/scripts/build_graph.py
 ```
 
-Individual scripts: `validate_okh.py`, `validate_licenses.py`, `check_names.py`, `check_links.py`, `validate_build.py`. To write the split-licence files: `apply_licenses.py`.
+Individual scripts: `validate_okh.py`, `validate_licenses.py`, `check_names.py`, `check_links.py`, `validate_build.py`. To write the split-licence files: `apply_licenses.py`. Graphical SysML: double-click `syson.bat` at the machine repo root, or `python doqs/scripts/syson.py ui` (see [docs/syson.md](docs/syson.md)).
 
 ## Documentation
 
 | Doc | Purpose |
 |-----|---------|
 | [docs/architecture.md](docs/architecture.md) | Full DOQS system specification (module layout, `simulation/`, versioning, interfaces) |
+| [docs/syson.md](docs/syson.md) | Local SysON (graphical SysML) via Docker |
 | [docs/readiness-levels.md](docs/readiness-levels.md) | OTRL / ODRL definitions for `okh.toml` |
 | [docs/naming.md](docs/naming.md) | Naming conventions (machines, modules, parts) |
 | [docs/naming-lexicon.md](docs/naming-lexicon.md) | Approved vocabulary for display names |
@@ -44,10 +45,11 @@ doqs/
   TRADEMARKS.md
   LICENSES/       # GPL-3.0.txt, CC-BY-SA-4.0.txt
   docs/           # Canonical specifications (CC BY-SA 4.0)
-  scripts/        # Validators and generators (GPL-3.0)
+  scripts/        # Validators, generators, SysON launcher (GPL-3.0)
+  tools/          # Docker Compose for local SysON (GPL-3.0)
   data/           # Machine-readable lexicon (CC BY-SA 4.0)
   templates/      # OKH fragments, measurement templates, split-licence kit,
-                  # setup-tooling/ (copy-once helpers for consumer repo roots)
+                  # setup-tooling/ and syson/ (copy-once helpers for consumer roots)
   schemas/        # JSON Schema for lockfiles, firmware config (GPL-3.0)
   spec/otrl.ttl   # Source ontology (IOP Alliance, GPL-3.0-or-later)
 ```
@@ -56,7 +58,7 @@ doqs/
 
 This tools repository uses different licences for different kinds of content:
 
-- **Software** (`scripts/`, `schemas/`, `tests/`) —
+- **Software** (`scripts/`, `schemas/`, `tests/`, `tools/`) —
   [GPL-3.0](LICENSES/GPL-3.0.txt)
 - **Documentation** (`docs/`, `templates/`, `data/`) —
   [CC BY-SA 4.0](LICENSES/CC-BY-SA-4.0.txt)

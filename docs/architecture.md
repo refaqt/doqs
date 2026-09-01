@@ -292,7 +292,7 @@ cnc-mill/
 
 ### Licensing
 
-The **DOQS tools repository** (`refaqt/doqs`) is not a machine repo. It uses GPL-3.0 for software (`scripts/`, `schemas/`, `tests/`) and CC BY-SA 4.0 for documentation (`docs/`, `templates/`, `data/`). `spec/otrl.ttl` remains GPL-3.0-or-later from IOP Alliance. See the `LICENSE` file in that repository. `apply_licenses.py --root <doqs>` detects the tools repo and writes that kit instead of the machine three-way split.
+The **DOQS tools repository** (`refaqt/doqs`) is not a machine repo. It uses GPL-3.0 for software (`scripts/`, `schemas/`, `tests/`, `tools/`) and CC BY-SA 4.0 for documentation (`docs/`, `templates/`, `data/`). `spec/otrl.ttl` remains GPL-3.0-or-later from IOP Alliance. See the `LICENSE` file in that repository. `apply_licenses.py --root <doqs>` detects the tools repo and writes that kit instead of the machine three-way split.
 
 **Machine and extracted-module repositories** use a **content-type split**, not a single blanket licence:
 
@@ -1546,11 +1546,13 @@ Used for: block definitions, requirements, interfaces, state machines, part prop
 
 **Free tooling:**
 
-| Tool                                                                                               | Notes                                 |
-| -------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| [SysIDE](https://github.com/sensmetry/sysml-2ls)                                                   | VS Code extension — best free option  |
-| [SysML v2 Pilot Implementation](https://github.com/Systems-Modeling/SysML-v2-Pilot-Implementation) | Eclipse IDE, official reference       |
-| Cursor / Claude Code                                                                               | Plain text, no special tooling needed |
+| Tool | Notes |
+| --- | --- |
+| [SysON](https://mbse-syson.org/) via `syson.bat` / `python doqs/scripts/syson.py ui` | Graphical editor. Docker Desktop once, then Open/Save against `architecture/*.sysml`. See [syson.md](syson.md). |
+| [Syside Editor](https://marketplace.visualstudio.com/items?itemName=sensmetry.syside-editor) | VS Code / Cursor language support for the same text files |
+| Cursor / Claude Code | Plain text, no special tooling needed |
+
+Do not treat SysON’s homepage project zip (JSON documents + diagram layouts) as the git source of truth. Canonical models stay in `architecture/*.sysml`.
 
 **Module-level SysML** (`modules/x-axis/architecture/x-axis.sysml`):
 
