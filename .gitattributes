@@ -1,6 +1,7 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 
-# Consumer-root helper (copy-once from templates/setup-tooling/)
+# Consumer-root helpers (copy-once from templates/)
 setup-tooling.sh text eol=lf
 templates/setup-tooling/setup-tooling.sh text eol=lf
+templates/syson/syson.sh text eol=lf

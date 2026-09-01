@@ -2,7 +2,7 @@
 
 This tools repository uses different licences for different kinds of content:
 
-- **Software** (`scripts/`, `schemas/`, `tests/`) —
+- **Software** (`scripts/`, `schemas/`, `tests/`, `tools/`) —
   [GPL-3.0](LICENSES/GPL-3.0.txt)
 - **Documentation** (`docs/`, `templates/`, `data/`) —
   [CC BY-SA 4.0](LICENSES/CC-BY-SA-4.0.txt)

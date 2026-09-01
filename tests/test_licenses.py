@@ -228,6 +228,7 @@ class TestToolsRepoLicense(unittest.TestCase):
             "scripts/LICENSE",
             "schemas/LICENSE",
             "tests/LICENSE",
+            "tools/LICENSE",
             "docs/LICENSE",
             "data/LICENSE",
             "templates/LICENSE",
