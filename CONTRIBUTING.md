@@ -66,6 +66,10 @@ See [docs/agent-guide.md](docs/agent-guide.md) for validation commands and agent
 
 When bumping doqs after the agent-instructions restructure, also bump the **refaqt-agents** submodule (`.agents/`) and retarget any skill symlinks from `doqs/skills/` to `.agents/skills/` (`freecad`, `doqs-naming`).
 
+## Branching
+
+Every task that changes the repo must start on a **new git branch** off `main`, unless the user explicitly says otherwise. Do not land task work as commits directly on `main`.
+
 ## Developing doqs itself
 
 From this repository root:
