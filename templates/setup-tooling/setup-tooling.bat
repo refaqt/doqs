@@ -6,4 +6,6 @@ git submodule sync --recursive
 if errorlevel 1 exit /b 1
 git submodule update --init --recursive --remote
 if errorlevel 1 exit /b 1
+python doqs\scripts\install_root_tools.py
+if errorlevel 1 exit /b 1
 pause
