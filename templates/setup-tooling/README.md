@@ -2,7 +2,9 @@
 
 These files are **templates**. Copy them to the **consumer repo root** and run them from there. Do **not** run `setup-tooling.sh` or `setup-tooling.bat` from this folder — `dirname` / `%~dp0` would be `doqs/templates/setup-tooling/`, not the repo root.
 
-doqs does not write or overwrite consumer-root files (`AGENTS.md`, `README.md`, `setup-tooling.*`, etc.). There is no apply script for this kit.
+`setup-tooling.sh` / `.bat` themselves stay copy-once (bootstrap). After they update submodules, they run `python doqs/scripts/install_root_tools.py`, which copies `*.bat` and `*.sh` from `doqs/templates/<tool>/` (except this folder) to the consumer root. New tools appear on the next helper run without another copy of `setup-tooling.*`. Existing machine repos need a **one-time** refresh of `setup-tooling.sh` / `.bat` from this folder so that installer step exists.
+
+doqs still does not write `AGENTS.md` or `README.md`.
 
 Clone tokens must be able to read [refaqt/doqs](https://github.com/refaqt/doqs) and [refaqt/refaqt-agents](https://github.com/refaqt/refaqt-agents) (public repos are fine; private clones need read access).
 
@@ -20,4 +22,5 @@ Clone tokens must be able to read [refaqt/doqs](https://github.com/refaqt/doqs) 
 5. After clone, from the consumer root:
    - Agents (any OS): `bash setup-tooling.sh`
    - Humans on Windows may double-click `setup-tooling.bat` (`pause` is OK there only). Agents must not run the `.bat`.
+   The helper also installs root launchers such as `syson.bat` / `syson.sh`.
 6. Do not commit dirty submodule gitlinks after `--remote` unless you intend to freeze a pin. CI should keep `submodules: recursive` (recorded pin), not `--remote`.

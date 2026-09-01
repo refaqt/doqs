@@ -31,7 +31,7 @@ You do **not** need to install Java, Node, or PostgreSQL yourself.
 
 Install Docker Desktop once (above). Then, from the **machine repository root**:
 
-**Windows:** double-click `syson.bat` (copy it from `doqs/templates/syson/` if the machine repo does not have it yet).
+**Windows:** double-click `syson.bat` (created by `setup-tooling.bat` / `setup-tooling.sh`).
 
 **macOS / Linux:** `bash syson.sh`
 

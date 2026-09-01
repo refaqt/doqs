@@ -6,7 +6,7 @@ Machine repositories (e.g. [qarve](https://github.com/refaqt/qarve)) include thi
 
 ## Use in a machine repo
 
-Clone with submodules, then from the **machine repository root** run `bash setup-tooling.sh` (agents, any OS) so `doqs/` and `.agents/` track latest `main`. Humans on Windows may double-click `setup-tooling.bat`. Copy those helpers from [`templates/setup-tooling/`](templates/setup-tooling/) to the consumer root (copy-once; do not run them from this templates folder). CI may still check out the recorded pin.
+Clone with submodules, then from the **machine repository root** run `bash setup-tooling.sh` (agents, any OS) so `doqs/` and `.agents/` track latest `main` and root launchers such as `syson.bat` are installed. Humans on Windows may double-click `setup-tooling.bat`. Copy those helpers from [`templates/setup-tooling/`](templates/setup-tooling/) to the consumer root (copy-once bootstrap; do not run them from this templates folder). CI may still check out the recorded pin.
 
 ```powershell
 git clone --recurse-submodules https://github.com/refaqt/qarve.git
@@ -21,7 +21,7 @@ python doqs/scripts/validate_all.py
 python doqs/scripts/build_graph.py
 ```
 
-Individual scripts: `validate_okh.py`, `validate_licenses.py`, `check_names.py`, `check_links.py`, `validate_build.py`. To write the split-licence files: `apply_licenses.py`. Graphical SysML: double-click `syson.bat` at the machine repo root, or `python doqs/scripts/syson.py ui` (see [docs/syson.md](docs/syson.md)).
+Individual scripts: `validate_okh.py`, `validate_licenses.py`, `check_names.py`, `check_links.py`, `validate_build.py`. To write the split-licence files: `apply_licenses.py`. After `setup-tooling`, root launchers: `install_root_tools.py`. Graphical SysML: double-click `syson.bat` at the machine repo root, or `python doqs/scripts/syson.py ui` (see [docs/syson.md](docs/syson.md)).
 
 ## Documentation
 
@@ -49,7 +49,7 @@ doqs/
   tools/          # Docker Compose for local SysON (GPL-3.0)
   data/           # Machine-readable lexicon (CC BY-SA 4.0)
   templates/      # OKH fragments, measurement templates, split-licence kit,
-                  # setup-tooling/ and syson/ (copy-once helpers for consumer roots)
+                  # setup-tooling/ (copy-once bootstrap) and syson/ (root launchers)
   schemas/        # JSON Schema for lockfiles, firmware config (GPL-3.0)
   spec/otrl.ttl   # Source ontology (IOP Alliance, GPL-3.0-or-later)
 ```

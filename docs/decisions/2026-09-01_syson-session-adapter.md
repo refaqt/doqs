@@ -33,7 +33,8 @@ build SysON from source.
 ## Consequences
 
 - Contributors install Docker Desktop once, then double-click `syson.bat`
-  (or `python doqs/scripts/syson.py ui`) at the machine repo root.
+  (installed by `setup-tooling`) or `python doqs/scripts/syson.py ui` at the
+  machine repo root.
 - Round-trip fidelity depends on SysON’s textual importer/exporter; incomplete
   constructs may change on `save`. Review `git diff`.
 - Diagram layouts are per-machine, not shared, unless someone separately
@@ -44,5 +45,6 @@ build SysON from source.
 ## Related
 
 - [docs/syson.md](../syson.md)
+- [2026-09-01_root-launcher-install.md](2026-09-01_root-launcher-install.md)
 - SysON textual import/export:
   https://doc.mbse-syson.org/syson/v2026.7.0/user-manual/features/import-export-textual.html
