@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/refaqt/doqs/schemas/sources.schema.json",
+  "title": "DOQS BOM sources sidecar",
+  "description": "bom/sources.toml binds BOM rows to things that cannot live in bom.csv, which keeps its exact 16-column DOQS header. Two bindings: [[bind]] fills columns from a supplier length table, so adding a length model needs no BOM edit; [[vendor]] points a purchased component at its geometry.",
+  "type": "object",
+  "properties": {
+    "bind": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "table", "key", "columns"],
+        "properties": {
+          "id": { "type": "string", "description": "BOM row id to fill, e.g. PRF-001." },
+          "table": { "type": "string", "description": "Table path relative to bom/, e.g. tables/hgr20-rail.csv." },
+          "key": { "type": "string", "description": "Parameter alias whose resolved value selects the table row." },
+          "match": {
+            "enum": ["exact", "nearest-up", "nearest-down"],
+            "default": "exact",
+            "description": "exact refuses a length no supplier stocks. nearest-up buys the next stock length and records the cut in notes."
+          },
+          "columns": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "BOM columns to fill from the matched table row."
+          }
+        }
+      }
+    },
+    "vendor": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "description": "BOM row id this geometry belongs to." },
+          "cad": {
+            "type": "string",
+            "description": "Module-relative path to the supplier file. Omit for a length-dependent part: the bound table's `cad` column supplies one file per length."
+          },
+          "envelope": {
+            "type": "string",
+            "description": "Optional simplified solid used in assemblies; supplier originals are often unusably detailed."
+          },
+          "source": { "type": "string", "description": "Where the file came from." },
+          "terms": {
+            "enum": ["redistributable", "fetch-only"],
+            "default": "redistributable",
+            "description": "fetch-only files are gitignored; only their row in cad/vendor/vendor-index.csv is committed, and validation warns rather than fails when they are absent."
+          },
+          "sha256": { "type": "string" }
+        }
+      }
+    }
+  }
+}

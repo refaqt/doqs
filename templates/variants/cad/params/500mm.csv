@@ -1,0 +1,4 @@
+# A SPARSE override: only the rows that differ from default.csv.
+# Everything derived follows automatically, so this file stays one line long.
+alias,value,unit,description
+rail_length,500,mm,Guide rail length

@@ -1,0 +1,6 @@
+# A fixed (non-length-dependent) purchased part: the STEP path is given here.
+[[vendor]]
+id     = "MOT-001"
+cad    = "cad/vendor/beckhoff/AM8113.step"
+source = "https://www.beckhoff.com/en-en/products/motion/servomotors/"
+terms  = "redistributable"

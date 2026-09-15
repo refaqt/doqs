@@ -1,0 +1,16 @@
+# Commercial names live here and nowhere else. Module folders keep functional
+# slugs (docs/naming.md); pricing sheets join on `name`.
+schema = "doqs-catalog-v1"
+family = "linear-stage"
+
+[[sku]]
+name        = "ALS-S-300"                        # commercial / pricing key
+composition = "modules/linear-stage-stepper"     # family-root-relative
+model       = "default"                          # a [[model]] of the composition's core
+status      = "active"                           # active | preview | eol
+
+[[sku]]
+name        = "ALS-SL-500"
+composition = "modules/linear-stage-servo-linear"
+model       = "500mm"
+status      = "active"

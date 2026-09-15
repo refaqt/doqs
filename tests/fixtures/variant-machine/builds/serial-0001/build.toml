@@ -1,0 +1,27 @@
+schema     = "doqs-build-v1"
+machine    = "variant-test-machine"
+built-date = "2026-09-15"
+owner      = "DOQS Tests"
+
+[base]
+repo    = "https://example.com/variant-machine"
+version = "v0.1.0"
+
+# The instance module carries the design-time choice; the lockfile pins the
+# VERSION of that choice. Configuration and pinning are different things.
+[[module]]
+path    = "modules/x-stage"
+version = "v0.1.0"
+
+[[module]]
+path    = "modules/y-stage"
+version = "v0.1.0"
+
+# The family is pinned once, and the composition + model say which variant of
+# it this physical machine was built to.
+[[module]]
+path        = "modules/linear-stage"
+version     = "v0.1.0"
+composition = "modules/linear-stage-servo-linear"
+model       = "500mm"
+sku         = "ALS-SL-500"

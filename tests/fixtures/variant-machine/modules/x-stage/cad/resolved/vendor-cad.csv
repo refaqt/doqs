@@ -1,0 +1,3 @@
+module,id,cad,envelope,terms
+modules/linear-stage,PRF-001,cad/vendor/hiwin/HGR20R500.step,,redistributable
+modules/linear-stage/modules/drive-servo,MOT-001,cad/vendor/beckhoff/AM8113.step,,redistributable

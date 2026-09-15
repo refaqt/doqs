@@ -1,0 +1,9 @@
+module,id,name,spec,category,qty,unit,unit_cost_eur,unit_mass_g,equiv_class,supplier_1,supplier_1_pn,supplier_2,supplier_2_pn,supplier_3,supplier_3_pn,notes
+modules/linear-stage,PRF-001,Linear Rail,HGR20 rail 300 mm,mechanical,2,pc,18.40,1290,HGR20-RAIL,HIWIN,HGR20R300,CPC,ARR20-300,,,
+modules/linear-stage,PRF-002,Extrusion,"40x80 profile, cut to 340 mm",mechanical,1,pc,22.50,4100,ALU-40X80,Motedis,40x80-I,,,,,
+modules/linear-stage,MEC-001,Carriage Plate,"6061-T6, 10 mm",mechanical,1,pc,38.00,620,,Local,,,,,,
+modules/linear-stage,BRK-001,End Plate,"6061-T6, 12 mm",mechanical,2,pc,16.00,310,,Local,,,,,,
+modules/linear-stage,STD-001,Rail Bolt,DIN912 M5x20 A2-70,fastener,24,pc,0.14,6,M5X20-SHCS,Wuerth,0912 5 20,,,,,
+modules/linear-stage/modules/drive-stepper,MOT-001,Stepper Motor,NEMA23 1.8deg 3.0A,electrical,1,pc,54.00,1100,NEMA23-3A,Nanotec,ST5918L3008,,,,,
+modules/linear-stage/modules/drive-stepper,MEC-001,Coupler,bellows 8-10 mm,mechanical,1,pc,19.00,95,BELLOWS-8-10,Ruland,MWC25-10-8-A,,,,,
+modules/linear-stage-stepper,ELC-001,Drive Cable Set,"motor and feedback cable, 3 m",electrical,1,set,48.00,900,CABLE-3M,Igus,CF9-3M,,,,,

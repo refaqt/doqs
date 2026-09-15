@@ -24,3 +24,11 @@ jobs:
         run: python scripts/validate_licenses.py --root tests/fixtures/minimal-machine
       - name: Licence layout on doqs tools repo
         run: python scripts/validate_licenses.py --root .
+      - name: All gates on the variant family fixture
+        run: python scripts/validate_all.py --root tests/fixtures/variant-family
+      - name: All gates on the variant machine fixture
+        run: python scripts/validate_all.py --root tests/fixtures/variant-machine
+      - name: Generated variant files are current
+        run: |
+          python scripts/resolve_params.py --root tests/fixtures/variant-family --table --check
+          python scripts/resolve_instance.py --root tests/fixtures/variant-machine --check

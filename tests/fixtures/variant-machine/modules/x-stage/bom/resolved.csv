@@ -1,0 +1,11 @@
+module,id,name,spec,category,qty,unit,unit_cost_eur,unit_mass_g,equiv_class,supplier_1,supplier_1_pn,supplier_2,supplier_2_pn,supplier_3,supplier_3_pn,notes
+modules/linear-stage,PRF-001,Linear Rail,HGR20 rail 500 mm,mechanical,2,pc,27.10,2150,HGR20-RAIL,HIWIN,HGR20R500,CPC,ARR20-500,,,
+modules/linear-stage,PRF-002,Extrusion,"40x80 profile, cut to 540 mm",mechanical,1,pc,22.50,4100,ALU-40X80,Motedis,40x80-I,,,,,
+modules/linear-stage,MEC-001,Carriage Plate,"6061-T6, 10 mm",mechanical,1,pc,38.00,620,,Local,,,,,,
+modules/linear-stage,BRK-001,End Plate,"6061-T6, 12 mm",mechanical,2,pc,16.00,310,,Local,,,,,,
+modules/linear-stage,STD-001,Rail Bolt,DIN912 M5x20 A2-70,fastener,24,pc,0.14,6,M5X20-SHCS,Wuerth,0912 5 20,,,,,
+modules/linear-stage/modules/drive-servo,MOT-001,Servo Motor,AM8113 0.5 Nm with brake,electrical,1,pc,610.00,1400,SERVO-05NM,Beckhoff,AM8113-0F20,,,,,
+modules/linear-stage/modules/drive-servo,MEC-001,Coupler,bellows 8-14 mm,mechanical,1,pc,24.00,130,BELLOWS-8-14,Ruland,MWC25-14-8-A,,,,,
+modules/linear-stage/modules/feedback-linear,ELC-001,Encoder Scale,"absolute linear scale, 500 mm",electrical,1,pc,0.00,0,LIN-SCALE,,,,,,,
+modules/linear-stage/modules/feedback-linear,ELC-002,Encoder Head,"read head, differential",electrical,1,pc,240.00,60,LIN-HEAD,RLS,LA11,,,,,
+modules/linear-stage-servo-linear,ELC-001,Drive Cable Set,"motor, brake and encoder cable, 3 m",electrical,1,set,132.00,1400,CABLE-SERVO-3M,Beckhoff,ZK4704-3M,,,,,

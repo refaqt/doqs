@@ -1,0 +1,3 @@
+alias,value,unit,description
+rail_length,800,mm,Guide rail length
+end_plate_thickness,16,mm,Thicker end plate for the long variant

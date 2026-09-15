@@ -67,7 +67,10 @@ def check_module_directories(root: Path, modules_dir: Path) -> list[Finding]:
             continue
         if (child / "okh.toml").exists():
             continue
-        if child.name in ("adapters",) or child.parent == modules_dir and child.name == "adapters":
+        # Containers, not modules: `adapters/` groups adapter modules, and a
+        # nested `modules/` holds a module's own sub-modules (architecture.md
+        # nests them at every depth). Neither carries an okh.toml by design.
+        if child.name in ("adapters", "modules"):
             continue
         rel = child.relative_to(root)
         if any(p == "cad" or p == "bom" or p == "architecture" for p in child.parts):

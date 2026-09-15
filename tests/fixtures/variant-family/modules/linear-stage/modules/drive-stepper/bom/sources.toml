@@ -1,0 +1,8 @@
+# Supplier forbids redistribution: the file is NOT committed. Only its row in
+# cad/vendor/vendor-index.csv is. validate_variants.py warns, it does not fail,
+# so CI stays green on a fresh clone.
+[[vendor]]
+id     = "MOT-001"
+cad    = "cad/vendor/nanotec/ST5918L3008.step"
+source = "https://en.nanotec.com/products/"
+terms  = "fetch-only"

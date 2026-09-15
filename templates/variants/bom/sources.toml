@@ -1,0 +1,33 @@
+# Binds BOM rows to things that cannot live in bom.csv, which keeps its exact
+# 16-column DOQS header so every existing validator reads it unchanged.
+
+# --- Supplier length tables --------------------------------------------------
+# Rails, ballscrews and belts come in discrete stocked lengths, each with its
+# own part number AND its own vendor STEP. One table row per length gives all
+# of it, so adding a length model needs no BOM edit at all.
+[[bind]]
+id      = "PRF-001"                  # the BOM row to fill
+table   = "tables/rail.csv"          # relative to bom/
+key     = "rail_length"              # parameter alias selecting the row
+match   = "exact"                    # exact | nearest-up | nearest-down
+columns = ["spec", "unit_cost_eur", "unit_mass_g",
+           "supplier_1", "supplier_1_pn", "supplier_2", "supplier_2_pn"]
+# `exact` refuses a length no supplier stocks — a CI failure rather than a
+# purchasing surprise. `nearest-up` buys the next stock length and records the
+# cut in `notes`.
+
+# --- Geometry of purchased components ---------------------------------------
+# Length-dependent part: no `cad` key here, because the bound table supplies a
+# different STEP per length.
+[[vendor]]
+id     = "PRF-001"
+source = "https://supplier.example/linear-guideways"
+terms  = "redistributable"
+
+# Fixed part: the file is named directly.
+[[vendor]]
+id       = "MOT-001"
+cad      = "cad/vendor/SUPPLIER/PARTNUMBER.step"
+envelope = "cad/vendor/SUPPLIER/PARTNUMBER-envelope.FCStd"   # optional simplified solid
+source   = "https://supplier.example/servomotors"
+terms    = "redistributable"          # redistributable | fetch-only

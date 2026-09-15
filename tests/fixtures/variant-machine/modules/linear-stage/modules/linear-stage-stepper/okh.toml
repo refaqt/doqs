@@ -1,0 +1,21 @@
+okhv = "OKH-LOSHv1.0"
+name = "Linear Stage Stepper"
+repo = "https://example.com/linear-stage/tree/main/modules/linear-stage-stepper"
+version = "0.1.0"
+license = "CERN-OHL-S-2.0"
+licensor = "DOQS Tests"
+function = "Open-loop linear stage: shared core with a stepper drive and no position feedback."
+bom = "bom/bom.csv"
+
+# Thin composition. Paths are family-root-relative; the core is a SIBLING
+# folder in this same repository, never a nested submodule.
+[composition]
+core    = "modules/linear-stage"
+options = [
+  "modules/linear-stage/modules/drive-stepper",
+  "modules/linear-stage/modules/feedback-none",
+]
+
+[[provides-interface]]
+name    = "StageCarriageInterface"
+version = "1.0"

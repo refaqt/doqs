@@ -1,0 +1,8 @@
+alias,value,unit,description
+rail_length,300,mm,Guide rail length — INDEPENDENT; must exist in bom/tables/hgr20-rail.csv
+rail_count,2,,Number of guide rails
+end_plate_thickness,12,mm,End plate thickness
+carriage_travel,=rail_length - 180,mm,Usable carriage travel — DERIVED
+extrusion_length,=rail_length + 40,mm,Base extrusion cut length — DERIVED
+screw_length,=rail_length - 30,mm,Ballscrew shaft length — DERIVED
+cover_length,=extrusion_length - 10,mm,Dust cover strip length — DERIVED

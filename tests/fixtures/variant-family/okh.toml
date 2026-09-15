@@ -1,0 +1,14 @@
+okhv = "OKH-LOSHv1.0"
+name = "Linear Stage Family"
+repo = "https://example.com/linear-stage"
+version = "0.1.0"
+# Hardware licence (this manifest describes the hardware project).
+# Firmware/software is GPL-3.0; docs/media is CC BY-SA 4.0. See README.md / LICENSE.
+license = "CERN-OHL-S-2.0"
+licensor = "DOQS Tests"
+function = """
+Product family of linear stages. Length is a parametric model of the shared
+core; drive and feedback are structural options combined by thin composition
+modules. See doqs/docs/variants.md.
+"""
+readme = "README.md"

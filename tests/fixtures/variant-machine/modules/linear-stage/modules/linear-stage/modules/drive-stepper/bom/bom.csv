@@ -1,0 +1,3 @@
+id,name,spec,category,qty,unit,unit_cost_eur,unit_mass_g,equiv_class,supplier_1,supplier_1_pn,supplier_2,supplier_2_pn,supplier_3,supplier_3_pn,notes
+MOT-001,Stepper Motor,NEMA23 1.8deg 3.0A,electrical,1,pc,54.00,1100,NEMA23-3A,Nanotec,ST5918L3008,,,,,
+MEC-001,Coupler,"bellows 8-10 mm",mechanical,1,pc,19.00,95,BELLOWS-8-10,Ruland,MWC25-10-8-A,,,,,

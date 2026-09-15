@@ -21,6 +21,7 @@ Develop tools in `github.com/refaqt/doqs`. Daily work uses the helper (latest `m
 | File | When |
 |------|------|
 | `doqs/docs/architecture.md` | Non-trivial design, new modules, versioning, interfaces, builds, licensing |
+| `doqs/docs/variants.md` | **Product families**: several lengths or options of one design; adding a length or an option; consuming a family in a machine; off-the-shelf parts that come in lengths; geometry of purchased components |
 | `doqs/docs/syson.md` | Graphical SysML in SysON (`syson.bat` or `python doqs/scripts/syson.py ui`) |
 | `doqs/docs/architecture.md` (Licensing section) | Adding `LICENSE` / `LICENSES/` / `TRADEMARKS.md` to a machine or extracted-module repo |
 | `doqs/LICENSE` | Tools-repo licence split (GPL-3.0 software, CC BY-SA docs) — not the machine CERN-OHL-S kit |
@@ -61,7 +62,14 @@ For a new repo, or after adding a first-level content directory (`cad/`, `firmwa
 python doqs/scripts/apply_licenses.py
 ```
 
-`validate_all.py` runs, in order: `validate_okh.py`, `validate_licenses.py`, `check_names.py`, `check_links.py`, `validate_build.py`.
+`validate_all.py` runs, in order: `validate_okh.py`, `validate_licenses.py`, `check_names.py`, `check_links.py`, `validate_build.py`, `validate_variants.py`.
+
+After changing a parametric model, a family, or an instance module, regenerate before validating — the validators fail on stale generated files:
+
+```powershell
+python doqs/scripts/resolve_params.py --table
+python doqs/scripts/resolve_instance.py
+```
 
 Before tagging:
 

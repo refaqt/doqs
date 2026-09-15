@@ -1,0 +1,4 @@
+supplier,pn,relpath,bytes,sha256,source_url,terms,retrieved_utc
+hiwin,HGR20R300,cad/vendor/hiwin/HGR20R300.step,162,4f6f43c4f2376fe5c5ab644e163673fd8d1ac9f5a3a48419f8f3b6472416fd62,https://www.hiwinusa.com/linear-guideways,redistributable,2026-09-15T00:00:00Z
+hiwin,HGR20R500,cad/vendor/hiwin/HGR20R500.step,162,8836b6957b7cc1fc0b1ae86a0322e776ce9d4669d09bbe644092ffa0973442b9,https://www.hiwinusa.com/linear-guideways,redistributable,2026-09-15T00:00:00Z
+hiwin,HGR20R800,cad/vendor/hiwin/HGR20R800.step,162,12e5a5e60a35e72bb736727be2c5e2b71481e42011d1eb82f79cdeb76ed60e1b,https://www.hiwinusa.com/linear-guideways,redistributable,2026-09-15T00:00:00Z

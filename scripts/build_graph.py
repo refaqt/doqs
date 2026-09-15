@@ -5,7 +5,7 @@ import json
 import tomllib
 from pathlib import Path
 
-from naming_rules import is_under_doqs_submodule
+from naming_rules import family_root, is_under_doqs_submodule
 
 
 def repo_root() -> Path:
@@ -29,55 +29,106 @@ def module_path_from_url(url: str, root: Path) -> str | None:
     return f"modules/{tail}" if tail else None
 
 
-def collect_has_components(manifest_path: Path, root: Path) -> list[str]:
+def _rel(path: Path, root: Path) -> str:
+    return path.relative_to(root).as_posix()
+
+
+def collect_has_components(manifest_path: Path, root: Path) -> list[dict]:
+    """Child edges of one manifest, each carrying its variant selection.
+
+    Three kinds of edge exist, and the variant keys are what make the graph
+    able to answer "who uses the 500 mm servo-linear?" rather than only
+    "who uses the linear stage?":
+
+    * ``[[hasComponent]]`` — the classic edge, optionally pinning a
+      ``composition`` and ``model`` for the zero-override shortcut.
+    * ``[composition]`` — a thin composition module's core and options,
+      resolved against the family root.
+    * ``[instance]`` — a consumer's choice of family variant.
+    """
     data = load_toml(manifest_path)
-    mod_dir = manifest_path.parent.relative_to(root)
-    children: list[str] = []
+    children: list[dict] = []
+    seen: set[tuple] = set()
+
+    def add(path: str, **variant: str) -> None:
+        if not path:
+            return
+        key = (path, variant.get("composition", ""), variant.get("model", ""))
+        if key in seen:
+            return
+        seen.add(key)
+        children.append({"path": path, **{k: v for k, v in variant.items() if v}})
+
     for comp in data.get("hasComponent", []):
-        url = comp.get("component", "")
-        local = module_path_from_url(url, root)
-        if local:
-            children.append(local)
+        add(
+            module_path_from_url(comp.get("component", ""), root) or "",
+            composition=str(comp.get("composition", "")),
+            model=str(comp.get("model", "")),
+        )
+
+    composition = data.get("composition")
+    if composition:
+        family = family_root(manifest_path) or manifest_path.parent.parent
+        for target in [composition.get("core", ""), *composition.get("options", [])]:
+            if target and (family / target / "okh.toml").exists():
+                add(_rel(family / target, root))
+
+    instance = data.get("instance", {})
+    if instance.get("family") and instance.get("composition"):
+        target = root / instance["family"] / instance["composition"]
+        if (target / "okh.toml").exists():
+            add(
+                _rel(target, root),
+                model=str(instance.get("model", "")),
+                sku=str(instance.get("sku", "")),
+            )
+
     modules_dir = manifest_path.parent / "modules"
-    if not modules_dir.is_dir():
-        return children
-    for sub in modules_dir.iterdir():
-        if sub.is_dir() and (sub / "okh.toml").exists():
-            rel = str(sub.relative_to(root)).replace("\\", "/")
-            if rel not in children:
-                children.append(rel)
+    if modules_dir.is_dir():
+        for sub in sorted(modules_dir.iterdir()):
+            if sub.is_dir() and (sub / "okh.toml").exists():
+                add(_rel(sub, root))
     return children
 
 
 def walk_parents(root: Path) -> dict[str, list[dict]]:
     used_by: dict[str, list[dict]] = {}
 
-    for okh in root.rglob("okh.toml"):
+    for okh in sorted(root.rglob("okh.toml")):
         if is_under_doqs_submodule(okh, root):
             continue
         parent = okh.parent.relative_to(root)
-        parent_key = "." if str(parent) == "." else str(parent).replace("\\", "/")
+        parent_key = "." if str(parent) == "." else parent.as_posix()
+        version = load_toml(okh).get("version", "?")
         for child in collect_has_components(okh, root):
-            used_by.setdefault(child, []).append({
-                "path": parent_key,
-                "version": load_toml(okh).get("version", "?"),
-            })
+            entry = {"path": parent_key, "version": version}
+            for key in ("composition", "model", "sku"):
+                if child.get(key):
+                    entry[key] = child[key]
+            used_by.setdefault(child["path"], []).append(entry)
     return used_by
 
 
-def builds_using_module(root: Path) -> dict[str, list[str]]:
-    result: dict[str, list[str]] = {}
+def builds_using_module(root: Path) -> dict[str, list[dict]]:
+    """Builds that pin each module, carrying the model and SKU they pinned."""
+    result: dict[str, list[dict]] = {}
     for build_file in (root / "builds").rglob("build.toml"):
         build_id = str(build_file.parent.relative_to(root)).replace("\\", "/")
         data = load_toml(build_file)
         for entry in data.get("module", []):
             path = entry.get("path", "")
-            result.setdefault(path, []).append(build_id)
+            if entry.get("composition"):
+                path = f"{path}/{entry['composition']}"
+            record: dict = {"build": build_id}
+            for key in ("model", "sku"):
+                if entry.get(key):
+                    record[key] = entry[key]
+            result.setdefault(path, []).append(record)
     return result
 
 
-def main() -> None:
-    root = repo_root()
+def main(root: Path | None = None) -> None:
+    root = root or repo_root()
     used_by_map = walk_parents(root)
     build_map = builds_using_module(root)
     graph: dict = {}
@@ -88,12 +139,16 @@ def main() -> None:
         rel = okh.parent.relative_to(root)
         key = "." if str(rel) == "." else str(rel).replace("\\", "/")
         data = load_toml(okh)
-        graph[key] = {
+        node: dict = {
             "current_version": data.get("version", "?"),
             "trl": data.get("technology-readiness-level"),
             "used_by": used_by_map.get(key, []),
             "used_by_builds": build_map.get(key, []),
         }
+        models = [m.get("name") for m in data.get("model", []) if m.get("name")]
+        if models:
+            node["models"] = models
+        graph[key] = node
 
     out = root / "graph" / "usage-graph.json"
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -102,4 +157,9 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Regenerate graph/usage-graph.json.")
+    parser.add_argument("--root", type=Path, default=None)
+    args = parser.parse_args()
+    main(args.root.resolve() if args.root else None)

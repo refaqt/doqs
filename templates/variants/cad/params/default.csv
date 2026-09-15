@@ -1,0 +1,10 @@
+# The DENSE base set: every alias appears here exactly once.
+# A value starting with `=` is DERIVED — an expression over other aliases.
+# Keep derivations here and nowhere else: a model override then only needs the
+# INDEPENDENT rows, and changing a rule is one edit rather than one per model.
+alias,value,unit,description
+rail_length,300,mm,Guide rail length — INDEPENDENT; must exist in bom/tables/rail.csv
+end_plate_thickness,12,mm,End plate thickness — INDEPENDENT
+carriage_travel,=rail_length - 180,mm,Usable carriage travel — DERIVED
+extrusion_length,=rail_length + 40,mm,Base extrusion cut length — DERIVED
+cover_length,=extrusion_length - 10,mm,Dust cover strip length — DERIVED

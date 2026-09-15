@@ -3,30 +3,76 @@
   "$id": "https://github.com/org/doqs/schemas/build.schema.json",
   "title": "DOQS build lockfile",
   "type": "object",
-  "required": ["schema", "machine"],
+  "required": [
+    "schema",
+    "machine"
+  ],
   "properties": {
-    "schema": { "const": "doqs-build-v1" },
-    "machine": { "type": "string" },
-    "built-date": { "type": "string", "format": "date" },
-    "owner": { "type": "string" },
-    "location": { "type": "string" },
+    "schema": {
+      "const": "doqs-build-v1"
+    },
+    "machine": {
+      "type": "string"
+    },
+    "built-date": {
+      "type": "string",
+      "format": "date"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
     "base": {
       "type": "object",
       "properties": {
-        "repo": { "type": "string", "format": "uri" },
-        "version": { "type": "string" }
+        "repo": {
+          "type": "string",
+          "format": "uri"
+        },
+        "version": {
+          "type": "string"
+        }
       }
     },
     "module": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["path", "version"],
+        "required": [
+          "path",
+          "version"
+        ],
         "properties": {
-          "path": { "type": "string" },
-          "version": { "type": "string" },
-          "model": { "type": "string" },
-          "adapter": { "type": "string" }
+          "path": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string",
+            "description": "Parametric model slug declared by the composition's core module."
+          },
+          "adapter": {
+            "type": "string"
+          },
+          "composition": {
+            "type": "string",
+            "description": "Path of the composition module inside a family repo, when `path` points at a family."
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Option module paths inside the family, when they are not implied by the composition."
+          },
+          "sku": {
+            "type": "string",
+            "description": "Commercial catalogue id from the family's catalog.toml."
+          }
         }
       }
     },
@@ -34,11 +80,20 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["date", "description"],
+        "required": [
+          "date",
+          "description"
+        ],
         "properties": {
-          "date": { "type": "string" },
-          "description": { "type": "string" },
-          "bom-impact": { "type": "string" }
+          "date": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "bom-impact": {
+            "type": "string"
+          }
         }
       }
     }
