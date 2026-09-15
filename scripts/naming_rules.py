@@ -8,6 +8,9 @@ MODULE_SLUG = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 ADAPTER_SLUG = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*-to-[a-z0-9]+(-[a-z0-9]+)*$")
 BOM_ID = re.compile(r"^([A-Z]{2,4})-([0-9]{3})$")
 MODEL_SLUG = MODULE_SLUG
+#: Commercial catalogue id, e.g. ALS-SL-500. Uppercase so it never reads
+#: like a module slug: folder names stay functional, SKUs stay commercial.
+SKU_ID = re.compile(r"^[A-Z0-9]+(-[A-Z0-9]+)*$")
 OKH_VERSION = re.compile(
     r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$"
 )
@@ -60,6 +63,21 @@ def is_under_doqs_submodule(path: Path, root: Path) -> bool:
         return "doqs" in path.relative_to(root).parts
     except ValueError:
         return False
+
+
+CATALOG_NAME = "catalog.toml"
+
+
+def family_root(path: Path) -> Path | None:
+    """Nearest ancestor holding a ``catalog.toml`` — the product family root.
+
+    Composition modules reference their core and options with paths relative to
+    this directory, so the whole family moves as one unit when it is extracted.
+    """
+    for parent in path.parents:
+        if (parent / CATALOG_NAME).exists():
+            return parent
+    return None
 
 
 def load_lexicon(path: Path | None = None) -> frozenset[str]:

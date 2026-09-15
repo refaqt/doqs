@@ -1,0 +1,7 @@
+# Provenance for third-party supplier geometry in this directory.
+# Same manifest pattern as measurement/data-index.csv: rows are committed even
+# when the files are not. `fetch-only` files may not be redistributed, so they
+# are gitignored and validation warns rather than fails when they are absent.
+supplier,pn,relpath,bytes,sha256,source_url,terms,retrieved_utc
+hiwin,HGR20R300,cad/vendor/hiwin/HGR20R300.step,1048576,0000000000000000000000000000000000000000000000000000000000000000,https://supplier.example/linear-guideways,redistributable,2026-09-15T00:00:00Z
+nanotec,ST5918L3008,cad/vendor/nanotec/ST5918L3008.step,,,https://supplier.example/steppers,fetch-only,2026-09-15T00:00:00Z

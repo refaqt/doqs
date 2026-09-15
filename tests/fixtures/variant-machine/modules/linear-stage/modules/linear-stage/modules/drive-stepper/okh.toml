@@ -1,0 +1,16 @@
+okhv = "OKH-LOSHv1.0"
+name = "Stepper Drive Option"
+repo = "https://example.com/linear-stage/tree/main/modules/linear-stage/modules/drive-stepper"
+version = "0.1.0"
+license = "CERN-OHL-S-2.0"
+licensor = "DOQS Tests"
+function = "Stepper motor and coupler for the linear stage."
+bom = "bom/bom.csv"
+
+[[consumes-interface]]
+name    = "StageDriveInterface"
+version = "1.0"
+
+[[provides-interface]]
+name    = "StageFeedbackInterface"
+version = "1.0"

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/refaqt/doqs/schemas/instance.schema.json",
+  "title": "DOQS instance module declaration",
+  "description": "The [instance] table of an okh.toml in a CONSUMER repository. A Git submodule is a frozen mirror with no slot for the consumer's own choices, so the choice of family variant lives here instead — in the consumer's own folder, in text, next to the resolved parameters and resolved BOM that doqs/scripts/resolve_instance.py generates from it.",
+  "type": "object",
+  "required": ["family", "composition", "model"],
+  "properties": {
+    "family": {
+      "type": "string",
+      "description": "Repo-root-relative path of the family submodule, e.g. modules/linear-stage."
+    },
+    "composition": {
+      "type": "string",
+      "description": "Family-root-relative path of the chosen composition module."
+    },
+    "model": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Parametric model slug declared by the composition's core module."
+    },
+    "sku": {
+      "type": "string",
+      "description": "Optional commercial id joining the family's catalog.toml."
+    },
+    "params": {
+      "type": "string",
+      "description": "Optional instance-local sparse parameter override, applied on top of the model."
+    }
+  }
+}

@@ -1,0 +1,28 @@
+# Commercial names live here and nowhere else. Module folders keep functional
+# slugs; pricing sheets join on `name`.
+schema = "doqs-catalog-v1"
+family = "linear-stage"
+
+[[sku]]
+name        = "ALS-S-300"
+composition = "modules/linear-stage-stepper"
+model       = "default"
+status      = "active"
+
+[[sku]]
+name        = "ALS-S-500"
+composition = "modules/linear-stage-stepper"
+model       = "500mm"
+status      = "active"
+
+[[sku]]
+name        = "ALS-SL-500"
+composition = "modules/linear-stage-servo-linear"
+model       = "500mm"
+status      = "active"
+
+[[sku]]
+name        = "ALS-SL-800"
+composition = "modules/linear-stage-servo-linear"
+model       = "800mm"
+status      = "preview"

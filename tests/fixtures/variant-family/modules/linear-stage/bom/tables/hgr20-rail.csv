@@ -1,0 +1,4 @@
+key,spec,unit_cost_eur,unit_mass_g,supplier_1,supplier_1_pn,supplier_2,supplier_2_pn,cad
+300,HGR20 rail 300 mm,18.40,1290,HIWIN,HGR20R300,CPC,ARR20-300,cad/vendor/hiwin/HGR20R300.step
+500,HGR20 rail 500 mm,27.10,2150,HIWIN,HGR20R500,CPC,ARR20-500,cad/vendor/hiwin/HGR20R500.step
+800,HGR20 rail 800 mm,41.80,3440,HIWIN,HGR20R800,,,cad/vendor/hiwin/HGR20R800.step

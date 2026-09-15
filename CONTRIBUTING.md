@@ -25,7 +25,14 @@ python doqs/scripts/apply_licenses.py
 python doqs/scripts/validate_okh.py --expected-version X.Y.Z
 ```
 
-6. Regenerate the usage graph when composition changes (not part of `validate_all`):
+6. Regenerate variant outputs before validating — the gates fail on stale generated files:
+
+```powershell
+python doqs/scripts/resolve_params.py --table
+python doqs/scripts/resolve_instance.py
+```
+
+7. Regenerate the usage graph when composition changes (not part of `validate_all`):
 
 ```powershell
 python doqs/scripts/build_graph.py
@@ -49,6 +56,7 @@ python doqs/scripts/syson.py ui
 | `check_names.py` | Module slugs, BOM ids/headers, model slugs, lexicon |
 | `check_links.py` | SysML imports, OKH relative paths |
 | `validate_build.py` | Lockfile interface compatibility |
+| `validate_variants.py` | Product families: catalogue, models, compositions, length-table coverage, vendor geometry, instance freshness |
 | `apply_licenses.py` | Writes the licence kit (not a CI gate; `--check` reports generated files; `--root .` on this repo writes the tools kit) |
 
 Optional flags: `--root PATH`, `--strict-lexicon`, `--expected-version X.Y.Z`.
@@ -88,7 +96,16 @@ python scripts/validate_okh.py --root tests/fixtures/minimal-machine
 python scripts/validate_licenses.py --root tests/fixtures/minimal-machine
 python scripts/validate_licenses.py --root .
 python scripts/apply_licenses.py --check --root .
+python scripts/validate_all.py --root tests/fixtures/variant-family
+python scripts/validate_all.py --root tests/fixtures/variant-machine
+python scripts/resolve_instance.py --root tests/fixtures/variant-machine --check
 ```
+
+`tests/fixtures/variant-family/` is a worked product family (three lengths, two
+drive options, two feedback options, two compositions) and
+`tests/fixtures/variant-machine/` is a machine consuming it at two different
+lengths. Both carry committed generated files, so a change to a resolver that
+alters output will fail the `--check` runs until the fixtures are regenerated.
 
 The last two check the **tools-repo** kit (GPL-3.0 / CC BY-SA). Do not run the machine apply script against this repository without `--root` pointing at a machine fixture — `apply_licenses.py --root .` writes the tools kit, not CERN-OHL-S.
 

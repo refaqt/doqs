@@ -1,0 +1,35 @@
+okhv = "OKH-LOSHv1.0"
+name = "Linear Stage Core"
+repo = "https://example.com/linear-stage/tree/main/modules/linear-stage"
+version = "0.1.0"
+license = "CERN-OHL-S-2.0"
+licensor = "DOQS Tests"
+function = "Shared core of the linear stage family: rails, carriage, end plates, base extrusion."
+bom = "bom/bom.csv"
+
+# Length is a PARAMETER of the shared core, never a folder and never a composition.
+# Each override file is sparse; everything derived follows automatically.
+[[model]]
+name        = "default"
+description = "300 mm rail — standard length"
+params      = "cad/params/default.csv"
+
+[[model]]
+name        = "500mm"
+description = "500 mm rail"
+params      = "cad/params/500mm.csv"
+
+[[model]]
+name        = "800mm"
+description = "800 mm rail, thicker end plates"
+params      = "cad/params/800mm.csv"
+
+[[provides-interface]]
+name        = "StageCarriageInterface"
+version     = "1.0"
+description = "Carriage mounting face"
+
+[[provides-interface]]
+name        = "StageDriveInterface"
+version     = "1.0"
+description = "Drive-end mounting boss and shaft coupling envelope"

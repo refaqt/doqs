@@ -1,0 +1,17 @@
+okhv = "OKH-LOSHv1.0"
+name = "Linear Encoder Feedback Option"
+repo = "https://example.com/linear-stage/tree/main/modules/linear-stage/modules/feedback-linear"
+version = "0.1.0"
+license = "CERN-OHL-S-2.0"
+licensor = "DOQS Tests"
+function = "Linear encoder scale and read head mounted along the stage."
+bom = "bom/bom.csv"
+
+[[consumes-interface]]
+name    = "StageFeedbackInterface"
+version = "1.0"
+
+[[provides-interface]]
+name        = "StagePositionSignalInterface"
+version     = "1.0"
+description = "Differential quadrature position signal"

@@ -20,9 +20,14 @@ Canonical rules for **machines**, **modules**, **parts**, and **version fields**
 | Functional noun | `x-axis`, `frame`, `spindle` |
 | Structural variant suffix | `x-axis-belt`, `x-axis-ballscrew` |
 | Nested shared sub-module | `drive-belt`, `drive-ballscrew` under `modules/x-axis/modules/` |
+| Family option module | `drive-stepper`, `feedback-linear` — `<axis>-<value>`, under the core's `modules/` |
+| Family composition module | `linear-stage-servo-linear` — `<core>-<option>-<option>` |
+| Instance module (consumer repo) | `x-stage`, `y-stage` — name the **role in this machine**, not the product bought |
 | Adapter | `modules/adapters/<from>-to-<to>/` e.g. `spindle-mount-v1-to-v2` |
 
-**Do not** encode dimensions or materials in module folder names.
+**Do not** encode dimensions or materials in module folder names. A composition
+names its *options*, never its length: `linear-stage-servo-linear`, never
+`linear-stage-500mm`. Length is a model slug — see below.
 
 ### Extracted module repositories
 
@@ -36,8 +41,38 @@ A product codename (`qarve`) is fine. Descriptive repo names (`cnc-mill-300`) ar
 
 Declared in `[[model]]` / `cad/params/<model>.csv`:
 
-- Same charset as module slugs: `default`, `500mm`, `500mm-hd`
-- No bare dimensions in module folder names
+- Same charset as module slugs: `default`, `500mm`, `800mm`
+- Dimensions are **expected** here — this is the one place they belong. They
+  stay out of module folder names.
+- One axis of variation per slug. `500mm-hd` mixes length with a rail grade and
+  turns the catalogue into a cartesian list; prefer a length model × a
+  composition. Keep it only as a last resort.
+- The slug is also the FreeCAD `Configuration` value a parent selects on a
+  Variant Link, and appears verbatim in `catalog.toml` and `build.toml`.
+
+## Commercial SKU ids
+
+Declared in `catalog.toml` (`[[sku]] name`):
+
+**Pattern:** `^[A-Z0-9]+(-[A-Z0-9]+)*$` (e.g. `ALS-SL-500`)
+
+Uppercase, so a SKU never reads like a module slug. Commercial names live only
+in `catalog.toml`; pricing sheets join on them and never dictate folder names.
+
+## Supplier geometry under `cad/vendor/`
+
+Files and folders keep the **supplier's own part number, verbatim** — `AM8113`,
+`HGR20R500`, `beckhoff/`, `hiwin/`. This is an explicit exception to kebab-case:
+the part number is the identifier you order by and search for, and rewriting it
+breaks that link. Provenance goes in `cad/vendor/vendor-index.csv`.
+
+## Variant export paths
+
+Variant geometry is generated on demand, not committed per model
+([variants.md](variants.md#exports-are-not-committed-per-model)). Where it is
+written — `cad/exports/<model>/` or `builds/<id>/exports/` — the **model slug is
+allowed in the path**, dimensions and all. The rule forbidding dimensions
+applies to module folder names only.
 
 ## Simulation case slugs
 
@@ -130,6 +165,7 @@ Flags: `--root PATH`, `--strict-lexicon`, `--warnings-only` (naming), `--expecte
 
 ## Related
 
+- [Variants](variants.md) — product families, model slugs, SKU catalogue, instance modules
 - [Architecture](architecture.md) — folder layout, BOM columns, design session checklist
 - [CONTRIBUTING.md](../CONTRIBUTING.md) — PR validation gates
 - [Agent reference](agent-guide.md) — spec files to read and validation commands

@@ -9,7 +9,17 @@ from naming_rules import repo_root_from_script
 
 
 def load_module_manifest(root: Path, mod_entry: dict) -> dict:
-    mod_path = root / mod_entry["path"] / "okh.toml"
+    """Read the manifest a lockfile entry points at.
+
+    When the entry names a `composition` inside a family, the interfaces that
+    matter are the composition's, not the family root's: a stepper SKU and a
+    servo SKU genuinely offer different ones.
+    """
+    base = root / mod_entry["path"]
+    composition = mod_entry.get("composition")
+    if composition:
+        base = base / composition
+    mod_path = base / "okh.toml"
     with open(mod_path, "rb") as f:
         return tomllib.load(f)
 

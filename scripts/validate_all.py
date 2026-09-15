@@ -12,6 +12,7 @@ SCRIPTS = (
     "check_names.py",
     "check_links.py",
     "validate_build.py",
+    "validate_variants.py",
 )
 
 

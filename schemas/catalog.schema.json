@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/refaqt/doqs/schemas/catalog.schema.json",
+  "title": "DOQS product-family catalogue",
+  "description": "Maps commercial SKU names to a composition module plus a parametric model. Lives as catalog.toml at the root of a family repository. Module folders keep functional slugs; commercial names appear only here, so pricing sheets can join without dictating folder names.",
+  "type": "object",
+  "required": ["schema", "family"],
+  "properties": {
+    "schema": { "const": "doqs-catalog-v1" },
+    "family": {
+      "type": "string",
+      "description": "Slug of the product family this catalogue describes."
+    },
+    "sku": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "composition"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Z0-9]+(-[A-Z0-9]+)*$",
+            "description": "Commercial catalogue id, e.g. ALS-SL-500. Uppercase, so it never reads like a module slug."
+          },
+          "composition": {
+            "type": "string",
+            "description": "Family-root-relative path of the composition module."
+          },
+          "model": {
+            "type": "string",
+            "default": "default",
+            "description": "Parametric model slug declared by the composition's core module."
+          },
+          "status": {
+            "enum": ["active", "preview", "eol"],
+            "default": "active"
+          },
+          "description": { "type": "string" }
+        }
+      }
+    }
+  }
+}

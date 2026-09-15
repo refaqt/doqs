@@ -1,0 +1,15 @@
+okhv = "OKH-LOSHv1.0"
+name = "Variant Test Machine"
+repo = "https://example.com/variant-machine"
+version = "0.1.0"
+# Hardware licence (this manifest describes the hardware project).
+# Firmware/software is GPL-3.0; docs/media is CC BY-SA 4.0. See README.md / LICENSE.
+license = "CERN-OHL-S-2.0"
+licensor = "DOQS Tests"
+function = "Fixture machine consuming the linear stage family at two different lengths."
+
+[[hasComponent]]
+component = "https://example.com/variant-machine/blob/main/modules/x-stage/okh.toml"
+
+[[hasComponent]]
+component = "https://example.com/variant-machine/blob/main/modules/y-stage/okh.toml"

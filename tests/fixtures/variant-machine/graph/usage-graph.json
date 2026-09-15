@@ -1,0 +1,173 @@
+{
+  "modules/linear-stage/modules/linear-stage/modules/drive-servo": {
+    "current_version": "0.1.0",
+    "trl": null,
+    "used_by": [
+      {
+        "path": "modules/linear-stage/modules/linear-stage",
+        "version": "0.1.0"
+      },
+      {
+        "path": "modules/linear-stage/modules/linear-stage-servo-linear",
+        "version": "0.1.0"
+      }
+    ],
+    "used_by_builds": []
+  },
+  "modules/linear-stage/modules/linear-stage/modules/drive-stepper": {
+    "current_version": "0.1.0",
+    "trl": null,
+    "used_by": [
+      {
+        "path": "modules/linear-stage/modules/linear-stage",
+        "version": "0.1.0"
+      },
+      {
+        "path": "modules/linear-stage/modules/linear-stage-stepper",
+        "version": "0.1.0"
+      }
+    ],
+    "used_by_builds": []
+  },
+  "modules/linear-stage/modules/linear-stage/modules/feedback-linear": {
+    "current_version": "0.1.0",
+    "trl": null,
+    "used_by": [
+      {
+        "path": "modules/linear-stage/modules/linear-stage",
+        "version": "0.1.0"
+      },
+      {
+        "path": "modules/linear-stage/modules/linear-stage-servo-linear",
+        "version": "0.1.0"
+      }
+    ],
+    "used_by_builds": []
+  },
+  "modules/linear-stage/modules/linear-stage/modules/feedback-none": {
+    "current_version": "0.1.0",
+    "trl": null,
+    "used_by": [
+      {
+        "path": "modules/linear-stage/modules/linear-stage",
+        "version": "0.1.0"
+      },
+      {
+        "path": "modules/linear-stage/modules/linear-stage-stepper",
+        "version": "0.1.0"
+      }
+    ],
+    "used_by_builds": []
+  },
+  "modules/linear-stage/modules/linear-stage": {
+    "current_version": "0.1.0",
+    "trl": null,
+    "used_by": [
+      {
+        "path": "modules/linear-stage/modules/linear-stage-servo-linear",
+        "version": "0.1.0"
+      },
+      {
+        "path": "modules/linear-stage/modules/linear-stage-stepper",
+        "version": "0.1.0"
+      },
+      {
+        "path": "modules/linear-stage",
+        "version": "0.1.0"
+      }
+    ],
+    "used_by_builds": [],
+    "models": [
+      "default",
+      "500mm",
+      "800mm"
+    ]
+  },
+  "modules/linear-stage/modules/linear-stage-servo-linear": {
+    "current_version": "0.1.0",
+    "trl": null,
+    "used_by": [
+      {
+        "path": "modules/linear-stage",
+        "version": "0.1.0"
+      },
+      {
+        "path": "modules/x-stage",
+        "version": "0.1.0",
+        "model": "500mm",
+        "sku": "ALS-SL-500"
+      }
+    ],
+    "used_by_builds": [
+      {
+        "build": "builds/serial-0001",
+        "model": "500mm",
+        "sku": "ALS-SL-500"
+      }
+    ]
+  },
+  "modules/linear-stage/modules/linear-stage-stepper": {
+    "current_version": "0.1.0",
+    "trl": null,
+    "used_by": [
+      {
+        "path": "modules/linear-stage",
+        "version": "0.1.0"
+      },
+      {
+        "path": "modules/y-stage",
+        "version": "0.1.0",
+        "model": "default",
+        "sku": "ALS-S-300"
+      }
+    ],
+    "used_by_builds": []
+  },
+  "modules/linear-stage": {
+    "current_version": "0.1.0",
+    "trl": null,
+    "used_by": [
+      {
+        "path": ".",
+        "version": "0.1.0"
+      }
+    ],
+    "used_by_builds": []
+  },
+  "modules/x-stage": {
+    "current_version": "0.1.0",
+    "trl": null,
+    "used_by": [
+      {
+        "path": ".",
+        "version": "0.1.0"
+      }
+    ],
+    "used_by_builds": [
+      {
+        "build": "builds/serial-0001"
+      }
+    ]
+  },
+  "modules/y-stage": {
+    "current_version": "0.1.0",
+    "trl": null,
+    "used_by": [
+      {
+        "path": ".",
+        "version": "0.1.0"
+      }
+    ],
+    "used_by_builds": [
+      {
+        "build": "builds/serial-0001"
+      }
+    ]
+  },
+  ".": {
+    "current_version": "0.1.0",
+    "trl": null,
+    "used_by": [],
+    "used_by_builds": []
+  }
+}

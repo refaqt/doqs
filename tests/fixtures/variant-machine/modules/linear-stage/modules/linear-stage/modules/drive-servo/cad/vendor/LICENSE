@@ -1,0 +1,18 @@
+Third-party supplier geometry — NOT covered by this project's licences.
+
+Files in this directory are CAD models of purchased, off-the-shelf components,
+obtained from their manufacturers or distributors. They are the property of
+those suppliers and are used here under the suppliers' own terms. They are
+excluded from the CERN Open Hardware Licence that covers the rest of `cad/`,
+and from every other licence named in the repository root LICENSE.
+
+Provenance for each file — supplier, part number, source URL, checksum and
+redistribution terms — is recorded in `vendor-index.csv` in this directory.
+
+Files marked `fetch-only` in that manifest may not be redistributed and are
+therefore not committed. Only their manifest row is. Fetch them from the
+supplier before CAD work.
+
+Removing or replacing a supplier's file does not change the licence of the
+project's own design files. See the repository root LICENSE for the full
+licensing overview and TRADEMARKS.md for reserved marks.

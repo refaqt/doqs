@@ -1,0 +1,25 @@
+okhv = "OKH-LOSHv1.0"
+name = "Linear Stage Servo Linear"
+repo = "https://example.com/linear-stage/tree/main/modules/linear-stage-servo-linear"
+version = "0.1.0"
+license = "CERN-OHL-S-2.0"
+licensor = "DOQS Tests"
+function = "Closed-loop linear stage: shared core with a servo drive and a linear encoder."
+bom = "bom/bom.csv"
+
+[composition]
+core    = "modules/linear-stage"
+options = [
+  "modules/linear-stage/modules/drive-servo",
+  "modules/linear-stage/modules/feedback-linear",
+]
+
+[[provides-interface]]
+name    = "StageCarriageInterface"
+version = "1.0"
+
+# A servo + linear-encoder SKU genuinely offers an interface the stepper SKU
+# does not. That belongs here, not in a boolean named has_linear_encoder.
+[[provides-interface]]
+name    = "StagePositionSignalInterface"
+version = "1.0"

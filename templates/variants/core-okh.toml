@@ -1,0 +1,32 @@
+# The shared CORE of a product family: all the geometry, once.
+# Length and other scalars are [[model]] entries here, never folders and never
+# compositions. Adding a length costs one sparse CSV plus one table row.
+okhv = "OKH-LOSHv1.0"
+
+name = "Linear Stage Core"
+repo = "https://github.com/ORG/linear-stage/tree/main/modules/linear-stage"
+version = "0.1.0"
+# Hardware licence (this manifest describes the hardware project).
+# Firmware/software is GPL-3.0; docs/media is CC BY-SA 4.0. See README.md / LICENSE.
+license = "CERN-OHL-S-2.0"
+licensor = ["Your Name"]
+function = "Shared core of the linear stage family: rails, carriage, end plates."
+
+bom = "bom/bom.csv"
+# No `export` key: a module with several models does not commit geometry per
+# model. Use doqs/scripts/export_variant.py when someone needs a STEP.
+
+[[model]]
+name        = "default"
+description = "300 mm rail — standard length"
+params      = "cad/params/default.csv"
+
+[[model]]
+name        = "500mm"
+description = "500 mm rail"
+params      = "cad/params/500mm.csv"
+
+[[provides-interface]]
+name        = "StageCarriageInterface"
+version     = "1.0"
+description = "Carriage mounting face"

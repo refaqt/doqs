@@ -21,13 +21,16 @@ python doqs/scripts/validate_all.py
 python doqs/scripts/build_graph.py
 ```
 
-Individual scripts: `validate_okh.py`, `validate_licenses.py`, `check_names.py`, `check_links.py`, `validate_build.py`. To write the split-licence files: `apply_licenses.py`. After `setup-tooling`, root launchers: `install_root_tools.py`. Graphical SysML: double-click `syson.bat` at the machine repo root, or `python doqs/scripts/syson.py ui` (see [docs/syson.md](docs/syson.md)).
+Individual scripts: `validate_okh.py`, `validate_licenses.py`, `check_names.py`, `check_links.py`, `validate_build.py`, `validate_variants.py`. To write the split-licence files: `apply_licenses.py`. After `setup-tooling`, root launchers: `install_root_tools.py`. Graphical SysML: double-click `syson.bat` at the machine repo root, or `python doqs/scripts/syson.py ui` (see [docs/syson.md](docs/syson.md)).
+
+Variant resolvers (generators, not gates): `resolve_params.py`, `resolve_bom.py`, `resolve_instance.py`, `aggregate_bom.py`, `export_variant.py` — see [docs/variants.md](docs/variants.md).
 
 ## Documentation
 
 | Doc | Purpose |
 |-----|---------|
 | [docs/architecture.md](docs/architecture.md) | Full DOQS system specification (module layout, `simulation/`, versioning, interfaces) |
+| [docs/variants.md](docs/variants.md) | Product families: many lengths and options of one design, and how a machine consumes one configuration |
 | [docs/syson.md](docs/syson.md) | Local SysON (graphical SysML) via Docker |
 | [docs/readiness-levels.md](docs/readiness-levels.md) | OTRL / ODRL definitions for `okh.toml` |
 | [docs/naming.md](docs/naming.md) | Naming conventions (machines, modules, parts) |
@@ -49,8 +52,10 @@ doqs/
   tools/          # Docker Compose for local SysON (GPL-3.0)
   data/           # Machine-readable lexicon (CC BY-SA 4.0)
   templates/      # OKH fragments, measurement templates, split-licence kit,
+                  # variants/ (product-family kit), cad/ (FreeCAD sync scripts),
                   # setup-tooling/ (copy-once bootstrap) and syson/ (root launchers)
-  schemas/        # JSON Schema for lockfiles, firmware config (GPL-3.0)
+  schemas/        # JSON Schema for lockfiles, catalogues, instances,
+                  # BOM sources, firmware config (GPL-3.0)
   spec/otrl.ttl   # Source ontology (IOP Alliance, GPL-3.0-or-later)
 ```
 

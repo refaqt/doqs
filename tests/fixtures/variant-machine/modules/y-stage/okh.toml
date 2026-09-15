@@ -1,0 +1,16 @@
+okhv = "OKH-LOSHv1.0"
+name = "Y Stage"
+repo = "https://example.com/variant-machine/tree/main/modules/y-stage"
+version = "0.1.0"
+license = "CERN-OHL-S-2.0"
+licensor = "DOQS Tests"
+function = "300 mm stepper linear stage providing Y travel."
+bom = "bom/bom.csv"
+
+# The choice, in text. The design stays in the submodule; this folder holds
+# no geometry of its own, so there is nothing that can drift.
+[instance]
+family      = "modules/linear-stage"
+composition = "modules/linear-stage-stepper"
+model       = "default"
+sku         = "ALS-S-300"

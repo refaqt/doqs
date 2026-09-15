@@ -1,0 +1,2 @@
+id,name,spec,category,qty,unit,unit_cost_eur,unit_mass_g,equiv_class,supplier_1,supplier_1_pn,supplier_2,supplier_2_pn,supplier_3,supplier_3_pn,notes
+ELC-001,Drive Cable Set,"motor, brake and encoder cable, 3 m",electrical,1,set,132.00,1400,CABLE-SERVO-3M,Beckhoff,ZK4704-3M,,,,,

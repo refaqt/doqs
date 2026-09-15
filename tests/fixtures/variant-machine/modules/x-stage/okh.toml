@@ -1,0 +1,16 @@
+okhv = "OKH-LOSHv1.0"
+name = "X Stage"
+repo = "https://example.com/variant-machine/tree/main/modules/x-stage"
+version = "0.1.0"
+license = "CERN-OHL-S-2.0"
+licensor = "DOQS Tests"
+function = "500 mm servo linear stage providing X travel."
+bom = "bom/bom.csv"
+
+# The choice, in text. The design stays in the submodule; this folder holds
+# no geometry of its own, so there is nothing that can drift.
+[instance]
+family      = "modules/linear-stage"
+composition = "modules/linear-stage-servo-linear"
+model       = "500mm"
+sku         = "ALS-SL-500"

@@ -1,0 +1,34 @@
+# A THIN composition module: the core plus one option per axis.
+# The core is a SIBLING folder in this same family repository, referenced by a
+# family-root-relative path — never a nested submodule, which would mean
+# bumping a pointer in every composition on every shared-core commit.
+#
+# Structural models are expensive. Before adding one, ask whether a parameter
+# can absorb the difference instead (docs/variants.md, "Keep compositions few").
+okhv = "OKH-LOSHv1.0"
+
+name = "Linear Stage Servo Linear"
+repo = "https://github.com/ORG/linear-stage/tree/main/modules/linear-stage-servo-linear"
+version = "0.1.0"
+license = "CERN-OHL-S-2.0"
+licensor = ["Your Name"]
+function = "Closed-loop linear stage: shared core, servo drive, linear encoder."
+
+bom = "bom/bom.csv"      # purchased parts specific to THIS composition only
+
+[composition]
+core    = "modules/linear-stage"
+options = [
+  "modules/linear-stage/modules/drive-servo",
+  "modules/linear-stage/modules/feedback-linear",
+]
+
+# A servo + linear-encoder SKU genuinely offers an interface a stepper SKU does
+# not. That belongs here, not in a boolean named has_linear_encoder.
+[[provides-interface]]
+name    = "StageCarriageInterface"
+version = "1.0"
+
+[[provides-interface]]
+name    = "StagePositionSignalInterface"
+version = "1.0"

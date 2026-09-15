@@ -1,0 +1,3 @@
+id,name,spec,category,qty,unit,unit_cost_eur,unit_mass_g,equiv_class,supplier_1,supplier_1_pn,supplier_2,supplier_2_pn,supplier_3,supplier_3_pn,notes
+MOT-001,Servo Motor,"AM8113 0.5 Nm with brake",electrical,1,pc,610.00,1400,SERVO-05NM,Beckhoff,AM8113-0F20,,,,,
+MEC-001,Coupler,"bellows 8-14 mm",mechanical,1,pc,24.00,130,BELLOWS-8-14,Ruland,MWC25-14-8-A,,,,,

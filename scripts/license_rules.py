@@ -53,7 +53,14 @@ STUB_MARKERS: dict[str, tuple[str, ...]] = {
     "software": ("GPL-3.0", "LICENSES"),
     "media": ("CC BY-SA", "LICENSES"),
     "upstream": ("OpenKnowHow", "GPL-3.0"),
+    # Purchased-component geometry under cad/vendor/. Writing the hardware stub
+    # over supplier files would claim a licence on files we do not own, so this
+    # directory is carved out of the CERN-OHL-S that covers the rest of cad/.
+    "vendor": ("Third-party", "not covered", "vendor-index.csv"),
 }
+
+#: Directory holding third-party supplier CAD, relative to a module root.
+VENDOR_DIR = Path("cad") / "vendor"
 
 # Tools-repo (refaqt/doqs) mapping — not a machine repo.
 TOOLS_PROJECT_NAME = "DOQS"
@@ -219,13 +226,36 @@ def _file_ok(path: Path, markers: tuple[str, ...]) -> bool:
     return _contains_markers(path.read_text(encoding="utf-8"), markers)
 
 
+def vendor_dirs(root: Path) -> list[Path]:
+    """Every ``cad/vendor/`` under root, at any module depth.
+
+    Unlike the content-type directories these are not first-level: a module
+    buys its own purchased parts, so the geometry sits beside the module that
+    needs it and the module stays independently extractable.
+    """
+    found: list[Path] = []
+    for directory in sorted(root.rglob(f"{VENDOR_DIR.as_posix()}")):
+        if not directory.is_dir():
+            continue
+        parts = directory.relative_to(root).parts
+        if "doqs" in parts or ".agents" in parts:
+            continue
+        found.append(directory)
+    return found
+
+
 def mapped_dirs(root: Path) -> list[tuple[Path, str]]:
-    """Existing first-level directories that need a LICENSE stub."""
+    """Directories that need a LICENSE stub.
+
+    First-level content directories by name, plus every ``cad/vendor/`` at any
+    depth — supplier geometry needs its own stub wherever it lives.
+    """
     found: list[tuple[Path, str]] = []
     for name, kind in DIR_KIND.items():
         d = root / name
         if d.is_dir():
             found.append((d, kind))
+    found.extend((d, "vendor") for d in vendor_dirs(root))
     return found
 
 
