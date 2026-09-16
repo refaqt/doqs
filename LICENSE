@@ -57,6 +57,14 @@ validators. Each uses the machine content-type split (CERN-OHL-S / GPL-3.0 /
 CC BY-SA), carries its own `LICENSE`, `LICENSES/` and `TRADEMARKS.md`, and is
 not covered by the tools-repo mapping above.
 
+## Tooling submodule
+
+[`.agents/`](.agents/) is the
+[refaqt/refaqt-agents](https://github.com/refaqt/refaqt-agents) submodule: shared
+agent rules and skills, licensed GPL-3.0 by that project. Only the gitlink is
+committed here, so the mapping above does not cover its files. See the `LICENSE`
+inside that submodule.
+
 ## Directory-level pointers
 
 Each top-level content directory also contains a short `LICENSE` file
