@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import csv
+import shutil
 import sys
 import tempfile
 import unittest
@@ -19,6 +20,7 @@ from param_rules import (  # noqa: E402
     load_param_csv,
     merge_params,
     declared_models,
+    params_owner,
     resolve,
     resolve_model,
 )
@@ -141,6 +143,59 @@ class TestFixtureFamily(unittest.TestCase):
         """A length override must not restate the whole parameter set."""
         with open(CORE / "cad" / "params" / "500mm.csv", newline="") as f:
             self.assertEqual(len(list(csv.DictReader(f))), 1)
+
+
+class TestParamsOwner(unittest.TestCase):
+    """Which module owns a module's parameters.
+
+    A composition is thin by design: no ``cad/`` at all, and an ``okh.toml``
+    naming the core that holds the numbers.  Resolving a composition against
+    its own directory is what made ``export_variant.py`` exit 1 on the command
+    printed in ``docs/variants.md``.
+    """
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory(prefix="doqs-owner-")
+        self.addCleanup(self._tmp.cleanup)
+        self.family = Path(self._tmp.name) / "family"
+        shutil.copytree(FAMILY, self.family)
+        self.core = self.family / "modules" / "linear-stage"
+        self.comp = self.family / "modules" / "linear-stage-servo-linear"
+
+    def test_core_owns_its_own_parameters(self) -> None:
+        self.assertEqual(params_owner(CORE), CORE)
+
+    def test_composition_resolves_to_its_core(self) -> None:
+        for name in ("linear-stage-servo-linear", "linear-stage-stepper"):
+            with self.subTest(composition=name):
+                self.assertEqual(params_owner(FAMILY / "modules" / name), CORE)
+
+    def test_composition_outside_a_family_is_refused(self) -> None:
+        """Composition paths are relative to the family root — no catalog, no core."""
+        orphan = Path(self._tmp.name) / "orphan"
+        shutil.copytree(self.comp, orphan)
+        with self.assertRaisesRegex(ParamError, "catalog.toml"):
+            params_owner(orphan)
+
+    def test_composition_naming_a_missing_core_is_refused(self) -> None:
+        okh = self.comp / "okh.toml"
+        okh.write_text(
+            okh.read_text(encoding="utf-8").replace(
+                'core    = "modules/linear-stage"', 'core    = "modules/nope"'),
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(ParamError, "'modules/nope' not found"):
+            params_owner(self.comp)
+
+    def test_module_with_neither_is_refused(self) -> None:
+        option = self.core / "modules" / "feedback-none"
+        with self.assertRaisesRegex(ParamError, r"\[composition\] core"):
+            params_owner(option)
+
+    def test_core_without_a_default_csv_is_refused(self) -> None:
+        (self.core / "cad" / "params" / "default.csv").unlink()
+        with self.assertRaisesRegex(ParamError, "no cad/params/default.csv"):
+            params_owner(self.comp)
 
 
 if __name__ == "__main__":

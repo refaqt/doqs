@@ -15,7 +15,10 @@ import ast
 import csv
 import math
 import operator
+import tomllib
 from pathlib import Path
+
+from naming_rules import family_root
 
 PARAM_HEADERS = ("alias", "value", "unit", "description")
 
@@ -225,6 +228,61 @@ def declared_models(module_dir: Path) -> list[str]:
     names = sorted(p.stem for p in directory.glob("*.csv"))
     return ["default"] + [n for n in names if n != "default"]
 
+
+def params_owner(module_dir: Path) -> Path:
+    """The module whose ``cad/params/`` drives ``module_dir``.
+
+    A core — or any ordinary parametric module — owns its parameters and comes
+    back unchanged, so a caller can pass whatever the user typed on
+    ``--module``.  A **composition** module is thin by design: it holds no
+    ``cad/`` at all, and its ``okh.toml`` names the core that holds the
+    numbers, by a path relative to the family root::
+
+        [composition]
+        core = "modules/linear-stage"
+
+    ``module_dir`` must be resolved: the family root is found by walking
+    parents for a ``catalog.toml``.
+    """
+    if (params_dir(module_dir) / "default.csv").exists():
+        return module_dir
+
+    okh = module_dir / "okh.toml"
+    if not okh.exists():
+        raise ParamError(
+            f"{module_dir.name} has no cad/params/default.csv and no okh.toml — "
+            "nothing declares where its parameters live"
+        )
+    try:
+        with open(okh, "rb") as f:
+            manifest = tomllib.load(f)
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        raise ParamError(f"{okh}: {exc}") from exc
+
+    core_rel = manifest.get("composition", {}).get("core")
+    if not core_rel:
+        raise ParamError(
+            f"{module_dir.name} has no cad/params/default.csv and its okh.toml "
+            "declares no [composition] core — nothing owns its parameters"
+        )
+
+    family = family_root(module_dir)
+    if family is None:
+        raise ParamError(
+            f"{module_dir.name}: [composition] found but no catalog.toml in any "
+            "parent — compositions live inside a family repo"
+        )
+
+    core = family / core_rel
+    if not (core / "okh.toml").exists():
+        raise ParamError(
+            f"{module_dir.name}: [composition] core {core_rel!r} not found in the family"
+        )
+    if not (params_dir(core) / "default.csv").exists():
+        raise ParamError(
+            f"{module_dir.name}: its core {core_rel} has no cad/params/default.csv"
+        )
+    return core
 
 def resolve_model(module_dir: Path, model: str = "default") -> dict[str, dict[str, str]]:
     """Merge ``default.csv`` with ``<model>.csv`` and evaluate expressions.
