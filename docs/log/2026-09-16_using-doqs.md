@@ -47,6 +47,13 @@ breaking change is the deleted page.
   what proves the deleted page left no dangling link behind. It skips
   `templates/licensing/tools/README-licence-section.md`, whose links resolve from a
   repository root because that file is meant to be pasted into one.
+
+  It also skips links **into** `doqs/` and `.agents/`. That one cost a red CI run
+  first: CI checks this repository out without submodules, so `.agents/` is empty
+  there, and `AGENTS.md` links into `.agents/rules/*.md`. Those links are not
+  broken — the other repository is simply not on disk. Every other gate already
+  skips that content, and now this one does too. `tests/test_check_links.py`
+  covers it, with the folder present and missing.
 - `tests/test_using_doqs_doc.py` asserts the command table matches `doqs list`,
   that the three FreeCAD scripts are named on the page, and that nothing links to
   the deleted guide.

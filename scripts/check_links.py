@@ -70,7 +70,14 @@ def check_markdown(root: Path) -> list[str]:
             path = unquote(link.split("#")[0].split("?")[0])
             if not path:
                 continue
-            if not (md.parent / path).exists():
+            target = md.parent / path
+            # A link into `doqs/` or `.agents/` points at another repository.
+            # Those folders are empty until someone checks the submodules out,
+            # and CI here does not, so the link is not ours to verify. Every
+            # other gate skips that content for the same reason.
+            if is_under_tooling_submodule(target, root):
+                continue
+            if not target.exists():
                 errors.append(f"{rel}: link not found: {link}")
     return errors
 
