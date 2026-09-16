@@ -5,7 +5,7 @@ DOQS is the **tools and specification** repository. Machine design work happens 
 ## Machine repo workflow
 
 1. Clone with submodules: `git clone --recurse-submodules …`
-2. From the **machine repository root** (parent of `doqs/`), run `bash setup-tooling.sh` (agents, any OS) so `doqs/` and `.agents/` track latest `main` and root launchers (`syson.bat` / `syson.sh`) are installed. Humans on Windows may double-click `setup-tooling.bat`. Copy those helpers from [`templates/setup-tooling/`](templates/setup-tooling/) if the consumer root does not have them yet (one-time bootstrap). Do not run them from the templates folder.
+2. From the **machine repository root** (parent of `doqs/`), run `bash setup-tooling.sh` (agents, any OS) so `doqs/` and `.agents/` track latest `main`, submodules under `modules/` stay at their recorded pin, and root launchers (`syson.bat` / `syson.sh`) are installed. Humans on Windows may double-click `setup-tooling.bat`. Copy those helpers from [`templates/setup-tooling/`](templates/setup-tooling/) if the consumer root does not have them yet (one-time bootstrap). Do not run them from the templates folder.
 3. Work from the **machine repository root** (parent of `doqs/`).
 4. After OKH, BOM, path, or licence-file changes, run:
 
@@ -77,6 +77,8 @@ See [docs/naming.md](docs/naming.md) and [docs/naming-lexicon.md](docs/naming-le
 ## Updating the doqs submodule in a machine repo
 
 Daily use: run `bash setup-tooling.sh` from the machine repo root (working tree tracks `main`; do not commit the dirty gitlink). The helper also refreshes root launchers from `doqs/templates/`.
+
+Only `doqs` and `.agents` go dirty after a run. The helper checks every submodule out at its recorded pin first, then tracks `main` for those two by name, so extracted modules under `modules/` keep their pin. It also does not create a second copy of the agent kit: doqs marks its own `.agents` submodule `update = none`, so git skips `doqs/.agents` in a machine repo.
 
 To **freeze a pin** (optional, not daily workflow):
 

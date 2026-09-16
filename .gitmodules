@@ -2,3 +2,4 @@
 	path = .agents
 	url = https://github.com/refaqt/refaqt-agents.git
 	branch = main
+	update = none
