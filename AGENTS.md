@@ -13,6 +13,14 @@ git submodule update --init --remote --checkout .agents
 `--checkout` is required: `.gitmodules` marks `.agents` as `update = none`, so a plain
 `git submodule update` skips it. See [Shared kit](#shared-kit) for why.
 
+In Claude Code a `SessionStart` hook runs this command for you. It lives in
+[`.claude/hooks/session-start.sh`](.claude/hooks/session-start.sh) and is registered in
+[`.claude/settings.json`](.claude/settings.json). It matters most in a cloud session, where the
+container clones this repo without `--recurse-submodules` and `.agents/` starts empty. The hook
+never stops a session: with no network it prints a message and lets the session run. Read its
+output at the start of the session. If it says the kit is missing, run the command above
+yourself once you have a network. In every other tool, run the command yourself.
+
 Do **not** copy `setup-tooling.sh` to this root. That helper is a template this repo *ships* for
 machine repos (see [`templates/setup-tooling/`](templates/setup-tooling/)); it runs
 `doqs/scripts/install_root_tools.py`, a path that does not exist here because this **is** doqs.
@@ -81,7 +89,8 @@ machine CERN-OHL-S kit, and this repo uses the tools-repo split instead.
 ### Licensing
 
 This repo splits licences by content type: GPL-3.0 for `scripts/`, `schemas/`, `tests/`,
-`tools/`, `.github/` and `.cursor/`; CC BY-SA 4.0 for `docs/`, `templates/` and `data/`.
+`tools/`, `.github/`, `.cursor/` and `.claude/`; CC BY-SA 4.0 for `docs/`, `templates/`
+and `data/`.
 A new `.py`, `.sh` or `.bat` file under `templates/` needs an `SPDX-License-Identifier`
 header. See [LICENSE](LICENSE) and [`templates/LICENSE`](templates/LICENSE).
 
