@@ -194,8 +194,7 @@ cnc-mill/
 │       ├── README.md
 │       │
 │       ├── bom/
-│       │   ├── bom.csv              # Source BOM for this module
-│       │   └── process_bom.py
+│       │   └── bom.csv              # Source BOM for this module
 │       │
 │       ├── cad/
 │       │   ├── README.md
@@ -291,7 +290,7 @@ cnc-mill/
 
 ### Licensing
 
-The **DOQS tools repository** (`refaqt/doqs`) is not a machine repo. It uses GPL-3.0 for software (`scripts/`, `schemas/`, `tests/`, `tools/`, `.github/`) and CC BY-SA 4.0 for documentation (`docs/`, `templates/`, `data/`). Two carve-outs sit inside `templates/`: the executable launchers (`syson/*.sh|bat`, `setup-tooling/*.sh|bat`) are GPL-3.0-or-later and carry SPDX headers, and `cad/build_model.py` is a seed whose resulting per-module file is licensed by the machine repository that adopts it. `validate_licenses.py` enforces those headers. `spec/otrl.ttl` remains GPL-3.0-or-later from IOP Alliance. See the `LICENSE` file in that repository. `apply_licenses.py --root <doqs>` detects the tools repo and writes that kit instead of the machine three-way split.
+The **DOQS tools repository** (`refaqt/doqs`) is not a machine repo. It uses a two-way split, GPL-3.0 and CC BY-SA 4.0, with carve-outs inside `templates/`. The `LICENSE` file in that repository holds the full mapping and is the only place it is written down. `apply_licenses.py --root <doqs>` detects the tools repo and writes that kit instead of the machine three-way split.
 
 **Machine and extracted-module repositories** use a **content-type split**, not a single blanket licence:
 
@@ -466,31 +465,9 @@ rail_length,500,mm,Total length of the X-axis linear rail
 
 Without derived values every override restates every number that follows from length, and changing one rule means editing every model file. See [variants.md](variants.md#sparse-overrides) for the expression rules, per-model BOMs, and supplier length tables.
 
-Resolver script:
-
-```python
-# cad/resolve_params.py
-"""Merge default + model override → active params.csv."""
-import csv, sys
-from pathlib import Path
-
-def resolve(here: Path, model: str) -> None:
-    default = {r["alias"]: r for r in csv.DictReader(open(here / "params" / "default.csv"))}
-    if model != "default":
-        override = csv.DictReader(open(here / "params" / f"{model}.csv"))
-        for row in override:
-            default[row["alias"]] = row
-    rows = sorted(default.values(), key=lambda r: r["alias"])
-    with open(here / "params.csv", "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=["alias", "value", "unit", "description"])
-        w.writeheader()
-        w.writerows(rows)
-    print(f"Resolved model '{model}' → {here / 'params.csv'} ({len(rows)} params)")
-
-if __name__ == "__main__":
-    model = sys.argv[1] if len(sys.argv) > 1 else "default"
-    resolve(Path(__file__).parent, model)
-```
+The resolver is [`scripts/resolve_params.py`](../scripts/resolve_params.py). It merges
+`params/default.csv` with the chosen override, evaluates derived values, and writes both
+`params.csv` and `params-table.csv`. `--check` reports a stale output instead of writing.
 
 Declare available models in the module's `okh.toml`:
 
@@ -589,7 +566,7 @@ The forward edge (parent → child) is already in `[[hasComponent]]`. The revers
 }
 ```
 
-Generator (`doqs/scripts/build_graph.py`) walks all `okh.toml` files plus every lockfile under `builds/`, inverting the edges. It also reads `known-consumers.toml` at the project root for external repos that consume this project's modules.
+Generator (`doqs/scripts/build_graph.py`) walks all `okh.toml` files plus every lockfile under `builds/`, inverting the edges.
 
 This gives you queryable provenance: "if I change `drive-belt v0.3.1`, who is affected?" The answer is a finite list of parent modules and physical builds — easy to enumerate, easy to notify.
 
@@ -792,80 +769,18 @@ The lockfile serves three purposes:
 
 For users assembling their own machine, `builds/example-baseline.toml` is the starting template. They copy it to their own `builds/<their-id>/build.toml` and either keep it private or contribute it back. A contributed build expands the project's known install base and gives downstream maintainers visibility into what's deployed.
 
-External organisations running their own forks should keep their lockfiles in their own repos, but may list themselves in the parent's `known-consumers.toml` so they appear in the reverse usage graph.
+External organisations running their own forks should keep their lockfiles in their own repos. A `known-consumers.toml` at the project root is the agreed place to list them, but no generator reads it yet, so entries there do not appear in the usage graph.
 
 ### Validator (`doqs/scripts/validate_build.py`)
 
-```python
-"""Validate that a build.toml represents an interface-compatible composition."""
-from pathlib import Path
-import tomllib
+[`scripts/validate_build.py`](../scripts/validate_build.py) reads every
+`builds/**/build.toml`, opens the `okh.toml` each entry points at, and collects the interfaces
+those modules provide and consume. It fails when an entry consumes an interface that no module
+in the same build provides.
 
-def load_module_manifest(root: Path, mod_entry: dict) -> dict:
-    # In a full implementation this would resolve the version (git checkout
-    # at the tag) and read okh.toml from that snapshot. For brevity, here we
-    # just read from the working tree.
-    mod_path = root / mod_entry["path"] / "okh.toml"
-    with open(mod_path, "rb") as f:
-        return tomllib.load(f)
-
-def collect_interfaces(modules: list[dict]) -> tuple[dict, list]:
-    """Return (provided, consumed) maps keyed by (name, major_version)."""
-    provided, consumed = {}, []
-    for m in modules:
-        for iface in m["manifest"].get("provides-interface", []):
-            key = (iface["name"], iface["version"].split(".")[0])
-            provided.setdefault(key, []).append(m["path"])
-        for iface in m["manifest"].get("consumes-interface", []):
-            key = (iface["name"], iface["version"].split(".")[0])
-            consumed.append({"interface": key, "by": m["path"]})
-    return provided, consumed
-
-def validate(build_path: Path, repo_root: Path) -> list[str]:
-    errors = []
-    with open(build_path, "rb") as f:
-        build = tomllib.load(f)
-
-    modules = []
-    for entry in build.get("module", []):
-        modules.append({
-            "path": entry["path"],
-            "version": entry["version"],
-            "manifest": load_module_manifest(repo_root, entry),
-        })
-    # Adapters listed inline on module entries are also part of the build
-    for entry in build.get("module", []):
-        if "adapter" in entry:
-            adapter_path = entry["adapter"].split("@")[0]
-            modules.append({
-                "path": adapter_path,
-                "version": entry["adapter"].split("@")[1],
-                "manifest": load_module_manifest(
-                    repo_root, {"path": adapter_path}),
-            })
-
-    provided, consumed = collect_interfaces(modules)
-    for need in consumed:
-        if need["interface"] not in provided:
-            errors.append(
-                f"Unsatisfied interface {need['interface']} required by "
-                f"{need['by']} — no module in this build provides it")
-    return errors
-
-if __name__ == "__main__":
-    repo_root = Path(__file__).parent.parent
-    all_ok = True
-    for build_file in sorted((repo_root / "builds").rglob("build.toml")):
-        errs = validate(build_file, repo_root)
-        rel = build_file.relative_to(repo_root)
-        if errs:
-            all_ok = False
-            print(f"FAIL  {rel}")
-            for e in errs: print(f"      {e}")
-        else:
-            print(f"ok    {rel}")
-    raise SystemExit(0 if all_ok else 1)
-```
+One detail matters for families: when a lockfile entry names a `composition`, the validator reads
+that composition's manifest, not the family root's. A stepper SKU and a servo SKU provide different
+interfaces, so the family root cannot answer for either.
 
 Run this in CI on every commit. When a new module version is published, CI immediately identifies which historical builds remain consistent and which need attention (an adapter, a backport, or explicit documentation of incompatibility).
 
@@ -1046,63 +961,18 @@ When a module is extracted to its own repo, update its `repo` field and the `[[h
 
 ### Validation Script (`doqs/scripts/validate_okh.py`)
 
-```python
-from pathlib import Path
-import tomllib  # Python 3.11+
+[`scripts/validate_okh.py`](../scripts/validate_okh.py) reads every `okh.toml` outside the
+tooling submodules and checks that each one carries the required fields:
 
-REQUIRED = ["okhv", "name", "repo", "version", "license", "licensor", "function"]
+`okhv`, `name`, `repo`, `version`, `license`, `licensor`, `function`.
 
-def validate(p: Path) -> list[str]:
-    errors = []
-    with open(p, "rb") as f:
-        data = tomllib.load(f)
-    for field in REQUIRED:
-        if field not in data:
-            errors.append(f"Missing: {field}")
-    for key in ("bom", "readme"):
-        if key in data:
-            ref = p.parent / data[key]
-            if not ref.exists():
-                errors.append(f"{key} not found: {data[key]}")
-    for item in data.get("source", []) + data.get("export", []):
-        if not (p.parent / item).exists():
-            errors.append(f"File not found: {item}")
-    for instr in data.get("manufacturing-instructions", []):
-        if not (p.parent / instr).exists():
-            errors.append(f"manufacturing-instructions not found: {instr}")
-    # Model param files must exist
-    for model in data.get("model", []):
-        if "params" in model:
-            if not (p.parent / model["params"]).exists():
-                errors.append(f"model '{model.get('name','?')}' "
-                              f"params not found: {model['params']}")
-    # Interfaces must declare name and version
-    for iface in data.get("provides-interface", []) + data.get("consumes-interface", []):
-        if "name" not in iface or "version" not in iface:
-            errors.append(f"Interface missing name or version: {iface}")
-    return errors
-
-if __name__ == "__main__":
-    root = Path(__file__).parent.parent
-    all_ok = True
-    for manifest in sorted(root.rglob("okh.toml")):
-        if "doqs" in manifest.relative_to(root).parts:
-            continue
-        errors = validate(manifest)
-        rel = manifest.relative_to(root)
-        if errors:
-            all_ok = False
-            print(f"FAIL  {rel}")
-            for e in errors: print(f"      {e}")
-        else:
-            print(f"ok    {rel}")
-    raise SystemExit(0 if all_ok else 1)
-```
+It also checks the SPDX licence expression, the paths in `bom` and `readme`, and — with
+`--expected-version` — that the root manifest matches a released version.
 
 Related validators (documented in their own sections):
 
 - `doqs/scripts/check_names.py` — module slugs, BOM ids, model slugs, naming lexicon ([naming.md](naming.md)).
-- `doqs/scripts/validate_all.py` — runs `validate_okh`, `validate_licenses`, `check_names`, `check_links`, and `validate_build` in sequence.
+- `doqs/scripts/validate_all.py` — runs `validate_okh`, `validate_licenses`, `check_names`, `check_links`, `validate_build`, `validate_variants` and `validate_cad` in sequence.
 - `doqs/scripts/validate_licenses.py` — split-licence files (`LICENSE`, `LICENSES/`, `TRADEMARKS.md`, directory stubs). Use `apply_licenses.py` to write them.
 - `doqs/scripts/validate_build.py` — checks that lockfiles in `builds/` represent interface-consistent compositions.
 - `doqs/scripts/validate_variants.py` — product families: see [variants.md](variants.md).
@@ -1492,62 +1362,16 @@ alias,value,unit,description
 
 The `alias` must match the FreeCAD Spreadsheet cell alias exactly. See the *Linking CSV Parameters to FreeCAD* section for the model-override workflow.
 
-**Processing script** (`bom/process_bom.py`):
+**Working with a BOM.** Two doqs scripts do this; a module never carries its own copy.
 
-```python
-import csv
-from pathlib import Path
+- [`scripts/resolve_bom.py`](../scripts/resolve_bom.py) resolves one module's BOM for one model:
+  it applies the column-sparse overlay, looks up length tables through `bom/sources.toml`, and
+  fills `{alias}` placeholders from the module's parameters. Writes to stdout, or to `--out`.
+- [`scripts/aggregate_bom.py`](../scripts/aggregate_bom.py) walks every module and writes one
+  purchasing list at `bom/bom.csv` in the machine root.
 
-def load_bom(path: Path) -> list[dict]:
-    with open(path, newline="") as f:
-        return list(csv.DictReader(f))
-
-def render_markdown(bom: list[dict], out_path: Path) -> None:
-    header = "| ID | Name | Qty | Unit Cost (€) | Total (€) | Primary Supplier |"
-    sep    = "|----|------|-----|--------------|-----------|-----------------|"
-    lines  = ["# Bill of Materials\n", header, sep]
-    for r in bom:
-        total = float(r["unit_cost_eur"]) * int(r["qty"])
-        lines.append(f"| {r['id']} | {r['name']} | {r['qty']} | "
-                     f"{r['unit_cost_eur']} | {total:.2f} | {r['supplier_1']} |")
-    total = sum(float(r["unit_cost_eur"]) * int(r["qty"]) for r in bom)
-    lines.append(f"\n**Grand Total: €{total:.2f}**")
-    out_path.write_text("\n".join(lines))
-
-if __name__ == "__main__":
-    here = Path(__file__).parent
-    bom = load_bom(here / "bom.csv")
-    render_markdown(bom, here / "bom_output.md")
-```
-
-**Aggregation script** (`bom/aggregate_bom.py` at project root):
-
-```python
-from pathlib import Path
-import csv
-
-def aggregate(root: Path, out_path: Path):
-    rows = []
-    for bom_file in sorted(root.rglob("bom/bom.csv")):
-        if bom_file == out_path:
-            continue
-        module = bom_file.relative_to(root).parts[0]  # e.g. "modules"
-        with open(bom_file, newline="") as f:
-            for row in csv.DictReader(f):
-                row["module"] = str(bom_file.parent.parent.relative_to(root))
-                rows.append(row)
-    if not rows:
-        return
-    fieldnames = ["module"] + [k for k in rows[0] if k != "module"]
-    with open(out_path, "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=fieldnames)
-        w.writeheader()
-        w.writerows(rows)
-
-if __name__ == "__main__":
-    root = Path(__file__).parent.parent
-    aggregate(root, root / "bom" / "bom.csv")
-```
+An earlier version of this document printed a `bom/process_bom.py` here. No such script has ever
+shipped in doqs. If a repository holds a hand-copied BOM script, delete it and use the two above.
 
 ### SysML (`.sysml`) — System Architecture and Requirements
 
@@ -1855,7 +1679,7 @@ The `graph/usage-graph.json` file is generated but **is** committed — it serve
 - [ ] If parameters changed for the default model, update `cad/params/default.csv`; for a model variant, update `cad/params/<model>.csv` (only the rows that differ — derived values follow)
 - [ ] Run `doqs/scripts/resolve_params.py --table` and commit `cad/params-table.csv`
 - [ ] Run `doqs/scripts/cad_sync_params.py` inside FreeCAD to update geometry (`sync_table()` after adding or removing a model)
-- [ ] If BOM changed, update module `bom/bom.csv`; run `process_bom.py`
+- [ ] If BOM changed, update module `bom/bom.csv`
 - [ ] If a new length was added, add its row to each bound `bom/tables/<part>.csv` — a length no supplier stocks fails validation
 - [ ] Run `doqs/scripts/aggregate_bom.py` (project root)
 - [ ] If CAD changed, export `.step`, `.dxf`, `.stl` to `cad/exports/`; set drawing title block `Rev` to current `okh.toml` `version`
@@ -1884,7 +1708,7 @@ The `graph/usage-graph.json` file is generated but **is** committed — it serve
 **Validation & commit:**
 
 - [ ] If this is a new repo or a new first-level content directory, run `doqs/scripts/apply_licenses.py` and add a README Licence section
-- [ ] Run `doqs/scripts/validate_all.py` (or individually: `validate_okh.py`, `validate_licenses.py`, `check_names.py`, `check_links.py`, `validate_build.py`)
+- [ ] Run `doqs/scripts/validate_all.py` (it runs all seven gates)
 - [ ] Before tagging: `doqs/scripts/validate_okh.py --expected-version X.Y.Z`
 - [ ] Run `doqs/scripts/build_graph.py` — regenerate `graph/usage-graph.json`
 - [ ] Commit with a conventional commit message
