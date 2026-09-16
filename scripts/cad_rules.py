@@ -2,7 +2,7 @@
 
 A **fingerprint** is a small JSON file recording what a model measures — bounding
 box, volume, area, centre of mass, topology counts — for every shaped object in a
-document.  It is written by ``cad/fingerprint.py`` (which runs inside FreeCAD) and
+document.  It is written by ``doqs/scripts/cad_fingerprint.py`` (inside FreeCAD) and
 read back here, where FreeCAD is not available.
 
 It exists because agents need to check their own work.  A screenshot of a model

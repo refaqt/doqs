@@ -3,11 +3,11 @@
 Two outputs, deliberately different in lifecycle:
 
 ``cad/params.csv``
-    The single **active** model, consumed by ``sync_params.py`` and the BOM
+    The single **active** model, consumed by ``cad_sync_params.py`` and the BOM
     resolver.  Generated and gitignored, exactly as before.
 
 ``cad/params-table.csv``
-    Dense: one row per declared model.  **Committed.**  ``sync_params.py``
+    Dense: one row per declared model.  **Committed.**  ``cad_sync_params.py``
     writes it into the FreeCAD spreadsheet as a Configuration Table, which is
     what gives a composition document a ``Configuration`` enum whose values are
     the model slugs — and therefore what lets a parent machine variant-link the

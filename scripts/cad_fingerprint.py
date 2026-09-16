@@ -1,6 +1,13 @@
 """Measure a FreeCAD document into a committed geometric fingerprint.
 
-Copy this file to `<module>/cad/fingerprint.py` alongside `build_model.py`.
+Runs inside FreeCAD, from the module root of a machine repository:
+
+    FreeCADCmd cad/build_model.py      # build_model.py calls write() for you
+
+Or against the document already open in the GUI:
+
+    exec(open("doqs/scripts/cad_fingerprint.py").read())
+    write()
 
 Why this exists: an agent cannot see a model, and a screenshot is both the most
 expensive way to look at one and the worst way to answer the questions that
@@ -8,53 +15,30 @@ actually matter.  A 1920x1080 viewport costs ~2,700 tokens and still will not
 tell you whether a rail is 500 mm long.  The numbers below cost tens of tokens
 and answer it exactly.  The same file is a geometric regression gate in CI.
 
-Usage (headless, from the module root):
-
-    FreeCADCmd cad/build_model.py      # build_model.py calls write() for you
-
-Usage (FreeCAD Python console, against the open document):
-
-    exec(open("cad/fingerprint.py").read())
-    write()
-
-`doqs/scripts/validate_cad.py` reads the result back and fails the build when a
+``doqs/scripts/validate_cad.py`` reads the result back and fails the build when a
 committed fingerprint no longer matches the `.FCStd` it describes.
+
+FreeCAD is imported lazily inside the functions that need it, so this module
+imports cleanly under plain Python and its CSV handling stays unit-testable.
 """
 
 import csv
-import sys
 from pathlib import Path
+
+import cad_rules
 
 #: Exports hashed alongside the .FCStd so a hand-edited STEP is caught too.
 EXPORT_SUFFIXES = (".step", ".stp", ".stl", ".dxf")
 
 
-def _here():
-    try:
-        return Path(__file__).resolve().parent
-    except NameError:  # exec()'d from the FreeCAD console
-        return Path.cwd() / "cad"
+def _cad_dir(cad_dir=None):
+    """The module's `cad/` directory. Defaults to `cwd/cad` (run from the root)."""
+    return Path(cad_dir) if cad_dir else Path.cwd() / "cad"
 
 
-def _cad_rules():
-    """Import doqs/scripts/cad_rules.py by walking up to the machine repo root."""
-    for base in [_here(), *_here().parents]:
-        candidate = base / "doqs" / "scripts"
-        if (candidate / "cad_rules.py").is_file():
-            if str(candidate) not in sys.path:
-                sys.path.insert(0, str(candidate))
-            import cad_rules
-
-            return cad_rules
-    raise RuntimeError(
-        "doqs/scripts/cad_rules.py not found above "
-        f"{_here()} — run from inside a machine repository."
-    )
-
-
-def _read_params(path=None):
+def read_params(cad_dir=None, path=None):
     """cad/params.csv -> {alias: value}, skipping the generated `#` header."""
-    path = Path(path) if path else _here() / "params.csv"
+    path = Path(path) if path else _cad_dir(cad_dir) / "params.csv"
     if not path.exists():
         return {}
     with open(path, newline="", encoding="utf-8") as f:
@@ -120,7 +104,7 @@ def measure(doc=None, params=None):
     """Measure every shaped object in `doc` into a fingerprint payload."""
     import FreeCAD
 
-    rules = _cad_rules()
+    rules = cad_rules
     doc = doc or FreeCAD.ActiveDocument
     if doc is None:
         raise RuntimeError("No active FreeCAD document.")
@@ -161,24 +145,24 @@ def measure(doc=None, params=None):
         # rejects committing one: rebuild headless before you commit.
         "saved": saved,
         "sources": sources,
-        "params": params if params is not None else _read_params(),
+        "params": params if params is not None else read_params(),
         "objects": objects,
         "errors": errors,
     }
 
 
-def write(doc=None, path=None, params=None):
+def write(doc=None, path=None, params=None, cad_dir=None):
     """Measure and write `cad/<document>.fingerprint.json`. Returns the payload."""
     import FreeCAD
 
-    rules = _cad_rules()
+    rules = cad_rules
     doc = doc or FreeCAD.ActiveDocument
     data = measure(doc, params=params)
     if path is None:
         target = (
             rules.fingerprint_path(Path(doc.FileName))
             if doc.FileName
-            else _here() / f"{doc.Name}{rules.FINGERPRINT_SUFFIX}"
+            else _cad_dir(cad_dir) / f"{doc.Name}{rules.FINGERPRINT_SUFFIX}"
         )
     else:
         target = Path(path)

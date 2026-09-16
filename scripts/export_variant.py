@@ -21,10 +21,16 @@ from pathlib import Path
 from naming_rules import repo_root_from_script
 from param_rules import ParamError, resolve_model
 
+#: `cad_dir` is passed explicitly: the macro runs from a temp file, so a
+#: script inferring its own location from ``__file__`` would look for
+#: ``params.csv`` next to that temp file rather than in the module.
 MACRO = '''
+import sys
 import FreeCAD, Import, Mesh, os
+sys.path.insert(0, {scripts!r})
+import cad_sync_params
 doc = FreeCAD.openDocument({source!r})
-exec(open({sync!r}).read())
+cad_sync_params.sync_active(doc=doc, cad_dir={cad_dir!r})
 doc.recompute()
 objects = [o for o in doc.Objects if hasattr(o, "Shape") and not o.Shape.isNull()]
 Import.export(objects, {step!r})
@@ -67,7 +73,8 @@ def main() -> int:
 
     source = Path(args.source) if args.source else module_dir / "cad" / "assemblies" / f"{name}.FCStd"
     out = args.out or module_dir / "cad" / "exports" / args.model / f"{name}.step"
-    sync = module_dir / "cad" / "sync_params.py"
+    cad_dir = module_dir / "cad"
+    scripts_dir = Path(__file__).resolve().parent
 
     print(f"module {args.module.as_posix()}  model {args.model}  "
           f"({len(params)} parameters)")
@@ -80,10 +87,6 @@ def main() -> int:
     if not source.exists():
         print(f"FAIL  source not found: {source}")
         return 1
-    if not sync.exists():
-        print(f"FAIL  {sync} not found — copy it from doqs/templates/cad/sync_params.py")
-        return 1
-
     binary = find_freecad(args.freecad)
     if binary is None:
         print("FAIL  no FreeCAD binary found; pass --freecad PATH, or use --dry-run")
@@ -96,7 +99,12 @@ def main() -> int:
 
     out.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False) as macro:
-        macro.write(MACRO.format(source=str(source), sync=str(sync), step=str(out)))
+        macro.write(MACRO.format(
+            source=str(source),
+            scripts=str(scripts_dir),
+            cad_dir=str(cad_dir),
+            step=str(out),
+        ))
         macro_path = macro.name
     try:
         result = subprocess.run([binary, macro_path])

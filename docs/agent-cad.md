@@ -31,7 +31,9 @@ so there is never a second copy to reconcile.
 ## Architecture
 
 The agent edits `cad/build_model.py` — a plain Python file, the reviewable
-artefact in the pull request — and that one script runs in either context:
+artefact in the pull request. It supplies `build(doc, params)`; the scaffolding
+around it lives in [`scripts/cad_build.py`](../scripts/cad_build.py) and updates
+with the submodule. That one entry point runs in either context:
 
 | Context | What happens | Saves? |
 | --- | --- | --- |
@@ -170,7 +172,7 @@ default.
 ### Fingerprints
 
 `cad/<document>.fingerprint.json` is written on every build by
-[`templates/cad/fingerprint.py`](../templates/cad/fingerprint.py) and committed:
+[`scripts/cad_fingerprint.py`](../scripts/cad_fingerprint.py) and committed:
 
 ```json
 {
@@ -244,11 +246,30 @@ of `validate_all.py`.
 
 ## Writing a build script
 
-Copy [`templates/cad/build_model.py`](../templates/cad/build_model.py) and
-[`templates/cad/fingerprint.py`](../templates/cad/fingerprint.py) to the
-module's `cad/` directory and replace `build()`. Leave the scaffolding around it
-alone — the transaction handling, save discipline and fingerprinting are the
-parts that make the open-file workflow safe.
+Copy [`templates/cad/build_model.py`](../templates/cad/build_model.py) to the
+module's `cad/` directory and replace `build()`. That is the only file a module
+owns. The transaction handling, save discipline and fingerprinting — the parts
+that make the open-file workflow safe — live in `doqs/scripts/` and reach the
+seed through a short upward walk to the submodule:
+
+| Lives in the module | Lives in `doqs/scripts/` |
+| --- | --- |
+| `cad/build_model.py` — `build()`, the geometry | `cad_build.py` — transactions, save discipline, `run()` |
+| `cad/params/*.csv`, `cad/*.FCStd` | `cad_fingerprint.py` — measurement |
+| | `cad_sync_params.py` — CSV → Spreadsheet |
+
+Tools stay in the submodule so a fix reaches every module on the next
+`git submodule update --remote`. `validate_cad.py` fails on a per-module copy.
+
+### Migrating a module created before this split
+
+1. Delete `cad/fingerprint.py` and `cad/sync_params.py`.
+2. Re-seed `cad/build_model.py` from the template, pasting your `build()` body
+   back in. A pre-split file is the one containing `def open_document(`.
+3. Run `python doqs/scripts/validate_cad.py` — it names anything left over.
+
+Nothing about the `.FCStd`, the fingerprint format or the commands changes;
+`FreeCADCmd cad/build_model.py` is still the headless rebuild.
 
 Prefer driving dimensions through Spreadsheet aliases
 ([Linking CSV Parameters to FreeCAD](architecture.md#linking-csv-parameters-to-freecad))
