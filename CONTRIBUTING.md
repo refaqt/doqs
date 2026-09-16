@@ -100,7 +100,7 @@ Every task that changes the repo must start on a **new git branch** off `main`, 
 From this repository root:
 
 ```powershell
-python -m compileall scripts templates
+python -m compileall scripts templates doqs.py
 python -m unittest discover -s tests -p "test_*.py"
 python scripts/check_names.py --root tests/fixtures/minimal-machine
 python scripts/validate_okh.py --root tests/fixtures/minimal-machine
@@ -109,6 +109,9 @@ python scripts/validate_licenses.py --root .
 python scripts/apply_licenses.py --check --root .
 python scripts/validate_all.py --root tests/fixtures/variant-family
 python scripts/validate_all.py --root tests/fixtures/variant-machine
+python doqs.py check --root tests/fixtures/variant-family
+python doqs.py check --root tests/fixtures/variant-machine
+python doqs.py list
 python scripts/resolve_params.py --root tests/fixtures/variant-family --table --check
 python scripts/resolve_instance.py --root tests/fixtures/variant-machine --check
 ```

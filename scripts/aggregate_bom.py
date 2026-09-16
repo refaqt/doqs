@@ -96,12 +96,12 @@ def render(rows: list[dict[str, str]]) -> str:
     return buffer.getvalue()
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Aggregate module BOMs at the machine root.")
     parser.add_argument("--root", type=Path, default=None)
     parser.add_argument("--out", type=Path, default=None,
                         help="Default: <root>/bom/bom.csv (generated; gitignored)")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     root = args.root.resolve() if args.root else repo_root_from_script()
     rows = collect(root)

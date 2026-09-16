@@ -13,7 +13,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Python compile check
-        run: python -m compileall scripts templates
+        run: python -m compileall scripts templates doqs.py
       - name: Unit tests
         run: python -m unittest discover -s tests -p "test_*.py"
       - name: Naming check on fixture machine
@@ -30,6 +30,11 @@ jobs:
         run: python scripts/validate_all.py --root tests/fixtures/variant-family
       - name: All gates on the variant machine fixture
         run: python scripts/validate_all.py --root tests/fixtures/variant-machine
+      - name: One command, on both fixtures
+        run: |
+          python doqs.py check --root tests/fixtures/variant-family
+          python doqs.py check --root tests/fixtures/variant-machine
+          python doqs.py list
       - name: Generated variant files are current
         run: |
           python scripts/resolve_params.py --root tests/fixtures/variant-family --table --check

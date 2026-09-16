@@ -7,3 +7,4 @@ Write entries in B2 English. Follow `.agents/rules/communication.md`.
 | ---- | ----- | ------- | -----: |
 | 2026-09-16 | [Validators skip the agent kit](2026-09-16_tooling-submodule-skip.md) | software | 0 |
 | 2026-09-16 | [Fixed what the documentation got wrong](2026-09-16_fix-the-facts.md) | software | 0 |
+| 2026-09-16 | [One command instead of nineteen](2026-09-16_one-command.md) | software | 0 |

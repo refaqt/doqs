@@ -14,16 +14,21 @@ cd qarve
 bash setup-tooling.sh
 ```
 
-Run scripts from the **machine repository root** (parent of this folder):
+Then run everything through one command, from the **machine repository root**:
 
 ```powershell
-python doqs/scripts/validate_all.py
-python doqs/scripts/build_graph.py
+bash doqs.sh check       # every gate, plus "are the generated files current?"
+bash doqs.sh generate    # write every generated file, in the right order
+bash doqs.sh list        # every command, and the scripts each one runs
 ```
 
-Individual scripts: `validate_okh.py`, `validate_licenses.py`, `check_names.py`, `check_links.py`, `validate_build.py`, `validate_variants.py`, `validate_cad.py`. To write the split-licence files: `apply_licenses.py`. After `setup-tooling`, root launchers: `install_root_tools.py`. Graphical SysML: double-click `syson.bat` at the machine repo root, or `python doqs/scripts/syson.py ui` (see [docs/syson.md](docs/syson.md)).
+`doqs.bat` does the same on Windows, and `python doqs/doqs.py <command>` works without either
+launcher. `setup-tooling.sh` installs both launchers for you.
 
-Variant resolvers (generators, not gates): `resolve_params.py`, `resolve_bom.py`, `resolve_instance.py`, `aggregate_bom.py`, `export_variant.py` — see [docs/variants.md](docs/variants.md).
+`doqs list` is the full command list, so this README does not repeat it. The scripts under
+`doqs/scripts/` still work when called directly: `python doqs/scripts/validate_all.py` runs the
+same seven gates it always has. `doqs check` runs those seven plus three checks on generated
+files.
 
 ## Documentation
 

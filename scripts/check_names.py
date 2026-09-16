@@ -195,11 +195,6 @@ def main() -> int:
         action="store_true",
         help="Treat lexicon warnings as errors",
     )
-    parser.add_argument(
-        "--warnings-only",
-        action="store_true",
-        help="Exit 0 when only warnings (no errors)",
-    )
     args = parser.parse_args()
     root = args.root.resolve() if args.root else repo_root_from_script()
 
@@ -219,11 +214,7 @@ def main() -> int:
     elif all_ok:
         print("ok    naming conventions (with warnings)")
 
-    if not all_ok:
-        return 1
-    if warnings and not args.warnings_only:
-        return 0
-    return 0
+    return 1 if not all_ok else 0
 
 
 if __name__ == "__main__":

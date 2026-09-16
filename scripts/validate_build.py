@@ -70,13 +70,14 @@ def validate(build_path: Path, repo_root: Path) -> list[str]:
     return errors
 
 
-if __name__ == "__main__":
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Validate build lockfiles.")
     parser.add_argument("--root", type=Path, default=None)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     root = args.root.resolve() if args.root else repo_root_from_script()
     all_ok = True
-    for build_file in sorted((root / "builds").rglob("build.toml")):
+    build_files = sorted((root / "builds").rglob("build.toml"))
+    for build_file in build_files:
         errs = validate(build_file, root)
         rel = build_file.relative_to(root)
         if errs:
@@ -86,6 +87,10 @@ if __name__ == "__main__":
                 print(f"      {e}")
         else:
             print(f"ok    {rel}")
-    if not list((root / "builds").rglob("build.toml")):
+    if not build_files:
         print("No build.toml files found under builds/")
-    raise SystemExit(0 if all_ok else 1)
+    return 0 if all_ok else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
