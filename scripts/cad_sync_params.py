@@ -29,7 +29,8 @@ Usage (headless, from the module root):
 `cad_dir` locates the module's `cad/` directory and defaults to `cwd/cad`.
 Pass it explicitly when the caller's working directory is not the module root -
 a generated macro, for instance, where `__file__` points somewhere else
-entirely.
+entirely.  `sync_active()` also takes `save` (default `True`); pass
+`save=False` when the document on disk is not yours to write.
 
 After `sync_table()`, set up the configuration binding once, by hand:
 right-click cell `A2` of the `Params` spreadsheet -> *Configuration table*.
@@ -71,8 +72,15 @@ def _cad_dir(cad_dir=None):
     return Path(cad_dir) if cad_dir else Path.cwd() / "cad"
 
 
-def sync_active(doc=None, csv_path=None, cad_dir=None):
-    """cad/params.csv -> aliased cells of the Params spreadsheet."""
+def sync_active(doc=None, csv_path=None, cad_dir=None, save=True):
+    """cad/params.csv -> aliased cells of the Params spreadsheet.
+
+    ``save=False`` leaves the document on disk untouched, which is what a
+    caller that only needs geometry in memory wants: ``Import.export`` works
+    on in-memory objects, and writing a committed ``.FCStd`` from a second
+    process is the FreeCAD #8924 data-loss path ``cad_build.run()`` avoids
+    for the same reason.
+    """
     import FreeCAD
 
     doc = doc or FreeCAD.ActiveDocument
@@ -100,8 +108,10 @@ def sync_active(doc=None, csv_path=None, cad_dir=None):
         updated.append(alias)
 
     doc.recompute()
-    doc.save()
-    print(f"Synced {len(updated)} parameters: {', '.join(sorted(updated))}")
+    if save:
+        doc.save()
+    print(f"Synced {len(updated)} parameters: {', '.join(sorted(updated))}"
+          + ("" if save else " (document not saved)"))
     return updated
 
 
