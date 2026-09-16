@@ -16,9 +16,16 @@ CC BY-SA docs). That layout is documented in
 
 ## Software — GPL-3.0
 
-Applies to: [`scripts/`](scripts/), [`schemas/`](schemas/), [`tests/`](tests/),
-[`tools/`](tools/) (except the machine-repo fixture, see below), and other
-original source code in this repository.
+Applies to: [`scripts/`](scripts/), [`schemas/`](schemas/),
+[`tests/`](tests/) (except the machine-repo fixtures, see below),
+[`tools/`](tools/), the CI and editor configuration in `.github/` and
+`.cursor/`, and other original source code in this repository.
+
+Also applies to the executable launchers under
+[`templates/`](templates/) — `templates/syson/syson.sh`, `syson.bat`,
+`templates/setup-tooling/setup-tooling.sh` and `setup-tooling.bat` — which are
+software rather than documentation and each carry an SPDX header. See
+[`templates/LICENSE`](templates/LICENSE).
 
 Full text: [`LICENSES/GPL-3.0.txt`](LICENSES/GPL-3.0.txt)
 
@@ -27,8 +34,10 @@ Full text: [`LICENSES/GPL-3.0.txt`](LICENSES/GPL-3.0.txt)
 Applies to: [`docs/`](docs/), [`templates/`](templates/), [`data/`](data/),
 this file, README, CONTRIBUTING, and other project-authored documentation.
 
-Excluded: third-party material that is not authored by this project remains
-under its original copyright. In particular:
+Excluded: the executable launchers and the CAD seed under `templates/`, which
+[`templates/LICENSE`](templates/LICENSE) carves out; and third-party material
+that is not authored by this project, which remains under its original
+copyright. In particular:
 
 - [`spec/otrl.ttl`](spec/otrl.ttl) is copied from
   [iop-alliance/OpenKnowHow](https://github.com/iop-alliance/OpenKnowHow)
@@ -38,12 +47,15 @@ under its original copyright. In particular:
 
 Full text: [`LICENSES/CC-BY-SA-4.0.txt`](LICENSES/CC-BY-SA-4.0.txt)
 
-## Test fixture
+## Test fixtures
 
-[`tests/fixtures/minimal-machine/`](tests/fixtures/minimal-machine/) is a
-miniature **machine** repository used by the validators. It uses the machine
-content-type split (CERN-OHL-S / GPL-3.0 / CC BY-SA), not the tools-repo
-mapping above.
+The miniature **machine** repositories under `tests/fixtures/` —
+[`minimal-machine/`](tests/fixtures/minimal-machine/),
+[`variant-family/`](tests/fixtures/variant-family/) and
+[`variant-machine/`](tests/fixtures/variant-machine/) — are used by the
+validators. Each uses the machine content-type split (CERN-OHL-S / GPL-3.0 /
+CC BY-SA), carries its own `LICENSE`, `LICENSES/` and `TRADEMARKS.md`, and is
+not covered by the tools-repo mapping above.
 
 ## Directory-level pointers
 

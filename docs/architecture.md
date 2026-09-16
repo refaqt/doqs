@@ -291,7 +291,7 @@ cnc-mill/
 
 ### Licensing
 
-The **DOQS tools repository** (`refaqt/doqs`) is not a machine repo. It uses GPL-3.0 for software (`scripts/`, `schemas/`, `tests/`, `tools/`) and CC BY-SA 4.0 for documentation (`docs/`, `templates/`, `data/`). `spec/otrl.ttl` remains GPL-3.0-or-later from IOP Alliance. See the `LICENSE` file in that repository. `apply_licenses.py --root <doqs>` detects the tools repo and writes that kit instead of the machine three-way split.
+The **DOQS tools repository** (`refaqt/doqs`) is not a machine repo. It uses GPL-3.0 for software (`scripts/`, `schemas/`, `tests/`, `tools/`, `.github/`) and CC BY-SA 4.0 for documentation (`docs/`, `templates/`, `data/`). Two carve-outs sit inside `templates/`: the executable launchers (`syson/*.sh|bat`, `setup-tooling/*.sh|bat`) are GPL-3.0-or-later and carry SPDX headers, and `cad/build_model.py` is a seed whose resulting per-module file is licensed by the machine repository that adopts it. `validate_licenses.py` enforces those headers. `spec/otrl.ttl` remains GPL-3.0-or-later from IOP Alliance. See the `LICENSE` file in that repository. `apply_licenses.py --root <doqs>` detects the tools repo and writes that kit instead of the machine three-way split.
 
 **Machine and extracted-module repositories** use a **content-type split**, not a single blanket licence:
 
