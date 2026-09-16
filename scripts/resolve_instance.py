@@ -27,7 +27,7 @@ import io
 import tomllib
 from pathlib import Path
 
-from naming_rules import BOM_HEADERS, is_under_doqs_submodule, repo_root_from_script
+from naming_rules import BOM_HEADERS, is_under_tooling_submodule, repo_root_from_script
 from param_rules import (
     PARAM_HEADERS,
     ParamError,
@@ -66,7 +66,7 @@ def instance_modules(root: Path) -> list[Path]:
     """Every module under ``root`` whose okh.toml carries an ``[instance]`` table."""
     found: list[Path] = []
     for okh in sorted(root.rglob("okh.toml")):
-        if is_under_doqs_submodule(okh, root):
+        if is_under_tooling_submodule(okh, root):
             continue
         try:
             if "instance" in load_toml(okh):

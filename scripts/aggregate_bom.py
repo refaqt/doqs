@@ -23,7 +23,7 @@ import io
 import tomllib
 from pathlib import Path
 
-from naming_rules import BOM_HEADERS, family_root, is_under_doqs_submodule, repo_root_from_script
+from naming_rules import BOM_HEADERS, family_root, is_under_tooling_submodule, repo_root_from_script
 
 OUT_HEADERS = ("module", *BOM_HEADERS)
 
@@ -45,7 +45,7 @@ def collect(root: Path) -> list[dict[str, str]]:
 
     instances: list[tuple[Path, dict]] = []
     for okh in sorted(root.rglob("okh.toml")):
-        if is_under_doqs_submodule(okh, root):
+        if is_under_tooling_submodule(okh, root):
             continue
         try:
             data = load_toml(okh)
@@ -70,7 +70,7 @@ def collect(root: Path) -> list[dict[str, str]]:
             rows.append({**row, "module": f"{prefix} <- {source}" if source else prefix})
 
     for bom in sorted(root.rglob("bom/bom.csv")):
-        if is_under_doqs_submodule(bom, root):
+        if is_under_tooling_submodule(bom, root):
             continue
         module_dir = bom.parent.parent
         if module_dir == root:

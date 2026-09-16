@@ -5,7 +5,7 @@ import argparse
 import re
 from pathlib import Path
 
-from naming_rules import is_under_doqs_submodule, repo_root_from_script
+from naming_rules import is_under_tooling_submodule, repo_root_from_script
 
 
 IMPORT_RE = re.compile(r"""import\s+['"]([^'"]+)['"]""")
@@ -14,7 +14,7 @@ IMPORT_RE = re.compile(r"""import\s+['"]([^'"]+)['"]""")
 def check_sysml(root: Path) -> list[str]:
     errors: list[str] = []
     for sysml in root.rglob("*.sysml"):
-        if is_under_doqs_submodule(sysml, root):
+        if is_under_tooling_submodule(sysml, root):
             continue
         text = sysml.read_text(encoding="utf-8")
         for match in IMPORT_RE.finditer(text):
@@ -30,7 +30,7 @@ def check_okh_relative(root: Path) -> list[str]:
 
     errors: list[str] = []
     for okh in root.rglob("okh.toml"):
-        if is_under_doqs_submodule(okh, root):
+        if is_under_tooling_submodule(okh, root):
             continue
         with open(okh, "rb") as f:
             data = tomllib.load(f)

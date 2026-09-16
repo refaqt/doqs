@@ -174,11 +174,11 @@ def missing_guard_rules(settings: dict) -> list[str]:
 
 
 def cad_documents(root: Path) -> list[Path]:
-    """Every committed `.FCStd` outside the doqs/ submodule."""
-    from naming_rules import is_under_doqs_submodule
+    """Every committed `.FCStd` outside the tooling submodules."""
+    from naming_rules import is_under_tooling_submodule
 
     return [
         p
         for p in sorted(root.rglob("*.FCStd"))
-        if not is_under_doqs_submodule(p, root)
+        if not is_under_tooling_submodule(p, root)
     ]

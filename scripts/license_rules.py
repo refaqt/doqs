@@ -15,6 +15,8 @@ import re
 import tomllib
 from pathlib import Path
 
+from naming_rules import TOOLING_SUBMODULE_NAMES, is_under_tooling_submodule
+
 HARDWARE_LICENSE = "CERN-OHL-S-2.0"
 DEFAULT_ORGANISATION = "REFAQT"
 
@@ -193,10 +195,6 @@ def expected_okh_comment() -> str:
     return read_template("okh-license-comment.toml")
 
 
-# Tooling submodules that are not extracted machine modules.
-_TOOLING_SUBMODULE_NAMES = frozenset({"doqs", ".agents"})
-
-
 def iter_submodule_paths(root: Path) -> list[Path]:
     """Extracted-module submodule working trees under root.
 
@@ -217,7 +215,7 @@ def iter_submodule_paths(root: Path) -> list[Path]:
             parts = child.relative_to(root.resolve()).parts
         except ValueError:
             continue
-        if any(part in _TOOLING_SUBMODULE_NAMES for part in parts):
+        if any(part in TOOLING_SUBMODULE_NAMES for part in parts):
             continue
         if child.is_dir() and (child / "okh.toml").is_file():
             paths.append(child)
@@ -254,8 +252,7 @@ def vendor_dirs(root: Path) -> list[Path]:
     for directory in sorted(root.rglob(f"{VENDOR_DIR.as_posix()}")):
         if not directory.is_dir():
             continue
-        parts = directory.relative_to(root).parts
-        if "doqs" in parts or ".agents" in parts:
+        if is_under_tooling_submodule(directory, root):
             continue
         found.append(directory)
     return found

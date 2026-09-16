@@ -1,8 +1,10 @@
 """Unit tests for DOQS naming rules and fixture validation."""
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -15,6 +17,7 @@ if str(_SCRIPTS) not in sys.path:
 from naming_rules import (  # noqa: E402
     BOM_ID,
     OKH_VERSION,
+    is_under_tooling_submodule,
     load_lexicon,
     validate_adapter_slug,
     validate_bom_id,
@@ -79,6 +82,80 @@ class TestFixtureValidation(unittest.TestCase):
 
         bad = self._run("validate_okh.py", "--expected-version", "9.9.9")
         self.assertNotEqual(bad.returncode, 0)
+
+
+class TestToolingSubmodules(unittest.TestCase):
+    """A machine repo mounts doqs at `doqs/` and the agent kit at `.agents/`."""
+
+    ROOT = Path("/machine")
+
+    def test_tooling_paths_are_skipped(self):
+        self.assertTrue(
+            is_under_tooling_submodule(self.ROOT / "doqs" / "scripts" / "check_names.py", self.ROOT)
+        )
+        self.assertTrue(
+            is_under_tooling_submodule(self.ROOT / ".agents" / "skills" / "okh.toml", self.ROOT)
+        )
+
+    def test_nested_tooling_paths_are_skipped(self):
+        """An extracted module under modules/ mounts the same two submodules."""
+        self.assertTrue(
+            is_under_tooling_submodule(
+                self.ROOT / "modules" / "x-axis" / ".agents" / "rules" / "core.md", self.ROOT
+            )
+        )
+        self.assertTrue(
+            is_under_tooling_submodule(
+                self.ROOT / "modules" / "x-axis" / "doqs" / "okh.toml", self.ROOT
+            )
+        )
+
+    def test_machine_paths_are_kept(self):
+        self.assertFalse(is_under_tooling_submodule(self.ROOT / "okh.toml", self.ROOT))
+        self.assertFalse(
+            is_under_tooling_submodule(self.ROOT / "modules" / "x-axis" / "okh.toml", self.ROOT)
+        )
+
+    def test_path_outside_root_is_not_tooling(self):
+        self.assertFalse(is_under_tooling_submodule(Path("/elsewhere/okh.toml"), self.ROOT))
+
+
+class TestAgentKitNotValidated(unittest.TestCase):
+    """Validators walk the machine root, so they must step over `.agents/`.
+
+    The shared agent kit is a separate repository. Its example files are not
+    machine files, and a validator that reads them fails on content the
+    machine repo does not own.
+    """
+
+    def setUp(self) -> None:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name) / "machine"
+        shutil.copytree(_FIXTURE, self.root)
+        kit = self.root / ".agents" / "skills" / "doqs-naming"
+        kit.mkdir(parents=True)
+        (kit / "okh.toml").write_text('name = "example manifest in the kit"\n', encoding="utf-8")
+        (kit / "catalog.toml").write_text('example = true\n', encoding="utf-8")
+        (kit / "example.sysml").write_text(
+            "import '../nowhere/missing.sysml'::Missing::*;\n", encoding="utf-8"
+        )
+
+    def _run(self, script: str) -> subprocess.CompletedProcess[str]:
+        cmd = [sys.executable, str(_SCRIPTS / script), "--root", str(self.root)]
+        return subprocess.run(cmd, capture_output=True, text=True, cwd=_REPO)
+
+    def test_validators_skip_the_kit(self):
+        for script in (
+            "validate_okh.py",
+            "check_names.py",
+            "check_links.py",
+            "validate_variants.py",
+        ):
+            with self.subTest(script=script):
+                result = self._run(script)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertNotIn(".agents", result.stdout)
 
 
 if __name__ == "__main__":
