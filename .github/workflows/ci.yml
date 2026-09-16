@@ -30,6 +30,8 @@ jobs:
         run: python scripts/validate_all.py --root tests/fixtures/variant-family
       - name: All gates on the variant machine fixture
         run: python scripts/validate_all.py --root tests/fixtures/variant-machine
+      - name: Markdown links resolve
+        run: python scripts/check_links.py --root . --markdown
       - name: One command, on both fixtures
         run: |
           python doqs.py check --root tests/fixtures/variant-family

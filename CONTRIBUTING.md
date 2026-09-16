@@ -2,94 +2,20 @@
 
 DOQS is the **tools and specification** repository. Machine design work happens in machine repos (e.g. [qarve](https://github.com/refaqt/qarve)) with this repo as a submodule at `doqs/`.
 
-## Machine repo workflow
+## Working in a machine repository
 
-1. Clone with submodules: `git clone --recurse-submodules …`
-2. From the **machine repository root** (parent of `doqs/`), run `bash setup-tooling.sh` (agents, any OS) so `doqs/` and `.agents/` track latest `main`, submodules under `modules/` stay at their recorded pin, and root launchers (`syson.bat` / `syson.sh`) are installed. Humans on Windows may double-click `setup-tooling.bat`. Copy those helpers from [`templates/setup-tooling/`](templates/setup-tooling/) if the consumer root does not have them yet (one-time bootstrap). Do not run them from the templates folder.
-3. Work from the **machine repository root** (parent of `doqs/`).
-4. After OKH, BOM, path, or licence-file changes, run:
+Everything about *using* doqs — what to run, what gets copied, what each gate
+checks, how to set CI up — is on one page:
+**[docs/using-doqs.md](docs/using-doqs.md)**.
 
-```powershell
-python doqs/scripts/validate_all.py
-```
+The short version: `bash doqs.sh check` before every commit, `bash doqs.sh generate`
+after changing anything generated, and `bash doqs.sh list` when you forget a command.
 
-To create or refresh split-licence files (`LICENSE`, `LICENSES/`, `TRADEMARKS.md`, directory stubs):
-
-```powershell
-python doqs/scripts/apply_licenses.py
-```
-
-5. Before a release tag, confirm manifest versions:
-
-```powershell
-python doqs/scripts/validate_okh.py --expected-version X.Y.Z
-```
-
-6. Regenerate variant outputs before validating — the gates fail on stale generated files:
-
-```powershell
-python doqs/scripts/resolve_params.py --table
-python doqs/scripts/resolve_instance.py
-```
-
-7. After editing FreeCAD geometry, rebuild headless so the committed fingerprint matches the saved `.FCStd` — the gate fails on a fingerprint measured from an unsaved GUI document:
-
-```powershell
-FreeCADCmd cad/build_model.py
-```
-
-Agents editing models in an open FreeCAD session: see [docs/agent-cad.md](docs/agent-cad.md).
-
-8. Regenerate the usage graph when composition changes (not part of `validate_all`):
-
-```powershell
-python doqs/scripts/build_graph.py
-```
-
-Commit updated `graph/usage-graph.json` with the change.
-
-Graphical SysML editing uses SysON in Docker; from the machine repo root see [docs/syson.md](docs/syson.md). Humans double-click `syson.bat`. Agents:
-
-```powershell
-python doqs/scripts/syson.py ui
-```
-
-## PR validation gates
-
-| Script | Purpose |
-|--------|---------|
-| `validate_all.py` | Runs all gates below in order |
-| `validate_okh.py` | Required OKH fields, `license = "CERN-OHL-S-2.0"`, file refs, semver `version` |
-| `validate_licenses.py` | Split-licence files, README Licence section, `TRADEMARKS.md` (machine kit or tools kit) |
-| `check_names.py` | Module slugs, BOM ids/headers, model slugs, lexicon |
-| `check_links.py` | SysML imports, OKH relative paths |
-| `validate_build.py` | Lockfile interface compatibility |
-| `validate_variants.py` | Product families: catalogue, models, compositions, length-table coverage, vendor geometry, instance freshness |
-| `validate_cad.py` | FreeCAD documents: the agent-CAD save guard, fingerprint currency, stale exports (`--check-clean` after an agent session) |
-| `apply_licenses.py` | Writes the licence kit (not a CI gate; `--check` reports generated files; `--root .` on this repo writes the tools kit) |
-
-Optional flags: `--root PATH`, `--strict-lexicon`, `--expected-version X.Y.Z`.
+The rest of this file is about changing doqs itself.
 
 ## Naming and versioning
 
 See [docs/naming.md](docs/naming.md) and [docs/naming-lexicon.md](docs/naming-lexicon.md). Record product-specific exceptions as ADRs in the machine repo under `docs/decisions/`.
-
-## Updating the doqs submodule in a machine repo
-
-Daily use: run `bash setup-tooling.sh` from the machine repo root (working tree tracks `main`; do not commit the dirty gitlink). The helper also refreshes root launchers from `doqs/templates/`.
-
-Only `doqs` and `.agents` go dirty after a run. The helper checks every submodule out at its recorded pin first, then tracks `main` for those two by name, so extracted modules under `modules/` keep their pin. It also does not create a second copy of the agent kit: doqs marks its own `.agents` submodule `update = none`, so git skips `doqs/.agents` in a machine repo.
-
-To **freeze a pin** (optional, not daily workflow):
-
-1. Commit and push changes in **doqs**.
-2. In the machine repo, run the helper or `git submodule update --remote doqs`, then commit the submodule pointer (or pin a specific commit).
-3. Run `python doqs/scripts/apply_licenses.py` so the split-licence files match the current spec, then `python doqs/scripts/validate_all.py`.
-4. Commit any generated licence files on the machine repo.
-
-See [docs/agent-guide.md](docs/agent-guide.md) for validation commands and agent spec pointers.
-
-When bumping doqs, also bump the **refaqt-agents** submodule (`.agents/`).
 
 ## Branching
 
@@ -109,6 +35,7 @@ python scripts/validate_licenses.py --root .
 python scripts/apply_licenses.py --check --root .
 python scripts/validate_all.py --root tests/fixtures/variant-family
 python scripts/validate_all.py --root tests/fixtures/variant-machine
+python scripts/check_links.py --root . --markdown
 python doqs.py check --root tests/fixtures/variant-family
 python doqs.py check --root tests/fixtures/variant-machine
 python doqs.py list
