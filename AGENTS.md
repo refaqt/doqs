@@ -62,10 +62,14 @@ so the kit is checked out when you work on doqs on its own.
 | A day's work write-up | `docs/log/YYYY-MM-DD_topic.md` |
 | Something that went wrong | `docs/mistakes/YYYY-MM-DD_topic.md` |
 
-`docs/log/` and `docs/mistakes/` do not exist yet. Create the one you need from
-[`.agents/bootstrap/docs/`](.agents/bootstrap/docs/) the first time you have an entry for it.
+Each of those folders has a `README.md` index. Update the index when you add a file.
 
 Skills that belong only to this repo go in `.agents-local/skills/` (not inside the submodule).
+
+### Writing `docs/architecture.md`
+
+That file states contracts and formats. It never reproduces the source of a script: a copy drifts
+from the real file and then teaches the wrong thing. Describe what a script promises and link to it.
 
 ### Branching
 
@@ -83,16 +87,15 @@ python scripts/validate_licenses.py --root .
 ```
 
 The validators under `scripts/` take `--root` pointing at a machine repo or at a fixture in
-`tests/fixtures/`. Never run `python scripts/apply_licenses.py --root .` — that writes the
-machine CERN-OHL-S kit, and this repo uses the tools-repo split instead.
+`tests/fixtures/`. `python scripts/apply_licenses.py --root .` is safe here: the script sees the
+tools repo and writes the GPL / CC BY-SA kit, not the machine CERN-OHL-S one. Use `--check` when
+you only want to know whether the files are current.
 
 ### Licensing
 
-This repo splits licences by content type: GPL-3.0 for `scripts/`, `schemas/`, `tests/`,
-`tools/`, `.github/`, `.cursor/` and `.claude/`; CC BY-SA 4.0 for `docs/`, `templates/`
-and `data/`.
-A new `.py`, `.sh` or `.bat` file under `templates/` needs an `SPDX-License-Identifier`
-header. See [LICENSE](LICENSE) and [`templates/LICENSE`](templates/LICENSE).
+[LICENSE](LICENSE) says which licence applies where. It is the only full list; do not repeat it
+in another file. A new `.py`, `.sh` or `.bat` file under `templates/` needs an
+`SPDX-License-Identifier` header — see [`templates/LICENSE`](templates/LICENSE).
 
 ## Skills
 

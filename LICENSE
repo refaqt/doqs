@@ -27,6 +27,10 @@ Also applies to the executable launchers under
 software rather than documentation and each carry an SPDX header. See
 [`templates/LICENSE`](templates/LICENSE).
 
+`scripts/`, `schemas/`, `tests/` and `tools/` each carry a `LICENSE` stub, written by
+`scripts/apply_licenses.py`. `.github/`, `.cursor/` and `.claude/` carry no stub: this
+file covers them.
+
 Full text: [`LICENSES/GPL-3.0.txt`](LICENSES/GPL-3.0.txt)
 
 ## Documentation — CC BY-SA 4.0

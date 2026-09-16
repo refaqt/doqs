@@ -53,10 +53,10 @@ doqs/
   tools/          # Docker Compose for local SysON (GPL-3.0)
   data/           # Machine-readable lexicon (CC BY-SA 4.0)
   templates/      # OKH fragments, measurement templates, split-licence kit,
-                  # variants/ (product-family kit), cad/ (FreeCAD sync, build
-                  # and fingerprint scripts), agent-cad/ (MCP config and the
-                  # save guard), setup-tooling/ (copy-once bootstrap) and
-                  # syson/ (root launchers)
+                  # variants/ (product-family kit), cad/ (the build_model.py
+                  # seed), agent-cad/ (MCP config and the save guard),
+                  # setup-tooling/ (copy-once bootstrap) and syson/ (root
+                  # launchers)
   schemas/        # JSON Schema for lockfiles, catalogues, instances,
                   # BOM sources, firmware config (GPL-3.0)
   spec/otrl.ttl   # Source ontology (IOP Alliance, GPL-3.0-or-later)
@@ -66,10 +66,12 @@ doqs/
 
 This tools repository uses different licences for different kinds of content:
 
-- **Software** (`scripts/`, `schemas/`, `tests/`, `tools/`, `.github/`) —
-  [GPL-3.0](LICENSES/GPL-3.0.txt)
+- **Software** (`scripts/`, `schemas/`, `tests/`, `tools/`, and the CI, editor and agent
+  configuration) — [GPL-3.0](LICENSES/GPL-3.0.txt)
 - **Documentation** (`docs/`, `templates/`, `data/`) —
   [CC BY-SA 4.0](LICENSES/CC-BY-SA-4.0.txt)
+
+[LICENSE](LICENSE) holds the full mapping. This list is a summary of it.
 
 The executable launchers under `templates/` are GPL-3.0-or-later and carry SPDX
 headers; `templates/cad/build_model.py` is a seed whose resulting per-module file

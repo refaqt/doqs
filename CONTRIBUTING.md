@@ -89,7 +89,7 @@ To **freeze a pin** (optional, not daily workflow):
 
 See [docs/agent-guide.md](docs/agent-guide.md) for validation commands and agent spec pointers.
 
-When bumping doqs after the agent-instructions restructure, also bump the **refaqt-agents** submodule (`.agents/`) and retarget any skill symlinks from `doqs/skills/` to `.agents/skills/` (`freecad`, `doqs-naming`).
+When bumping doqs, also bump the **refaqt-agents** submodule (`.agents/`).
 
 ## Branching
 
@@ -109,6 +109,7 @@ python scripts/validate_licenses.py --root .
 python scripts/apply_licenses.py --check --root .
 python scripts/validate_all.py --root tests/fixtures/variant-family
 python scripts/validate_all.py --root tests/fixtures/variant-machine
+python scripts/resolve_params.py --root tests/fixtures/variant-family --table --check
 python scripts/resolve_instance.py --root tests/fixtures/variant-machine --check
 ```
 
@@ -118,6 +119,6 @@ drive options, two feedback options, two compositions) and
 lengths. Both carry committed generated files, so a change to a resolver that
 alters output will fail the `--check` runs until the fixtures are regenerated.
 
-The last two check the **tools-repo** kit (GPL-3.0 / CC BY-SA). Do not run the machine apply script against this repository without `--root` pointing at a machine fixture — `apply_licenses.py --root .` writes the tools kit, not CERN-OHL-S.
+`validate_licenses.py --root .` and `apply_licenses.py --check --root .` check the **tools-repo** kit (GPL-3.0 / CC BY-SA). Both are safe to run here: the scripts see the tools repo and never write the machine CERN-OHL-S kit.
 
-CI runs the same checks on push and pull request.
+CI runs this same list, in this order, on push and pull request. A test keeps the two in step: if you add a command here, add it to `.github/workflows/ci.yml` as well, or `tests/test_ci_matches_contributing.py` fails.
