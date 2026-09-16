@@ -14,7 +14,9 @@ if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
 from install_root_tools import (  # noqa: E402
+    CONFIG_TEMPLATES,
     SKIP_TEMPLATE_DIRS,
+    install_configs,
     install_root_tools,
     iter_root_launchers,
 )
@@ -137,3 +139,43 @@ class TestInstallRootToolsCli(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("doqs tools repo", result.stdout)
         self.assertFalse((_REPO / "syson.bat").exists())
+
+
+class TestInstallConfigs(unittest.TestCase):
+    """Agent config is copy-once: these files are the user's to edit."""
+
+    def setUp(self):
+        self._tmp = Path(tempfile.mkdtemp(prefix="doqs-config-"))
+        self.addCleanup(shutil.rmtree, self._tmp, ignore_errors=True)
+        self.root = self._tmp / "machine"
+        self.root.mkdir()
+        self.templates = _REPO / "templates"
+
+    def test_creates_both_agent_config_files(self):
+        actions = install_configs(self.root, self.templates)
+        for _, dest in CONFIG_TEMPLATES:
+            self.assertTrue((self.root / dest).is_file(), dest)
+        self.assertEqual(len(actions), len(CONFIG_TEMPLATES))
+
+    def test_never_overwrites_user_edits(self):
+        install_configs(self.root, self.templates)
+        settings = self.root / ".claude" / "settings.json"
+        edited = settings.read_text(encoding="utf-8").replace(
+            '"deny"', '"allow": ["Bash(python *)"], "deny"'
+        )
+        settings.write_text(edited, encoding="utf-8")
+        self.assertEqual(install_configs(self.root, self.templates), [])
+        self.assertIn("allow", settings.read_text(encoding="utf-8"))
+
+    def test_shipped_guard_template_denies_both_hazardous_tools(self):
+        # The installed default must satisfy validate_cad.py out of the box.
+        sys.path.insert(0, str(_SCRIPTS))
+        import json
+
+        from cad_rules import missing_guard_rules
+
+        install_configs(self.root, self.templates)
+        settings = json.loads(
+            (self.root / ".claude" / "settings.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(missing_guard_rules(settings), [])

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "deny": [
+      "mcp__freecad__execute_code_headless",
+      "mcp__freecad__reload_document"
+    ]
+  }
+}

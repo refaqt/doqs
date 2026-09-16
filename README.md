@@ -21,7 +21,7 @@ python doqs/scripts/validate_all.py
 python doqs/scripts/build_graph.py
 ```
 
-Individual scripts: `validate_okh.py`, `validate_licenses.py`, `check_names.py`, `check_links.py`, `validate_build.py`, `validate_variants.py`. To write the split-licence files: `apply_licenses.py`. After `setup-tooling`, root launchers: `install_root_tools.py`. Graphical SysML: double-click `syson.bat` at the machine repo root, or `python doqs/scripts/syson.py ui` (see [docs/syson.md](docs/syson.md)).
+Individual scripts: `validate_okh.py`, `validate_licenses.py`, `check_names.py`, `check_links.py`, `validate_build.py`, `validate_variants.py`, `validate_cad.py`. To write the split-licence files: `apply_licenses.py`. After `setup-tooling`, root launchers: `install_root_tools.py`. Graphical SysML: double-click `syson.bat` at the machine repo root, or `python doqs/scripts/syson.py ui` (see [docs/syson.md](docs/syson.md)).
 
 Variant resolvers (generators, not gates): `resolve_params.py`, `resolve_bom.py`, `resolve_instance.py`, `aggregate_bom.py`, `export_variant.py` — see [docs/variants.md](docs/variants.md).
 
@@ -35,6 +35,7 @@ Variant resolvers (generators, not gates): `resolve_params.py`, `resolve_bom.py`
 | [docs/readiness-levels.md](docs/readiness-levels.md) | OTRL / ODRL definitions for `okh.toml` |
 | [docs/naming.md](docs/naming.md) | Naming conventions (machines, modules, parts) |
 | [docs/naming-lexicon.md](docs/naming-lexicon.md) | Approved vocabulary for display names |
+| [docs/agent-cad.md](docs/agent-cad.md) | Agents editing FreeCAD models in the open GUI document: setup, the save guard, fingerprints instead of screenshots |
 | [docs/agent-guide.md](docs/agent-guide.md) | DOQS spec files agents should read; validation commands |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | PR gates and submodule workflow |
 
@@ -52,8 +53,10 @@ doqs/
   tools/          # Docker Compose for local SysON (GPL-3.0)
   data/           # Machine-readable lexicon (CC BY-SA 4.0)
   templates/      # OKH fragments, measurement templates, split-licence kit,
-                  # variants/ (product-family kit), cad/ (FreeCAD sync scripts),
-                  # setup-tooling/ (copy-once bootstrap) and syson/ (root launchers)
+                  # variants/ (product-family kit), cad/ (FreeCAD sync, build
+                  # and fingerprint scripts), agent-cad/ (MCP config and the
+                  # save guard), setup-tooling/ (copy-once bootstrap) and
+                  # syson/ (root launchers)
   schemas/        # JSON Schema for lockfiles, catalogues, instances,
                   # BOM sources, firmware config (GPL-3.0)
   spec/otrl.ttl   # Source ontology (IOP Alliance, GPL-3.0-or-later)
