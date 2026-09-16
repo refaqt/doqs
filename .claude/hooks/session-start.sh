@@ -43,6 +43,7 @@ status=$?
 if [ -f "$marker" ]; then
   pin="$(git -C .agents rev-parse --short HEAD 2>/dev/null || echo unknown)"
   echo "Shared agent kit ready at .agents/ (commit ${pin}). Read .agents/rules/core.md first."
+  echo "Write every reply and every file in B2 English: .agents/rules/communication.md."
   exit 0
 fi
 
@@ -51,6 +52,7 @@ if [ -n "$output" ]; then
   echo "git said: ${output}"
 fi
 echo "The session continues, but the rules and skills under .agents/ are missing."
+echo "Write every reply and every file in B2 English anyway: short sentences, common words."
 echo "Once you have a network again, run:"
 echo "  git submodule update --init --remote --checkout .agents"
 exit 0
