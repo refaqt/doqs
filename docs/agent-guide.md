@@ -28,6 +28,7 @@ Develop tools in `github.com/refaqt/doqs`. Daily work uses the helper (latest `m
 | `doqs/docs/architecture.md` (Simulation section) | Adding or interpreting design-time analysis under `simulation/` |
 | `doqs/docs/architecture.md` (Measurement section) | Physical test campaigns under `measurement/` |
 | `doqs/docs/architecture.md` (Software section) | Host-side applications under `software/` |
+| `doqs/docs/agent-cad.md` | **Creating or editing FreeCAD models as an agent**: driving the open GUI document, the save guard, build scripts, geometric fingerprints instead of screenshots |
 | `doqs/docs/decisions/2026-06-24_freecad-master-sketches-body.md` | FreeCAD top-down design, master sketches, Assembly Insert failures |
 | `doqs/docs/readiness-levels.md` | OTRL/ODRL in `okh.toml` |
 | `doqs/docs/naming.md` | Naming modules, parts, repos |

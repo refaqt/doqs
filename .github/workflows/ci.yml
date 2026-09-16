@@ -13,7 +13,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Python compile check
-        run: python -m compileall scripts
+        run: python -m compileall scripts templates
       - name: Unit tests
         run: python -m unittest discover -s tests -p "test_*.py"
       - name: Naming check on fixture machine

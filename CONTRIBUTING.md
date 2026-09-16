@@ -32,7 +32,15 @@ python doqs/scripts/resolve_params.py --table
 python doqs/scripts/resolve_instance.py
 ```
 
-7. Regenerate the usage graph when composition changes (not part of `validate_all`):
+7. After editing FreeCAD geometry, rebuild headless so the committed fingerprint matches the saved `.FCStd` — the gate fails on a fingerprint measured from an unsaved GUI document:
+
+```powershell
+FreeCADCmd cad/build_model.py
+```
+
+Agents editing models in an open FreeCAD session: see [docs/agent-cad.md](docs/agent-cad.md).
+
+8. Regenerate the usage graph when composition changes (not part of `validate_all`):
 
 ```powershell
 python doqs/scripts/build_graph.py
@@ -57,6 +65,7 @@ python doqs/scripts/syson.py ui
 | `check_links.py` | SysML imports, OKH relative paths |
 | `validate_build.py` | Lockfile interface compatibility |
 | `validate_variants.py` | Product families: catalogue, models, compositions, length-table coverage, vendor geometry, instance freshness |
+| `validate_cad.py` | FreeCAD documents: the agent-CAD save guard, fingerprint currency, stale exports (`--check-clean` after an agent session) |
 | `apply_licenses.py` | Writes the licence kit (not a CI gate; `--check` reports generated files; `--root .` on this repo writes the tools kit) |
 
 Optional flags: `--root PATH`, `--strict-lexicon`, `--expected-version X.Y.Z`.
@@ -89,7 +98,7 @@ Every task that changes the repo must start on a **new git branch** off `main`, 
 From this repository root:
 
 ```powershell
-python -m compileall scripts
+python -m compileall scripts templates
 python -m unittest discover -s tests -p "test_*.py"
 python scripts/check_names.py --root tests/fixtures/minimal-machine
 python scripts/validate_okh.py --root tests/fixtures/minimal-machine
