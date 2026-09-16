@@ -117,7 +117,7 @@ Two outputs, deliberately different in lifecycle:
 
 | File | Committed? | What it is |
 |---|---|---|
-| `cad/params.csv` | No — gitignored | The single **active** model. Feeds `sync_params.py` and BOM resolution |
+| `cad/params.csv` | No — gitignored | The single **active** model. Feeds `cad_sync_params.py` and BOM resolution |
 | `cad/params-table.csv` | **Yes** | Dense, one row per model. Becomes the FreeCAD Configuration Table |
 
 ---
@@ -133,10 +133,15 @@ default,120,330,12,340,2,300,270
 800mm,620,830,16,840,2,800,770
 ```
 
-Copy [`templates/cad/sync_params.py`](../templates/cad/sync_params.py) into the
-core's `cad/` and run `sync_table()` inside FreeCAD. It writes that table into
-the `Params` spreadsheet; right-click cell `A2` → *Configuration table* once to
-bind it. The document then carries a `Configuration` property whose values are
+From the core module's root, run `sync_table()` inside FreeCAD:
+
+```python
+exec(open("doqs/scripts/cad_sync_params.py").read())
+sync_table()
+```
+
+It writes that table into the `Params` spreadsheet; right-click cell `A2` →
+*Configuration table* once to bind it. The document then carries a `Configuration` property whose values are
 exactly the DOQS model slugs.
 
 A parent machine inserts the composition assembly as a **Variant Link** and sets
@@ -550,8 +555,8 @@ Schemas: [`catalog.schema.json`](../schemas/catalog.schema.json),
 [`sources.schema.json`](../schemas/sources.schema.json),
 [`build.schema.json`](../schemas/build.schema.json).
 
-Templates: [`templates/variants/`](../templates/variants/) and
-[`templates/cad/sync_params.py`](../templates/cad/sync_params.py).
+Templates: [`templates/variants/`](../templates/variants/).
+The sync script is a doqs tool: [`scripts/cad_sync_params.py`](../scripts/cad_sync_params.py).
 
 Worked examples: `tests/fixtures/variant-family/` (the family) and
 `tests/fixtures/variant-machine/` (a machine consuming it at two lengths).

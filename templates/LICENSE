@@ -4,6 +4,26 @@ licensed under Creative Commons Attribution-ShareAlike 4.0 International
 
 Full text: [`/LICENSES/CC-BY-SA-4.0.txt`](../LICENSES/CC-BY-SA-4.0.txt)
 
+**Excluded — executable launchers.** `syson/syson.sh`, `syson/syson.bat`,
+`setup-tooling/setup-tooling.sh` and `setup-tooling/setup-tooling.bat` are
+software, licensed GPL-3.0-or-later. Each carries an SPDX header, which travels
+with the file when `install_root_tools.py` copies it to a machine repository
+root.
+
+Full text: [`/LICENSES/GPL-3.0.txt`](../LICENSES/GPL-3.0.txt)
+
+**Seeds — the resulting file is yours.** Some templates here are starting points
+for files that become part of a machine repository and are then that
+repository's to license:
+
+- [`cad/build_model.py`](cad/build_model.py) — the geometry its author writes
+  into `build()` is theirs, licensed by that repository (CERN-OHL-S v2.0 for
+  `cad/` content in a DOQS machine repo), not by this file.
+- [`agent-cad/mcp.json`](agent-cad/mcp.json) and
+  [`agent-cad/claude-settings.json`](agent-cad/claude-settings.json) —
+  declarative configuration that `install_root_tools.py` installs **once** and
+  never overwrites, because it is the user's to edit from then on.
+
 The legal texts in [`licensing/LICENSES/`](licensing/LICENSES/) are the
 CERN-OHL-S v2.0, GPL-3.0, and CC BY-SA 4.0 licence documents themselves
 (not original works of this project).

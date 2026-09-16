@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Copy to the consumer repo root and run from there:
 #   bash setup-tooling.sh
 # Do not run this file from doqs/templates/setup-tooling/ — dirname would be wrong.

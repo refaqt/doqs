@@ -15,10 +15,12 @@ if str(_SCRIPTS) not in sys.path:
 
 from license_rules import (  # noqa: E402
     HARDWARE_LICENSE,
+    SPDX_MARKER,
     apply_repo,
     apply_tools_repo,
     check_repo,
     check_tools_repo,
+    check_tools_spdx,
     is_doqs_tools_repo,
 )
 
@@ -248,6 +250,65 @@ class TestToolsRepoLicense(unittest.TestCase):
         self.assertIn("GPL-3.0", overview)
         self.assertIn("CC BY-SA", overview)
         self.assertIn("not a hardware machine", overview.lower())
+
+
+class TestToolsRepoSpdx(unittest.TestCase):
+    """Executable files under a CC BY-SA directory must state they are GPL."""
+
+    def setUp(self):
+        tmp = Path(tempfile.mkdtemp(prefix="doqs-spdx-"))
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        self.root = tmp / "doqs"
+        shutil.copytree(
+            _REPO, self.root, ignore=shutil.ignore_patterns(".git", "__pycache__")
+        )
+
+    def test_repository_as_shipped_passes(self):
+        self.assertEqual(check_tools_spdx(_REPO), [])
+
+    def test_launcher_without_header_fails(self):
+        launcher = self.root / "templates" / "syson" / "syson.sh"
+        launcher.write_text(
+            launcher.read_text(encoding="utf-8").replace(f"# {SPDX_MARKER}\n", ""),
+            encoding="utf-8",
+        )
+        errors = check_tools_spdx(self.root)
+        self.assertTrue(errors)
+        self.assertIn("templates/syson/syson.sh", errors[0])
+        self.assertIn(SPDX_MARKER, errors[0])
+        self.assertTrue(check_tools_repo(self.root))
+
+    def test_new_script_under_templates_is_caught(self):
+        """The drift this check exists to prevent: code landing in templates/."""
+        (self.root / "templates" / "helper.py").write_text(
+            "print('hello')\n", encoding="utf-8"
+        )
+        errors = check_tools_spdx(self.root)
+        self.assertTrue(errors)
+        self.assertIn("templates/helper.py", errors[0])
+
+    def test_cad_seed_is_exempt(self):
+        """The seed becomes machine-repo design content, so it carries no GPL header."""
+        seed = self.root / "templates" / "cad" / "build_model.py"
+        self.assertNotIn(SPDX_MARKER, seed.read_text(encoding="utf-8"))
+        self.assertEqual(check_tools_spdx(self.root), [])
+
+    def test_software_directories_are_not_scanned(self):
+        """scripts/ is GPL by its directory stub; per-file headers are not required."""
+        (self.root / "scripts" / "scratch.py").write_text("x = 1\n", encoding="utf-8")
+        self.assertEqual(check_tools_spdx(self.root), [])
+
+    def test_json_config_seeds_are_out_of_scope(self):
+        """Declarative config installed copy-once is data, and JSON has no comments."""
+        for rel in ("agent-cad/mcp.json", "agent-cad/claude-settings.json"):
+            seed = self.root / "templates" / rel
+            self.assertTrue(seed.is_file(), rel)
+            self.assertNotIn(SPDX_MARKER, seed.read_text(encoding="utf-8"))
+        self.assertEqual(check_tools_spdx(self.root), [])
+
+    def test_markdown_under_templates_is_untouched(self):
+        (self.root / "templates" / "notes.md").write_text("# Notes\n", encoding="utf-8")
+        self.assertEqual(check_tools_spdx(self.root), [])
 
 
 if __name__ == "__main__":

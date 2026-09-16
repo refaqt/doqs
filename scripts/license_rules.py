@@ -85,6 +85,23 @@ TOOLS_ROOT_LICENSE_MARKERS = (
     "LICENSES",
 )
 
+#: Executable source under a CC BY-SA directory is software in a documentation
+#: tree, so it needs its licence stated per file. CC BY-SA is not a software
+#: licence and Creative Commons recommends against using it for code.
+SPDX_MARKER = "SPDX-License-Identifier: GPL-3.0-or-later"
+
+#: Executable suffixes only. Declarative configuration seeds (`.json`, `.toml`)
+#: are deliberately out of scope: they are data rather than programs, JSON
+#: cannot carry a comment, and `install_root_tools.py` installs them copy-once
+#: as the user's own files. They are covered as seeds, like SPDX_EXEMPT below.
+SPDX_SUFFIXES = (".py", ".sh", ".bat")
+
+#: Seeds for files that become part of a machine repository, where the adopting
+#: repo's own licence applies (CERN-OHL-S for `cad/`). Stamping GPL on these
+#: would mislabel the design their author writes into them. Paths are relative
+#: to the tools-repo root.
+SPDX_EXEMPT = frozenset({"templates/cad/build_model.py"})
+
 _GITMODULE_PATH = re.compile(r"^\s*path\s*=\s*(.+)$")
 _README_HEADING = re.compile(r"(?im)^#{1,6}\s+licen[cs]e\b")
 _README_LICENSE_LINK = re.compile(r"(?i)\[licen[cs]e\]\(licen[cs]e\)")
@@ -382,6 +399,26 @@ def mapped_tools_dirs(root: Path) -> list[tuple[Path, str]]:
     return found
 
 
+def check_tools_spdx(root: Path) -> list[str]:
+    """Executable files under a media-kind tools directory need a GPL SPDX header."""
+    errors: list[str] = []
+    for directory, kind in mapped_tools_dirs(root):
+        if kind != "media":
+            continue
+        for path in sorted(directory.rglob("*")):
+            if not path.is_file() or path.suffix not in SPDX_SUFFIXES:
+                continue
+            rel = path.relative_to(root).as_posix()
+            if rel in SPDX_EXEMPT:
+                continue
+            if SPDX_MARKER not in path.read_text(encoding="utf-8"):
+                errors.append(
+                    f"{rel} is executable source in a CC BY-SA directory and "
+                    f"must carry '{SPDX_MARKER}', or move to a software directory"
+                )
+    return errors
+
+
 def check_tools_generated_files(root: Path) -> list[str]:
     """Errors for the DOQS tools-repo licence kit."""
     errors: list[str] = []
@@ -439,7 +476,11 @@ def check_tools_readme(root: Path) -> list[str]:
 
 def check_tools_repo(root: Path) -> list[str]:
     """All licence-layout errors for the DOQS tools repository."""
-    return check_tools_generated_files(root) + check_tools_readme(root)
+    return (
+        check_tools_generated_files(root)
+        + check_tools_readme(root)
+        + check_tools_spdx(root)
+    )
 
 
 def advice_tools_messages(root: Path) -> list[str]:

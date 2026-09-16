@@ -1,6 +1,6 @@
 """Sync resolved parameters into a FreeCAD document.
 
-Copy this file to `<module>/cad/sync_params.py` in a machine or family repo.
+Runs inside FreeCAD, from the module root of a machine or family repository.
 
 Two modes, and the second is what makes a family usable from a parent machine:
 
@@ -17,18 +17,27 @@ Two modes, and the second is what makes a family usable from a parent machine:
     `500mm` - a live parametric model at its own length, inside the parent's
     own document, with the family submodule never written to.
 
-Usage (FreeCAD Python console):
+Usage (FreeCAD Python console, from the module root):
 
-    exec(open("cad/sync_params.py").read())
+    exec(open("doqs/scripts/cad_sync_params.py").read())
+    sync_active()
 
 Usage (headless, from the module root):
 
-    FreeCADCmd cad/sync_params.py
+    FreeCADCmd doqs/scripts/cad_sync_params.py
+
+`cad_dir` locates the module's `cad/` directory and defaults to `cwd/cad`.
+Pass it explicitly when the caller's working directory is not the module root -
+a generated macro, for instance, where `__file__` points somewhere else
+entirely.
 
 After `sync_table()`, set up the configuration binding once, by hand:
 right-click cell `A2` of the `Params` spreadsheet -> *Configuration table*.
 FreeCAD then adds the `Configuration` property and binds it to the table.
 That step is one-time; every later model change flows through the CSVs.
+
+FreeCAD is imported lazily inside the functions that need it, so this module
+imports cleanly under plain Python and its CSV handling stays unit-testable.
 """
 
 import csv
@@ -57,14 +66,12 @@ def _sheet(doc):
     return found[0]
 
 
-def _here():
-    try:
-        return Path(__file__).parent
-    except NameError:  # exec()'d from the FreeCAD console
-        return Path.cwd() / "cad"
+def _cad_dir(cad_dir=None):
+    """The module's `cad/` directory. Defaults to `cwd/cad` (run from the root)."""
+    return Path(cad_dir) if cad_dir else Path.cwd() / "cad"
 
 
-def sync_active(doc=None, csv_path=None):
+def sync_active(doc=None, csv_path=None, cad_dir=None):
     """cad/params.csv -> aliased cells of the Params spreadsheet."""
     import FreeCAD
 
@@ -72,7 +79,7 @@ def sync_active(doc=None, csv_path=None):
     if doc is None:
         raise RuntimeError("No active FreeCAD document.")
     sheet = _sheet(doc)
-    path = Path(csv_path) if csv_path else _here() / ACTIVE_CSV
+    path = Path(csv_path) if csv_path else _cad_dir(cad_dir) / ACTIVE_CSV
     if not path.exists():
         raise RuntimeError(
             f"{path} not found. Run: python doqs/scripts/resolve_params.py "
@@ -98,7 +105,7 @@ def sync_active(doc=None, csv_path=None):
     return updated
 
 
-def sync_table(doc=None, csv_path=None, origin="A1"):
+def sync_table(doc=None, csv_path=None, origin="A1", cad_dir=None):
     """cad/params-table.csv -> a FreeCAD Configuration Table.
 
     Row 1 is the header. Row 2 is left for FreeCAD to fill with the active
@@ -111,7 +118,7 @@ def sync_table(doc=None, csv_path=None, origin="A1"):
     if doc is None:
         raise RuntimeError("No active FreeCAD document.")
     sheet = _sheet(doc)
-    path = Path(csv_path) if csv_path else _here() / TABLE_CSV
+    path = Path(csv_path) if csv_path else _cad_dir(cad_dir) / TABLE_CSV
     if not path.exists():
         raise RuntimeError(
             f"{path} not found. Run: python doqs/scripts/resolve_params.py --table"
@@ -141,13 +148,13 @@ def sync_table(doc=None, csv_path=None, origin="A1"):
     return [m[0] for m in models]
 
 
-def export_params(doc=None, csv_path=None):
+def export_params(doc=None, csv_path=None, cad_dir=None):
     """Pull current spreadsheet values back into params.csv, preserving text."""
     import FreeCAD
 
     doc = doc or FreeCAD.ActiveDocument
     sheet = _sheet(doc)
-    path = Path(csv_path) if csv_path else _here() / ACTIVE_CSV
+    path = Path(csv_path) if csv_path else _cad_dir(cad_dir) / ACTIVE_CSV
 
     existing = {}
     if path.exists():

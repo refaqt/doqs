@@ -16,6 +16,11 @@ what each one does and when you need it.
 | `bom/tables/rail.csv` | `modules/<core>/bom/tables/` | One row per stocked length |
 | `cad/vendor/vendor-index.csv` | `modules/<any>/cad/vendor/` | Provenance for purchased-part geometry |
 
-Also copy [`../cad/sync_params.py`](../cad/sync_params.py) to
-`modules/<core>/cad/sync_params.py` — it writes the FreeCAD Configuration Table
-that lets a parent machine pick a length on a Variant Link.
+The FreeCAD Configuration Table that lets a parent machine pick a length on a
+Variant Link is written by `doqs/scripts/cad_sync_params.py` — a doqs tool, not
+a per-module copy. From the core module's root, inside FreeCAD:
+
+```python
+exec(open("doqs/scripts/cad_sync_params.py").read())
+sync_table()
+```

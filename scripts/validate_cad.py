@@ -19,6 +19,14 @@ Three gates, in order of how much damage they prevent:
    moves a volume or a bounding box shows up as a reviewable text diff in the
    pull request. Nothing to run here — `git diff` is the report.
 
+4. **Stale tool copies.** DOQS used to ship `fingerprint.py` and
+   `sync_params.py` as per-module copies, and `build_model.py` with its
+   scaffolding inlined. Those copies never update with the submodule, and a
+   stale `fingerprint.py` is actively unsafe: it reads `FINGERPRINT_SCHEMA`
+   live from `cad_rules.py` while its own `measure()` is frozen, so a schema
+   bump makes it stamp a new schema number on an old payload. This is a FAIL
+   rather than a warning because a stale copy still runs.
+
 Run from the machine repository root:
 
     python doqs/scripts/validate_cad.py
@@ -114,6 +122,48 @@ def validate_document(fcstd: Path, root: Path) -> list[str]:
     return errors
 
 
+#: Tools that used to be copied into a module's `cad/`, and where they live now.
+LEGACY_TOOL_COPIES = {
+    "fingerprint.py": "doqs/scripts/cad_fingerprint.py",
+    "sync_params.py": "doqs/scripts/cad_sync_params.py",
+}
+
+#: A pre-refactor `build_model.py` carried its own scaffolding. The seed that
+#: replaced it imports `cad_build` instead, so this marker tells them apart.
+LEGACY_BUILD_MARKER = "def open_document("
+
+
+def legacy_tool_copies(root: Path) -> list[str]:
+    """Per-module copies of tools that now live in the doqs submodule."""
+    errors: list[str] = []
+    for cad_dir in sorted(root.rglob("cad")):
+        if not cad_dir.is_dir():
+            continue
+        parts = cad_dir.relative_to(root).parts
+        if "doqs" in parts or ".agents" in parts:
+            continue
+        for name, replacement in LEGACY_TOOL_COPIES.items():
+            stale = cad_dir / name
+            if stale.is_file():
+                errors.append(
+                    f"{stale.relative_to(root)} is a stale copy of a DOQS tool. "
+                    f"Delete it — {replacement} is used automatically."
+                )
+        build = cad_dir / "build_model.py"
+        if build.is_file():
+            try:
+                body = build.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            if LEGACY_BUILD_MARKER in body:
+                errors.append(
+                    f"{build.relative_to(root)} still inlines the build scaffolding. "
+                    "Re-seed it from doqs/templates/cad/build_model.py, keeping "
+                    "your build() body."
+                )
+    return errors
+
+
 def dirty_documents(root: Path) -> list[str]:
     """Committed .FCStd files with uncommitted modifications, via git."""
     try:
@@ -150,6 +200,15 @@ def main() -> int:
     if is_doqs_tools_repo(root):
         print("ok    doqs tools repo (no machine CAD to validate)")
         return 0
+
+    legacy = legacy_tool_copies(root)
+    if legacy:
+        all_ok = False
+        print("FAIL  stale DOQS tool copies")
+        for e in legacy:
+            print(f"      {e}")
+    else:
+        print("ok    no stale DOQS tool copies")
 
     documents = cad_documents(root)
 
