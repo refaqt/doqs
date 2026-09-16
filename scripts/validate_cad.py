@@ -45,6 +45,7 @@ from cad_rules import (
     cad_documents,
     file_digest,
     fingerprint_path,
+    hook_is_registered,
     load_fingerprint,
     missing_guard_rules,
 )
@@ -52,6 +53,7 @@ from license_rules import is_doqs_tools_repo
 from naming_rules import is_under_tooling_submodule, repo_root_from_script
 
 SETTINGS_PATH = Path(".claude") / "settings.json"
+HOOK_PATH = Path(".claude") / "hooks" / "session-start.sh"
 
 
 def validate_guard(root: Path) -> list[str]:
@@ -75,6 +77,32 @@ def validate_guard(root: Path) -> list[str]:
             f"{SETTINGS_PATH}: permissions.deny is missing {m} — an agent could "
             "overwrite a .FCStd that is open in the GUI"
             for m in missing
+        ]
+    return []
+
+
+def validate_hook_registration(root: Path) -> list[str]:
+    """A session hook on disk that nothing starts is worse than no hook.
+
+    Only checked when the file is actually there: a repository that does not use
+    the hook is free not to have one.
+    """
+    if not (root / HOOK_PATH).is_file():
+        return []
+    settings_file = root / SETTINGS_PATH
+    if not settings_file.is_file():
+        return [
+            f"{HOOK_PATH} exists but {SETTINGS_PATH} does not, so nothing runs it. "
+            "Run: python doqs/doqs.py setup"
+        ]
+    try:
+        settings = json.loads(settings_file.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return []  # validate_guard already reports the broken JSON
+    if not isinstance(settings, dict) or not hook_is_registered(settings):
+        return [
+            f"{HOOK_PATH} exists but {SETTINGS_PATH} does not run it, so the tooling "
+            "submodules are never checked out. Run: python doqs/doqs.py setup"
         ]
     return []
 
@@ -208,6 +236,15 @@ def main() -> int:
             print(f"      {e}")
     else:
         print("ok    no stale DOQS tool copies")
+
+    # Unlike the guard below, this does not wait for a .FCStd: a hook nothing
+    # runs costs you the tooling submodules, CAD or no CAD.
+    hook_errors = validate_hook_registration(root)
+    if hook_errors:
+        all_ok = False
+        print(f"FAIL  {HOOK_PATH}")
+        for e in hook_errors:
+            print(f"      {e}")
 
     documents = cad_documents(root)
 

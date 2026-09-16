@@ -41,7 +41,27 @@ Read [using-doqs.md](using-doqs.md) instead. It holds everything that page had,
 plus what to copy and what each gate checks. If your repository links to
 `doqs/docs/agent-guide.md`, update the link.
 
-## 4. Small things
+## 4. You get a session hook, and it gets registered
+
+`setup-tooling.sh` now installs `.claude/hooks/session-start.sh` and adds the line
+that starts it to `.claude/settings.json`. The hook fills `doqs/` and `.agents/` at
+the start of every session, which is what a cloud clone does not do for you.
+
+Two things to know:
+
+- **The hook file is doqs's.** It is overwritten when the template changes, like
+  `doqs.sh` and `syson.sh`. If you already have a hand-written one, the first run
+  replaces it — check that diff once.
+- **The settings file is shared, and nothing is removed.** doqs adds the hook
+  registration and the agent-CAD deny rules if they are missing, and leaves every
+  other key, and the existing order, exactly as it is. If you delete a deny rule on
+  purpose, the next run adds it back and `doqs check` fails while it is gone.
+
+`doqs check` now also fails when the hook file is on disk and the settings file does
+not run it. That combination looks set up and is not, which is the quietest way to
+lose the tooling submodules.
+
+## 5. Small things
 
 - `check_names.py --warnings-only` did nothing and is removed. If a script of yours
   passes it, drop the flag.
@@ -57,7 +77,7 @@ plus what to copy and what each gate checks. If your repository links to
   default** so a pin bump cannot turn your repository red. Turn it on when you are
   ready to fix what it finds.
 
-## 5. What did not change
+## 6. What did not change
 
 - Every script under `doqs/scripts/` keeps its name and its command line.
 - `validate_all.py` runs the same seven gates, in the same order, with the same

@@ -65,6 +65,16 @@ Claude Code and Cursor run a `SessionStart` hook that does the submodule part fo
 you, so a cloud session starts with the folders filled. The hook does not install
 the launchers; `setup-tooling.sh` does.
 
+`setup-tooling.sh` installs that hook at `.claude/hooks/session-start.sh` and
+registers it in `.claude/settings.json`. The file on its own does nothing — the
+settings entry is what starts it — so `doqs check` fails when the file is there and
+nothing runs it. To use the same hook in Cursor, point `.cursor/environment.json`
+at it:
+
+```json
+{ "name": "<your machine>", "install": "bash .claude/hooks/session-start.sh" }
+```
+
 **No network?** The hook says so and the session continues. Run
 `bash setup-tooling.sh` when you are online again. Until then `doqs/` may be empty,
 and every `doqs` command will fail with a missing-file error.
@@ -161,8 +171,9 @@ second copy of the specification.
 | --- | --- | --- | --- |
 | `doqs-cli/doqs.sh`, `doqs.bat` | repository root | Overwritten when the template changes | `setup-tooling.sh` |
 | `syson/syson.sh`, `syson.bat` | repository root | Overwritten when the template changes | `setup-tooling.sh` |
+| `session-hook/session-start.sh` | `.claude/hooks/session-start.sh` | Overwritten when the template changes | `setup-tooling.sh` |
 | `agent-cad/mcp.json` | `.mcp.json` | Written once, never touched again | `setup-tooling.sh` |
-| `agent-cad/claude-settings.json` | `.claude/settings.json` | Written once, never touched again | `setup-tooling.sh` |
+| `agent-cad/claude-settings.json` | `.claude/settings.json` | **Merged**: what doqs owns is added, nothing is removed | `setup-tooling.sh` |
 | `setup-tooling/setup-tooling.sh`, `.bat` | repository root | Copy once | **You**, at the start |
 | `setup-tooling/gitmodules.snippet` | `.gitmodules` | Merge by hand | **You**, at the start |
 | `setup-tooling/gitattributes.snippet` | `.gitattributes` | Merge by hand | **You**, at the start |
@@ -174,10 +185,15 @@ second copy of the specification.
 
 Three rules follow from that table:
 
-- **A launcher is doqs's file.** Do not edit `doqs.sh` or `syson.sh`; your change is
-  lost on the next update.
-- **`.mcp.json` and `.claude/settings.json` are yours.** doqs writes them once and
-  never again.
+- **A launcher and the session hook are doqs's files.** Do not edit `doqs.sh`,
+  `syson.sh` or `.claude/hooks/session-start.sh`; your change is lost on the next
+  update. Change them in doqs instead.
+- **`.mcp.json` is yours.** doqs writes it once and never again.
+- **`.claude/settings.json` is shared.** doqs owns two keys in it: the agent-CAD
+  deny rules, and the line that starts the session hook. It adds those if they are
+  missing and **removes nothing** — your own keys, and your own order, stay as they
+  are. If you delete a deny rule on purpose, the next `setup-tooling.sh` run puts it
+  back, and `doqs check` fails while it is gone.
 - **`build_model.py` is a seed, not a tool.** There is no single place to put it, so
   no script puts it anywhere. Copy it into the module you are building and replace
   `build()` with your geometry.
