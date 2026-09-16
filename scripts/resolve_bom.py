@@ -12,7 +12,7 @@ Four things happen, in order:
    of each purchased component for the selected length.
 
 The output keeps the exact 16-column DOQS BOM header and carries no comment
-lines, so ``check_names.check_bom_file`` reads it like any hand-written BOM.
+lines, so ``validate_names.check_bom_file`` reads it like any hand-written BOM.
 """
 from __future__ import annotations
 

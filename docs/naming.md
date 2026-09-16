@@ -1,6 +1,6 @@
 # Naming conventions
 
-Canonical rules for **machines**, **modules**, **parts**, and **version fields** in DOQS projects. Enforced by `doqs/scripts/check_names.py` and documented in [ADR: naming and versioning](decisions/2026-06-04_naming-and-versioning.md).
+Canonical rules for **machines**, **modules**, **parts**, and **version fields** in DOQS projects. Enforced by `doqs/scripts/validate_names.py` and documented in [ADR: naming and versioning](decisions/2026-06-04_naming-and-versioning.md).
 
 ## Principles
 
@@ -156,7 +156,7 @@ python doqs/scripts/validate_all.py
 Individual checks:
 
 ```powershell
-python doqs/scripts/check_names.py
+python doqs/scripts/validate_names.py
 python doqs/scripts/validate_okh.py
 python doqs/scripts/validate_licenses.py
 ```

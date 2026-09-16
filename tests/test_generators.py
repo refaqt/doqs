@@ -1,4 +1,4 @@
-"""First tests for three scripts that had none: validate_build, aggregate_bom, build_graph.
+"""First tests for three scripts that had none: validate_build, aggregate_bom, resolve_graph.
 
 All three are run by hand or by CI in machine repositories, and until now a
 change to any of them could only be caught by a person noticing.
@@ -19,7 +19,7 @@ if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
 import aggregate_bom  # noqa: E402
-import build_graph  # noqa: E402
+import resolve_graph  # noqa: E402
 import validate_build  # noqa: E402
 
 _MINIMAL = _REPO / "tests" / "fixtures" / "minimal-machine"
@@ -123,27 +123,27 @@ class TestAggregateBom(TempRoot):
         self.assertIn("module", out.read_text(encoding="utf-8").splitlines()[0])
 
 
-class TestBuildGraph(TempRoot):
+class TestResolveGraph(TempRoot):
     def test_the_graph_names_every_module(self):
         self.module("frame")
         self.module("x-axis")
         (self.root / "okh.toml").write_text(_MODULE_OKH.format(name="machine"), encoding="utf-8")
 
-        graph = build_graph.build(self.root)
+        graph = resolve_graph.build(self.root)
         self.assertEqual(set(graph), {".", "modules/frame", "modules/x-axis"})
         self.assertEqual(graph["modules/frame"]["current_version"], "v1.0.0")
 
     def test_check_reports_a_missing_graph(self):
         (self.root / "okh.toml").write_text(_MODULE_OKH.format(name="machine"), encoding="utf-8")
-        self.assertEqual(build_graph.main(["--root", str(self.root), "--check"]), 1)
+        self.assertEqual(resolve_graph.main(["--root", str(self.root), "--check"]), 1)
 
     def test_check_reports_a_stale_graph(self):
         (self.root / "okh.toml").write_text(_MODULE_OKH.format(name="machine"), encoding="utf-8")
-        self.assertEqual(build_graph.main(["--root", str(self.root)]), 0)
-        self.assertEqual(build_graph.main(["--root", str(self.root), "--check"]), 0)
+        self.assertEqual(resolve_graph.main(["--root", str(self.root)]), 0)
+        self.assertEqual(resolve_graph.main(["--root", str(self.root), "--check"]), 0)
 
         self.module("added-later")
-        self.assertEqual(build_graph.main(["--root", str(self.root), "--check"]), 1)
+        self.assertEqual(resolve_graph.main(["--root", str(self.root), "--check"]), 1)
 
     def test_writing_twice_gives_the_same_bytes(self):
         # CI in a machine repo commits this file and fails on any diff, so a
@@ -152,9 +152,9 @@ class TestBuildGraph(TempRoot):
         self.module("frame")
         out = self.root / "graph" / "usage-graph.json"
 
-        build_graph.main(["--root", str(self.root)])
+        resolve_graph.main(["--root", str(self.root)])
         first = out.read_text(encoding="utf-8")
-        build_graph.main(["--root", str(self.root)])
+        resolve_graph.main(["--root", str(self.root)])
         self.assertEqual(out.read_text(encoding="utf-8"), first)
         json.loads(first)
 
@@ -164,7 +164,7 @@ class TestBuildGraph(TempRoot):
         kit.mkdir()
         (kit / "okh.toml").write_text(_MODULE_OKH.format(name="doqs-sample"), encoding="utf-8")
 
-        self.assertNotIn("doqs", build_graph.build(self.root))
+        self.assertNotIn("doqs", resolve_graph.build(self.root))
 
 
 class TestMinimalFixtureStillPasses(unittest.TestCase):

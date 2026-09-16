@@ -36,8 +36,8 @@ class TestGateLists(unittest.TestCase):
             [
                 "validate_okh.py",
                 "validate_licenses.py",
-                "check_names.py",
-                "check_links.py",
+                "validate_names.py",
+                "validate_links.py",
                 "validate_build.py",
                 "validate_variants.py",
                 "validate_cad.py",

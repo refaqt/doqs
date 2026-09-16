@@ -117,7 +117,7 @@ def _strip_comments(lines):
     """Drop ``#`` comment lines so a generated file can carry a provenance header.
 
     Only params CSVs may carry comments.  Generated BOM files must not:
-    ``check_names.check_bom_file`` reads them with a plain ``csv.DictReader``
+    ``validate_names.check_bom_file`` reads them with a plain ``csv.DictReader``
     and requires the first row to be exactly ``naming_rules.BOM_HEADERS``.
     """
     for line in lines:

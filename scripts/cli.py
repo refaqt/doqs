@@ -36,8 +36,8 @@ Step = tuple[str, tuple[str, ...]]
 GATES: tuple[Step, ...] = (
     ("validate_okh.py", ()),
     ("validate_licenses.py", ()),
-    ("check_names.py", ()),
-    ("check_links.py", ()),
+    ("validate_names.py", ()),
+    ("validate_links.py", ()),
     ("validate_build.py", ()),
     ("validate_variants.py", ()),
     ("validate_cad.py", ()),
@@ -58,7 +58,7 @@ GENERATE: tuple[Step, ...] = (
     ("resolve_instance.py", ()),
     ("apply_licenses.py", ()),
     ("aggregate_bom.py", ()),
-    ("build_graph.py", ()),
+    ("resolve_graph.py", ()),
 )
 
 #: Commands that pass every remaining argument straight to one script.
@@ -106,12 +106,15 @@ def cmd_check(args: argparse.Namespace) -> int:
     if args.expected_version:
         extra["validate_okh.py"] = ["--expected-version", args.expected_version]
     if args.strict_lexicon:
-        extra["check_names.py"] = ["--strict-lexicon"]
+        extra["validate_names.py"] = ["--strict-lexicon"]
 
     steps = GATES + STALENESS
     if args.only:
         wanted = args.only if args.only.endswith(".py") else f"{args.only}.py"
-        matched = tuple(s for s in steps if s[0] == wanted or s[0] == f"validate_{wanted}" or s[0] == f"check_{wanted}")
+        matched = tuple(
+            s for s in steps
+            if s[0] in (wanted, f"validate_{wanted}", f"resolve_{wanted}")
+        )
         if not matched:
             print(f"error: no gate called {args.only!r}. Run 'doqs list' to see them.", file=sys.stderr)
             return 2
@@ -188,7 +191,7 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument("--root", type=Path, default=None, help="Machine repo root")
     check.add_argument("--only", default=None, help="Run one gate, by name (see 'doqs list')")
     check.add_argument("--expected-version", default=None, help="Passed to validate_okh.py")
-    check.add_argument("--strict-lexicon", action="store_true", help="Passed to check_names.py")
+    check.add_argument("--strict-lexicon", action="store_true", help="Passed to validate_names.py")
 
     generate = subs.add_parser("generate", help="Write every generated file")
     generate.add_argument("--root", type=Path, default=None, help="Machine repo root")

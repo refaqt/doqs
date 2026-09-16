@@ -148,7 +148,7 @@ would exceed about six, or when a third option axis appears.
 - Machine repos that already commit `cad/exports/` are unaffected: the gitignore
   rule ships in the DOQS template, and single-model modules keep their `export`
   keys.
-- `check_names.py` no longer flags a nested `modules/` container as an orphan —
+- `check_names.py` (now `validate_names.py`) no longer flags a nested `modules/` container as an orphan —
   a latent bug that only appeared once a fixture nested modules the way
   `architecture.md` has always described.
 

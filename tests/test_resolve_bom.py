@@ -120,7 +120,7 @@ class TestOverlays(FamilyCopy):
 
 class TestOutputShape(FamilyCopy):
     def test_render_keeps_the_exact_doqs_bom_header(self) -> None:
-        """check_names reads generated BOMs like any hand-written one."""
+        """validate_names reads generated BOMs like any hand-written one."""
         rows, _ = resolve(self.core, "500mm")
         first = resolve_bom.render(rows).splitlines()[0]
         self.assertEqual(first, ",".join(resolve_bom.BOM_HEADERS))

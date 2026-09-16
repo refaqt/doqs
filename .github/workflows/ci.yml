@@ -17,7 +17,7 @@ jobs:
       - name: Unit tests
         run: python -m unittest discover -s tests -p "test_*.py"
       - name: Naming check on fixture machine
-        run: python scripts/check_names.py --root tests/fixtures/minimal-machine
+        run: python scripts/validate_names.py --root tests/fixtures/minimal-machine
       - name: OKH validate on fixture machine
         run: python scripts/validate_okh.py --root tests/fixtures/minimal-machine
       - name: Licence layout on fixture machine
@@ -31,7 +31,7 @@ jobs:
       - name: All gates on the variant machine fixture
         run: python scripts/validate_all.py --root tests/fixtures/variant-machine
       - name: Markdown links resolve
-        run: python scripts/check_links.py --root . --markdown
+        run: python scripts/validate_links.py --root . --markdown
       - name: One command, on both fixtures
         run: |
           python doqs.py check --root tests/fixtures/variant-family
