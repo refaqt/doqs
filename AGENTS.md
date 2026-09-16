@@ -7,8 +7,11 @@ Start here if you are an agent (Cursor, Claude Code, or similar) working in this
 Update the shared agent kit to the latest `main` before you read its rules or skills:
 
 ```bash
-git submodule update --init --remote .agents
+git submodule update --init --remote --checkout .agents
 ```
+
+`--checkout` is required: `.gitmodules` marks `.agents` as `update = none`, so a plain
+`git submodule update` skips it. See [Shared kit](#shared-kit) for why.
 
 Do **not** copy `setup-tooling.sh` to this root. That helper is a template this repo *ships* for
 machine repos (see [`templates/setup-tooling/`](templates/setup-tooling/)); it runs
@@ -36,8 +39,14 @@ doqs is the **tools and specification** repository: validators, schemas, templat
 canonical architecture spec. Machine repos (for example [qarve](https://github.com/refaqt/qarve))
 mount it at `doqs/`. Machine design work does **not** happen here.
 
-Because machine repos mount this repo, a recursive clone there also fetches `doqs/.agents`,
-next to the machine's own `.agents/`. Both track `main`, so they hold the same kit.
+Machine repos mount this repo at `doqs/` and already mount the same kit at their own
+`.agents/`. To stop a second copy appearing at `doqs/.agents/`, `.gitmodules` sets
+`update = none` on this submodule. Git then skips it in a consumer repo — on
+`git clone --recurse-submodules`, on `git submodule update --recursive`, and in CI with
+`submodules: recursive`. The machine's own `.agents/` is the only kit there.
+
+That flag is also why the first step above needs `--checkout`: it overrides `update = none`
+so the kit is checked out when you work on doqs on its own.
 
 | You are adding | It goes in |
 | --- | --- |

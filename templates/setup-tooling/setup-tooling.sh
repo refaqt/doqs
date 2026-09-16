@@ -6,7 +6,12 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 git submodule sync --recursive
-git submodule update --init --recursive --remote
+# Check out every submodule at its recorded pin. Extracted modules under
+# modules/ stay SHA-pinned, so this must not use --remote.
+git submodule update --init --recursive
+# Only the tooling submodules track main. No --recursive here: it would reach
+# doqs/.agents and move it off the pin doqs records.
+git submodule update --remote -- doqs .agents
 if command -v python3 >/dev/null 2>&1; then
   python3 doqs/scripts/install_root_tools.py
 else

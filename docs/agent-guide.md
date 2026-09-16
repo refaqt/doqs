@@ -12,9 +12,9 @@ Machine repos include DOQS as a Git submodule at `doqs/`. Without it, validators
 bash setup-tooling.sh
 ```
 
-That helper is a copy-once bootstrap at the consumer root (see [`templates/setup-tooling/`](../templates/setup-tooling/)). After updating submodules it installs root launchers (`syson.bat` / `syson.sh`, and any later `templates/<tool>/*.{bat,sh}`). Humans on Windows may double-click `setup-tooling.bat` instead. Agents must not run the `.bat`.
+That helper is a copy-once bootstrap at the consumer root (see [`templates/setup-tooling/`](../templates/setup-tooling/)). It checks every submodule out at its recorded pin, then tracks `main` for `doqs` and `.agents` only, so modules under `modules/` keep their pin. After that it installs root launchers (`syson.bat` / `syson.sh`, and any later `templates/<tool>/*.{bat,sh}`). Humans on Windows may double-click `setup-tooling.bat` instead. Agents must not run the `.bat`.
 
-Develop tools in `github.com/refaqt/doqs`. Daily work uses the helper (latest `main` in the working tree). Commit the submodule pointer only when freezing a pin. CI may still check out the recorded pin.
+Develop tools in `github.com/refaqt/doqs`. Daily work uses the helper (latest `main` in the working tree). Commit the submodule pointer only when freezing a pin. CI may still check out the recorded pin. doqs mounts the same kit at `doqs/.agents/`, but marks it `update = none`, so a machine repo gets the kit once, at its own `.agents/`.
 
 ## Spec files to read
 
