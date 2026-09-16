@@ -1180,6 +1180,9 @@ FreeCADCmd doqs/scripts/cad_sync_params.py
 Each entry point takes `cad_dir` to locate the module's `cad/`, defaulting to
 `cwd/cad`. Pass it explicitly when the working directory is not the module root
 — a generated macro, for instance, where `__file__` points at a temp file.
+`sync_active()` also takes `save` (default `True`). A caller that only needs
+geometry in memory — `export_variant.py`'s macro — passes `save=False`, so a
+second process never writes a committed `.FCStd`.
 
 See [`scripts/cad_sync_params.py`](../scripts/cad_sync_params.py) for the
 current source; `sync_table()` and the Configuration Table are described in

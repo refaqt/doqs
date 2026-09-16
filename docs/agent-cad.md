@@ -39,6 +39,7 @@ with the submodule. That one entry point runs in either context:
 | --- | --- | --- |
 | **Interactive** — FreeCAD open | Edits the document you are looking at, in one undo transaction | Never. Yours to save. |
 | **Headless** — `FreeCADCmd cad/build_model.py` | Opens from disk, rebuilds, saves, fingerprints | Yes. This is the CI path. |
+| **Export** — `export_variant.py`'s macro | Opens from disk, syncs parameters in memory, writes only the STEP | **Never.** The document is not this process's to write. |
 
 The `.FCStd` stays a generated output. The reviewable diff is Python.
 

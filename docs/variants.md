@@ -117,7 +117,7 @@ Two outputs, deliberately different in lifecycle:
 
 | File | Committed? | What it is |
 |---|---|---|
-| `cad/params.csv` | No — gitignored | The single **active** model. Feeds `cad_sync_params.py` and BOM resolution |
+| `cad/params.csv` | No — gitignored | The single **active** model. Feeds `cad_sync_params.py` and BOM resolution. `export_variant.py` resolves its own copy and never writes this file |
 | `cad/params-table.csv` | **Yes** | Dense, one row per model. Becomes the FreeCAD Configuration Table |
 
 ---
@@ -147,7 +147,8 @@ exactly the DOQS model slugs.
 A parent machine inserts the composition assembly as a **Variant Link** and sets
 `Configuration` to `500mm`. It gets a live, fully parametric model at 500 mm,
 inside its own document. A second variant link in the same machine can sit at
-`300mm`. The family submodule is never written to.
+`300mm`. The family submodule is never written to — nor does exporting geometry
+from it write anything, see below.
 
 > **Verify before you rely on it.** Configuration Tables and Variant Links are
 > mainline FreeCAD since 0.20, but a variant link keeps a private copy inside
@@ -171,6 +172,18 @@ with more than one `[[model]]` **omits** `export` from its `okh.toml`, and
 python doqs/scripts/export_variant.py --module modules/linear-stage-servo-linear \
     --model 500mm --out builds/serial-0042/exports/x-stage.step
 ```
+
+`--module` may be the composition: its parameters come from the core that its
+`[composition]` table names. Nothing under the family is written — the active
+parameter set is resolved into a temporary directory, and the assembly is
+opened but never saved, so `validate_cad.py --check-clean` stays green and the
+model someone is working at does not change underneath them. A failed export
+leaves whatever is already at `--out` exactly as it was, so a pinned
+`builds/<id>/` export cannot be destroyed by a bad run.
+
+A composition assembly must carry the `Params` spreadsheet for this to work; if
+it does not, the export fails with *"No Spreadsheet named 'Params'"*. See the
+[ADR](decisions/2026-09-16_export-variant-contract.md).
 
 The one place variant geometry *is* committed is under `builds/<id>/`, where it
 records what a real machine was actually built to.
@@ -548,7 +561,7 @@ statement of which combinations are supported.
 | `resolve_instance.py` | A consumer's `[instance]` → resolved params, BOM and vendor CAD. `--check` for CI |
 | `validate_variants.py` | Catalogue, models, compositions, length-table coverage, vendor files, instance freshness |
 | `aggregate_bom.py` | Machine-root purchasing list that understands families and instances |
-| `export_variant.py` | Geometry for one composition × model, on demand |
+| `export_variant.py` | Geometry for one composition (or core) × model, on demand |
 
 Schemas: [`catalog.schema.json`](../schemas/catalog.schema.json),
 [`instance.schema.json`](../schemas/instance.schema.json),
