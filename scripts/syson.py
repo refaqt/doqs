@@ -37,7 +37,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from check_links import IMPORT_RE
-from naming_rules import is_under_doqs_submodule, repo_root_from_script
+from naming_rules import is_under_tooling_submodule, repo_root_from_script
 
 DOQS_ROOT = Path(__file__).resolve().parent.parent
 COMPOSE_FILE = DOQS_ROOT / "tools" / "syson" / "docker-compose.yml"
@@ -155,7 +155,7 @@ def project_name(root: Path) -> str:
 def collect_sysml(root: Path) -> list[Path]:
     files: list[Path] = []
     for path in root.rglob("*.sysml"):
-        if is_under_doqs_submodule(path, root):
+        if is_under_tooling_submodule(path, root):
             continue
         rel_parts = path.relative_to(root).parts
         if any(part.startswith(".") or part == "__pycache__" for part in rel_parts):

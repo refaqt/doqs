@@ -9,7 +9,7 @@ from license_rules import HARDWARE_LICENSE
 from naming_rules import (
     MODEL_SLUG,
     OKH_VERSION,
-    is_under_doqs_submodule,
+    is_under_tooling_submodule,
     repo_root_from_script,
 )
 
@@ -154,7 +154,7 @@ def main() -> int:
 
     all_ok = True
     for manifest in sorted(root.rglob("okh.toml")):
-        if is_under_doqs_submodule(manifest, root):
+        if is_under_tooling_submodule(manifest, root):
             continue
         errors = validate(manifest, expected_version=args.expected_version, root=root)
         rel = manifest.relative_to(root)

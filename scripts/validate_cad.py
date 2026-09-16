@@ -49,7 +49,7 @@ from cad_rules import (
     missing_guard_rules,
 )
 from license_rules import is_doqs_tools_repo
-from naming_rules import repo_root_from_script
+from naming_rules import is_under_tooling_submodule, repo_root_from_script
 
 SETTINGS_PATH = Path(".claude") / "settings.json"
 
@@ -139,8 +139,7 @@ def legacy_tool_copies(root: Path) -> list[str]:
     for cad_dir in sorted(root.rglob("cad")):
         if not cad_dir.is_dir():
             continue
-        parts = cad_dir.relative_to(root).parts
-        if "doqs" in parts or ".agents" in parts:
+        if is_under_tooling_submodule(cad_dir, root):
             continue
         for name, replacement in LEGACY_TOOL_COPIES.items():
             stale = cad_dir / name

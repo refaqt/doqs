@@ -5,7 +5,7 @@ import json
 import tomllib
 from pathlib import Path
 
-from naming_rules import family_root, is_under_doqs_submodule
+from naming_rules import family_root, is_under_tooling_submodule
 
 
 def repo_root() -> Path:
@@ -95,7 +95,7 @@ def walk_parents(root: Path) -> dict[str, list[dict]]:
     used_by: dict[str, list[dict]] = {}
 
     for okh in sorted(root.rglob("okh.toml")):
-        if is_under_doqs_submodule(okh, root):
+        if is_under_tooling_submodule(okh, root):
             continue
         parent = okh.parent.relative_to(root)
         parent_key = "." if str(parent) == "." else parent.as_posix()
@@ -134,7 +134,7 @@ def main(root: Path | None = None) -> None:
     graph: dict = {}
 
     for okh in sorted(root.rglob("okh.toml")):
-        if is_under_doqs_submodule(okh, root):
+        if is_under_tooling_submodule(okh, root):
             continue
         rel = okh.parent.relative_to(root)
         key = "." if str(rel) == "." else str(rel).replace("\\", "/")

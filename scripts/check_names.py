@@ -10,7 +10,7 @@ from naming_rules import (
     BOM_HEADERS,
     load_lexicon,
     lexicon_violations,
-    is_under_doqs_submodule,
+    is_under_tooling_submodule,
     repo_root_from_script,
     validate_adapter_slug,
     validate_bom_id,
@@ -40,7 +40,7 @@ def check_module_directories(root: Path, modules_dir: Path) -> list[Finding]:
         return findings
 
     for okh in sorted(modules_dir.rglob("okh.toml")):
-        if is_under_doqs_submodule(okh, root):
+        if is_under_tooling_submodule(okh, root):
             continue
         mod_dir = okh.parent
         rel = mod_dir.relative_to(root)
@@ -63,7 +63,7 @@ def check_module_directories(root: Path, modules_dir: Path) -> list[Finding]:
     for child in modules_dir.rglob("*"):
         if not child.is_dir() or child == modules_dir:
             continue
-        if is_under_doqs_submodule(child, root):
+        if is_under_tooling_submodule(child, root):
             continue
         if (child / "okh.toml").exists():
             continue
@@ -170,7 +170,7 @@ def check_all(root: Path, *, strict_lexicon: bool) -> tuple[list[Finding], list[
         (warnings if f.warning else errors).append(f)
 
     for okh in sorted(root.rglob("okh.toml")):
-        if is_under_doqs_submodule(okh, root):
+        if is_under_tooling_submodule(okh, root):
             continue
         for f in check_okh_manifest(okh, root, lexicon):
             (warnings if f.warning else errors).append(f)

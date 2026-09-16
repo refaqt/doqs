@@ -20,7 +20,7 @@ import csv
 import io
 from pathlib import Path
 
-from naming_rules import is_under_doqs_submodule, repo_root_from_script
+from naming_rules import is_under_tooling_submodule, repo_root_from_script
 from param_rules import (
     PARAM_HEADERS,
     ParamError,
@@ -44,7 +44,7 @@ def parametric_modules(root: Path) -> list[Path]:
     """Every module under ``root`` that has a ``cad/params/default.csv``."""
     found: list[Path] = []
     for default_csv in sorted(root.rglob("cad/params/default.csv")):
-        if is_under_doqs_submodule(default_csv, root):
+        if is_under_tooling_submodule(default_csv, root):
             continue
         found.append(default_csv.parent.parent.parent)
     return found

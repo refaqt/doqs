@@ -24,7 +24,7 @@ from pathlib import Path
 from naming_rules import (
     SKU_ID,
     family_root,
-    is_under_doqs_submodule,
+    is_under_tooling_submodule,
     repo_root_from_script,
 )
 from param_rules import ParamError, declared_models, params_dir, resolve_model
@@ -245,19 +245,19 @@ def check_all(root: Path) -> tuple[list[Finding], list[Finding]]:
             (warnings if item.warning else errors).append(item)
 
     for catalog in sorted(root.rglob(CATALOG_NAME)):
-        if is_under_doqs_submodule(catalog, root):
+        if is_under_tooling_submodule(catalog, root):
             continue
         add(check_catalog(root, catalog))
 
     for okh in sorted(root.rglob("okh.toml")):
-        if is_under_doqs_submodule(okh, root):
+        if is_under_tooling_submodule(okh, root):
             continue
         add(check_composition(root, okh))
         add(check_models(root, okh))
         add(check_sources(root, okh.parent))
 
     for index in sorted(root.rglob(f"cad/vendor/{VENDOR_INDEX}")):
-        if is_under_doqs_submodule(index, root):
+        if is_under_tooling_submodule(index, root):
             continue
         add(check_vendor_index(root, index))
 

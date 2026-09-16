@@ -57,12 +57,25 @@ def repo_root_from_script() -> Path:
     return Path(__file__).resolve().parent.parent.parent
 
 
-def is_under_doqs_submodule(path: Path, root: Path) -> bool:
-    """True if path is inside the machine's doqs/ tools submodule (not repo name 'doqs')."""
+#: Submodules that carry tooling, not machine content. A machine repo mounts
+#: this tools repo at `doqs/` and the shared agent kit at `.agents/`. Neither
+#: holds machine files, so every validator that walks the machine root skips
+#: both. See docs/architecture.md (Tooling submodules).
+TOOLING_SUBMODULE_NAMES = frozenset({"doqs", ".agents"})
+
+
+def is_under_tooling_submodule(path: Path, root: Path) -> bool:
+    """True if path is inside a tooling submodule (`doqs/` or `.agents/`).
+
+    The name is matched at any depth, because an extracted module under
+    `modules/` mounts the same two submodules for itself. Paths outside root
+    are not under one.
+    """
     try:
-        return "doqs" in path.relative_to(root).parts
+        parts = path.relative_to(root).parts
     except ValueError:
         return False
+    return any(part in TOOLING_SUBMODULE_NAMES for part in parts)
 
 
 CATALOG_NAME = "catalog.toml"
