@@ -18,8 +18,8 @@ CC BY-SA docs). That layout is documented in
 
 Applies to: [`scripts/`](scripts/), [`schemas/`](schemas/),
 [`tests/`](tests/) (except the machine-repo fixtures, see below),
-[`tools/`](tools/), the CI and editor configuration in `.github/` and
-`.cursor/`, and other original source code in this repository.
+[`tools/`](tools/), the CI, editor and agent configuration in `.github/`,
+`.cursor/` and `.claude/`, and other original source code in this repository.
 
 Also applies to the executable launchers under
 [`templates/`](templates/) — `templates/syson/syson.sh`, `syson.bat`,
