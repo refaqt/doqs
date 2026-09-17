@@ -35,7 +35,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--strict-lexicon",
         action="store_true",
-        help="Passed to check_names.py",
+        help="Passed to validate_names.py",
     )
     args = parser.parse_args(argv)
 
@@ -43,7 +43,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.expected_version:
         extra["validate_okh.py"] = ["--expected-version", args.expected_version]
     if args.strict_lexicon:
-        extra["check_names.py"] = ["--strict-lexicon"]
+        extra["validate_names.py"] = ["--strict-lexicon"]
 
     return report(run_steps(GATES, args.root, extra), "all validators passed")
 

@@ -211,7 +211,7 @@ def render_all(root: Path, instance_dir: Path) -> dict[Path, str]:
     }
     if own_rows:
         # The instance's own bom/bom.csv keeps the plain 16-column DOQS header
-        # with no comment lines, so check_names reads it like any other BOM.
+        # with no comment lines, so validate_names reads it like any other BOM.
         out[Path("bom") / "bom.csv"] = resolve_bom.render(own_rows)
     return out
 

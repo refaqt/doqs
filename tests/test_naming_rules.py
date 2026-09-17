@@ -68,8 +68,8 @@ class TestFixtureValidation(unittest.TestCase):
         ]
         return subprocess.run(cmd, capture_output=True, text=True, cwd=_REPO)
 
-    def test_check_names_fixture(self):
-        result = self._run("check_names.py")
+    def test_validate_names_fixture(self):
+        result = self._run("validate_names.py")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_validate_okh_fixture(self):
@@ -91,7 +91,7 @@ class TestToolingSubmodules(unittest.TestCase):
 
     def test_tooling_paths_are_skipped(self):
         self.assertTrue(
-            is_under_tooling_submodule(self.ROOT / "doqs" / "scripts" / "check_names.py", self.ROOT)
+            is_under_tooling_submodule(self.ROOT / "doqs" / "scripts" / "validate_names.py", self.ROOT)
         )
         self.assertTrue(
             is_under_tooling_submodule(self.ROOT / ".agents" / "skills" / "okh.toml", self.ROOT)
@@ -148,8 +148,8 @@ class TestAgentKitNotValidated(unittest.TestCase):
     def test_validators_skip_the_kit(self):
         for script in (
             "validate_okh.py",
-            "check_names.py",
-            "check_links.py",
+            "validate_names.py",
+            "validate_links.py",
             "validate_variants.py",
         ):
             with self.subTest(script=script):

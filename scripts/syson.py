@@ -36,7 +36,7 @@ import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from check_links import IMPORT_RE
+from validate_links import IMPORT_RE
 from naming_rules import is_under_tooling_submodule, repo_root_from_script
 
 DOQS_ROOT = Path(__file__).resolve().parent.parent

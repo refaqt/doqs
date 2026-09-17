@@ -1,6 +1,6 @@
 # Naming lexicon
 
-Approved vocabulary for **module slugs**, **BOM display names**, and **`[[part]].name`** fields. The validator (`doqs/scripts/check_names.py`) tokenizes names on spaces and hyphens and warns when a token is not listed here.
+Approved vocabulary for **module slugs**, **BOM display names**, and **`[[part]].name`** fields. The validator (`doqs/scripts/validate_names.py`) tokenizes names on spaces and hyphens and warns when a token is not listed here.
 
 Add words via pull request when a new functional term is needed. Prefer existing words over synonyms (e.g. `mount` not `bracket-mount` unless both words are meaningful).
 

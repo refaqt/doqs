@@ -13,7 +13,7 @@ DOQS machine repos need consistent module folder names, BOM part IDs, and versio
 2. **BOM part IDs** use `PREFIX-NNN` (three-digit sequence, category prefix per module). Prefixes are defined in [naming.md](../naming.md).
 3. **Display names** should follow the [naming lexicon](../naming-lexicon.md); validators warn on unknown tokens.
 4. **Authoritative version** is semver in `okh.toml` without a `v` prefix, mirrored by Git tag `vX.Y.Z` and lockfile pins. FreeCAD files keep a stable `Comment` pointing to `okh.toml`; drawing revisions mirror semver at export (hybrid ISO 7200 practice).
-5. **Enforcement** via `doqs/scripts/check_names.py`, extended `validate_okh.py`, and `validate_all.py` in machine CI.
+5. **Enforcement** via `doqs/scripts/check_names.py` (renamed `validate_names.py` in September 2026), extended `validate_okh.py`, and `validate_all.py` in machine CI.
 
 ## Consequences
 

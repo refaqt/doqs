@@ -61,7 +61,28 @@ Two things to know:
 not run it. That combination looks set up and is not, which is the quietest way to
 lose the tooling submodules.
 
-## 5. Small things
+## 5. Three scripts were renamed
+
+Two gates were called `check_*` while seven identical ones were called `validate_*`.
+And `build_graph.py` had nothing to do with `builds/` or `build.toml`, which
+`validate_build.py` validates.
+
+| Old | New |
+| --- | --- |
+| `check_names.py` | `validate_names.py` |
+| `check_links.py` | `validate_links.py` |
+| `build_graph.py` | `resolve_graph.py` |
+
+**Only these three.** The other sixteen scripts keep their names.
+
+The old names still exist as stubs until **16 December 2026**. A stub prints the new
+name and **exits 2**, so a script of yours fails loudly instead of quietly skipping a
+gate. Search your repository for the three old names; qarve's CI calls
+`build_graph.py`, for example.
+
+Nothing else changes: same options, same output, same behaviour.
+
+## 6. Small things
 
 - `check_names.py --warnings-only` did nothing and is removed. If a script of yours
   passes it, drop the flag.
@@ -77,9 +98,9 @@ lose the tooling submodules.
   default** so a pin bump cannot turn your repository red. Turn it on when you are
   ready to fix what it finds.
 
-## 6. What did not change
+## 7. What did not change
 
-- Every script under `doqs/scripts/` keeps its name and its command line.
+- Every other script under `doqs/scripts/` keeps its name and its command line.
 - `validate_all.py` runs the same seven gates, in the same order, with the same
   output.
 - `setup-tooling.sh` works the same way, and still installs the launchers.

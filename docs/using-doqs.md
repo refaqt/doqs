@@ -109,8 +109,8 @@ When `doqs check` fails, this tells you which part of your repository it is abou
 | --- | --- |
 | `validate_okh.py` | Required OKH fields, the licence expression, file references, the `version` format |
 | `validate_licenses.py` | Split-licence files, the README licence section, `TRADEMARKS.md` |
-| `check_names.py` | Module slugs, BOM ids and headers, model slugs, the naming lexicon |
-| `check_links.py` | SysML imports and OKH relative paths. With `--markdown`, markdown links too |
+| `validate_names.py` | Module slugs, BOM ids and headers, model slugs, the naming lexicon |
+| `validate_links.py` | SysML imports and OKH relative paths. With `--markdown`, markdown links too |
 | `validate_build.py` | Every `builds/**/build.toml`: does each consumed interface have a provider? |
 | `validate_variants.py` | Families: the catalogue, models, compositions, length-table coverage, vendor geometry, instance freshness |
 | `validate_cad.py` | FreeCAD documents: the save guard, fingerprint currency, stale exports |

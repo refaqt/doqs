@@ -17,7 +17,7 @@ _SCRIPTS = _REPO / "scripts"
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
-from check_links import check_markdown  # noqa: E402
+from validate_links import check_markdown  # noqa: E402
 
 
 class TestCheckMarkdown(unittest.TestCase):
