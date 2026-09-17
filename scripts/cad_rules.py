@@ -173,6 +173,28 @@ def missing_guard_rules(settings: dict) -> list[str]:
     return [tool for tool in DENIED_MCP_TOOLS if tool not in present]
 
 
+def hook_is_registered(settings: dict) -> bool:
+    """True if `.claude/settings.json` runs a session-start script.
+
+    The hook file on disk does nothing on its own: the settings file is what
+    starts it. A repository with the file but no registration looks set up and
+    is not, which is the quietest way to lose the tooling submodules.
+    """
+    hooks = settings.get("hooks")
+    entries = hooks.get("SessionStart", []) if isinstance(hooks, dict) else []
+    if not isinstance(entries, list):
+        return False
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        for hook in entry.get("hooks", []):
+            if not isinstance(hook, dict):
+                continue
+            if str(hook.get("command", "")).rstrip().endswith("session-start.sh"):
+                return True
+    return False
+
+
 def cad_documents(root: Path) -> list[Path]:
     """Every committed `.FCStd` outside the tooling submodules."""
     from naming_rules import is_under_tooling_submodule

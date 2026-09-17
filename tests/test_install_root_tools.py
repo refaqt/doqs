@@ -142,7 +142,12 @@ class TestInstallRootToolsCli(unittest.TestCase):
 
 
 class TestInstallConfigs(unittest.TestCase):
-    """Agent config is copy-once: these files are the user's to edit."""
+    """`.mcp.json` is copy-once: it is the user's file.
+
+    `.claude/settings.json` moved out of this path. doqs owns two keys in it —
+    the deny rules and the session-hook registration — so it is merged instead of
+    copied. See tests/test_install_session_hook.py.
+    """
 
     def setUp(self):
         self._tmp = Path(tempfile.mkdtemp(prefix="doqs-config-"))
@@ -159,13 +164,11 @@ class TestInstallConfigs(unittest.TestCase):
 
     def test_never_overwrites_user_edits(self):
         install_configs(self.root, self.templates)
-        settings = self.root / ".claude" / "settings.json"
-        edited = settings.read_text(encoding="utf-8").replace(
-            '"deny"', '"allow": ["Bash(python *)"], "deny"'
-        )
-        settings.write_text(edited, encoding="utf-8")
+        mcp = self.root / ".mcp.json"
+        edited = mcp.read_text(encoding="utf-8").replace("{", '{"mine": true,', 1)
+        mcp.write_text(edited, encoding="utf-8")
         self.assertEqual(install_configs(self.root, self.templates), [])
-        self.assertIn("allow", settings.read_text(encoding="utf-8"))
+        self.assertIn("mine", mcp.read_text(encoding="utf-8"))
 
     def test_shipped_guard_template_denies_both_hazardous_tools(self):
         # The installed default must satisfy validate_cad.py out of the box.
@@ -173,8 +176,9 @@ class TestInstallConfigs(unittest.TestCase):
         import json
 
         from cad_rules import missing_guard_rules
+        from install_root_tools import install_settings
 
-        install_configs(self.root, self.templates)
+        install_settings(self.root, self.templates)
         settings = json.loads(
             (self.root / ".claude" / "settings.json").read_text(encoding="utf-8")
         )
