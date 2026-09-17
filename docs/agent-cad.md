@@ -67,7 +67,8 @@ Copy `addon/FreeCADMCP` into your FreeCAD addon directory so the result is
 
 | Platform | Directory |
 | --- | --- |
-| Windows | `%APPDATA%\FreeCAD\Mod\` |
+| Windows (1.1) | `%APPDATA%\FreeCAD\v1-1\Mod\` |
+| Windows (1.0) | `%APPDATA%\FreeCAD\Mod\` |
 | macOS (1.1) | `~/Library/Application Support/FreeCAD/v1-1/Mod/` |
 | Linux, Debian | `~/.local/share/FreeCAD/Mod/` |
 | Linux, Arch (1.1) | `~/.local/share/FreeCAD/v1-1/Mod/` |
@@ -76,8 +77,16 @@ Copy `addon/FreeCADMCP` into your FreeCAD addon directory so the result is
 Windows (PowerShell):
 
 ```powershell
-New-Item -ItemType Directory -Force "$env:APPDATA\FreeCAD\Mod"
-Copy-Item -Recurse addon\FreeCADMCP "$env:APPDATA\FreeCAD\Mod\"
+New-Item -ItemType Directory -Force "$env:APPDATA\FreeCAD\v1-1\Mod"
+Copy-Item -Recurse addon\FreeCADMCP "$env:APPDATA\FreeCAD\v1-1\Mod\"
+```
+
+FreeCAD 1.1 keeps a folder per version on Windows too. `%APPDATA%\FreeCAD\Mod` is
+not read at all by 1.1, and an add-on copied there never loads. Ask FreeCAD itself if you are
+unsure which folder is yours:
+
+```powershell
+FreeCADCmd -c "import FreeCAD; print(FreeCAD.getUserAppDataDir())"
 ```
 
 Restart FreeCAD, select the **MCP Addon** workbench, and click **Start RPC
