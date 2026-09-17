@@ -34,6 +34,7 @@ files.
 
 | Doc | Purpose |
 |-----|---------|
+| [docs/using-doqs.md](docs/using-doqs.md) | **Start here if you use doqs in your own repository**: what to run, what gets copied, what for |
 | [docs/architecture.md](docs/architecture.md) | Full DOQS system specification (module layout, `simulation/`, versioning, interfaces) |
 | [docs/variants.md](docs/variants.md) | Product families: many lengths and options of one design, and how a machine consumes one configuration |
 | [docs/syson.md](docs/syson.md) | Local SysON (graphical SysML) via Docker |
@@ -41,7 +42,6 @@ files.
 | [docs/naming.md](docs/naming.md) | Naming conventions (machines, modules, parts) |
 | [docs/naming-lexicon.md](docs/naming-lexicon.md) | Approved vocabulary for display names |
 | [docs/agent-cad.md](docs/agent-cad.md) | Agents editing FreeCAD models in the open GUI document: setup, the save guard, fingerprints instead of screenshots |
-| [docs/agent-guide.md](docs/agent-guide.md) | DOQS spec files agents should read; validation commands |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | PR gates and submodule workflow |
 
 Agent **setup and skills** (logging, FreeCAD debugging, DOQS naming): [refaqt/refaqt-agents](https://github.com/refaqt/refaqt-agents) at `.agents/` in machine repos.

@@ -1590,7 +1590,10 @@ Machine repos mount this tools repo at `doqs/` and [refaqt-agents](https://githu
 
 Every gate that walks the machine root skips both folder names, at any depth. The check is `is_under_tooling_submodule()` in [`scripts/naming_rules.py`](../scripts/naming_rules.py); the licence and CAD gates use the same name list. Neither submodule holds machine content, so a sample `okh.toml`, `catalog.toml`, or `.sysml` file inside them must never fail a machine gate. Add a new tooling submodule to `TOOLING_SUBMODULE_NAMES` in that file, not to a single script.
 
-Copy the helpers from [`templates/setup-tooling/`](../templates/setup-tooling/) to the **consumer repo root** (copy-once bootstrap). After clone, agents run `bash setup-tooling.sh` from that root; humans on Windows may double-click `setup-tooling.bat`. The helpers run `git submodule sync --recursive`, then `git submodule update --init --recursive` to check every submodule out at its recorded pin, then `git submodule update --remote -- doqs .agents` so only the tooling submodules track `main`, then `python doqs/scripts/install_root_tools.py` copies `*.bat` / `*.sh` from `doqs/templates/<tool>/` (except `setup-tooling/`) to the consumer root. Existing machine repos need a one-time refresh of `setup-tooling.*` from the template so that installer step exists. Set `branch = main` only on tooling submodules.
+How to add the submodules to a repository, and what each helper writes, is in
+[using-doqs.md](using-doqs.md#2-add-doqs-to-a-repository). Two rules matter at the architecture
+level: only the tooling submodules (`doqs`, `.agents`) carry `branch = main`, and extracted
+modules under `modules/` stay pinned to a commit.
 
 The committed gitlink remains a pin. Do not commit dirty gitlinks after `--remote` unless freezing a pin. CI may still check out the recorded pin (`submodules: recursive`, not `--remote`). Extracted machine modules under `modules/` stay SHA-pinned without `branch`, so the `--remote` call names `doqs` and `.agents` explicitly: `--remote` on a submodule without `branch` tracks the remote default branch instead of the recorded SHA.
 

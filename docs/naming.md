@@ -168,4 +168,4 @@ Flags: `--root PATH`, `--strict-lexicon`, `--warnings-only` (naming), `--expecte
 - [Variants](variants.md) — product families, model slugs, SKU catalogue, instance modules
 - [Architecture](architecture.md) — folder layout, BOM columns, design session checklist
 - [CONTRIBUTING.md](../CONTRIBUTING.md) — PR validation gates
-- [Agent reference](agent-guide.md) — spec files to read and validation commands
+- [Using doqs](using-doqs.md) — what to run, and which page to read for which job

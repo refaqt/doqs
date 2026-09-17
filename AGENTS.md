@@ -1,6 +1,10 @@
-# Agent guide
+# Working on doqs — agent instructions
 
-Start here if you are an agent (Cursor, Claude Code, or similar) working in this repository.
+Start here if you are an agent (Cursor, Claude Code, or similar) changing **this** repository:
+the validators, templates and specification.
+
+Working in a machine repository that has doqs as a submodule is a different job. That is
+[docs/using-doqs.md](docs/using-doqs.md).
 
 ## First step (required)
 
@@ -110,7 +114,7 @@ in another file. A new `.py`, `.sh` or `.bat` file under `templates/` needs an
 The kit also carries role skills under `.agents/skills/{category}/{skill-name}/SKILL.md`
 (`business/`, `engineering/`, `supply-chain/`, `compliance/`, `legal/`, `governance/`, `web3/`).
 
-## DOQS spec pointers
+## Working in a machine repository instead
 
-[docs/agent-guide.md](docs/agent-guide.md) lists which specification file to read for which kind
-of work, and the validation commands machine repos run.
+This file is for agents changing **doqs itself**. Everything about using doqs in a machine
+repository is in [docs/using-doqs.md](docs/using-doqs.md).
