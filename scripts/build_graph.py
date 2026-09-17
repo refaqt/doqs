@@ -127,8 +127,8 @@ def builds_using_module(root: Path) -> dict[str, list[dict]]:
     return result
 
 
-def main(root: Path | None = None) -> None:
-    root = root or repo_root()
+def build(root: Path) -> dict:
+    """The usage graph for this repository, as a plain dict."""
     used_by_map = walk_parents(root)
     build_map = builds_using_module(root)
     graph: dict = {}
@@ -150,16 +150,46 @@ def main(root: Path | None = None) -> None:
             node["models"] = models
         graph[key] = node
 
-    out = root / "graph" / "usage-graph.json"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(graph, indent=2) + "\n", encoding="utf-8")
-    print(f"Wrote {out} ({len(graph)} modules)")
+    return graph
 
 
-if __name__ == "__main__":
+def render(graph: dict) -> str:
+    """The exact text written to graph/usage-graph.json."""
+    return json.dumps(graph, indent=2) + "\n"
+
+
+def main(argv: list[str] | None = None) -> int:
     import argparse
 
     parser = argparse.ArgumentParser(description="Regenerate graph/usage-graph.json.")
     parser.add_argument("--root", type=Path, default=None)
-    args = parser.parse_args()
-    main(args.root.resolve() if args.root else None)
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Do not write; exit non-zero if the committed graph is stale",
+    )
+    args = parser.parse_args(argv)
+    root = args.root.resolve() if args.root else repo_root()
+
+    graph = build(root)
+    text = render(graph)
+    out = root / "graph" / "usage-graph.json"
+
+    if args.check:
+        if not out.is_file():
+            print(f"FAIL  {out} is missing. Run: doqs generate")
+            return 1
+        if out.read_text(encoding="utf-8") != text:
+            print(f"FAIL  {out} is stale. Run: doqs generate")
+            return 1
+        print(f"ok    {out} ({len(graph)} modules)")
+        return 0
+
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(text, encoding="utf-8")
+    print(f"Wrote {out} ({len(graph)} modules)")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

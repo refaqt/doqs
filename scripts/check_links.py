@@ -41,15 +41,19 @@ def check_okh_relative(root: Path) -> list[str]:
     return errors
 
 
-if __name__ == "__main__":
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Check SysML imports and OKH paths.")
     parser.add_argument("--root", type=Path, default=None)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     root = args.root.resolve() if args.root else repo_root_from_script()
     errors = check_sysml(root) + check_okh_relative(root)
     if errors:
         for e in errors:
             print(f"FAIL  {e}")
-        raise SystemExit(1)
+        return 1
     print("ok    all SysML imports and OKH paths resolve")
-    raise SystemExit(0)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

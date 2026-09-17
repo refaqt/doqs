@@ -1,27 +1,25 @@
-"""Run all DOQS validation gates (excludes build_graph generator)."""
+"""Run the DOQS validation gates.
+
+This runs the same seven gates it has always run, and nothing else. That is the
+contract: a machine repository can bump its doqs pin without its CI suddenly
+gaining checks nobody asked for.
+
+`python doqs/doqs.py check` runs these seven **plus** three checks on generated
+files (`resolve_params --table --check`, `resolve_instance --check`,
+`apply_licenses --check`). Move your CI to that command when you are ready for
+them; see `doqs list`.
+
+The gate list itself lives in `cli.GATES`, so the two commands cannot drift.
+"""
 from __future__ import annotations
 
 import argparse
-import subprocess
-import sys
 from pathlib import Path
 
-SCRIPTS = (
-    "validate_okh.py",
-    "validate_licenses.py",
-    "check_names.py",
-    "check_links.py",
-    "validate_build.py",
-    "validate_variants.py",
-    "validate_cad.py",
-)
+from cli import GATES, report, run_steps
 
 
-def repo_root_from_script() -> Path:
-    return Path(__file__).resolve().parent.parent.parent
-
-
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run all DOQS validation scripts.")
     parser.add_argument(
         "--root",
@@ -39,33 +37,15 @@ def main() -> int:
         action="store_true",
         help="Passed to check_names.py",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
-    scripts_dir = Path(__file__).resolve().parent
-    root_args: list[str] = []
-    if args.root:
-        root_args = ["--root", str(args.root.resolve())]
+    extra: dict[str, list[str]] = {}
+    if args.expected_version:
+        extra["validate_okh.py"] = ["--expected-version", args.expected_version]
+    if args.strict_lexicon:
+        extra["check_names.py"] = ["--strict-lexicon"]
 
-    failed: list[str] = []
-    for name in SCRIPTS:
-        script = scripts_dir / name
-        cmd = [sys.executable, str(script), *root_args]
-        if name == "validate_okh.py" and args.expected_version:
-            cmd.extend(["--expected-version", args.expected_version])
-        if name == "check_names.py" and args.strict_lexicon:
-            cmd.append("--strict-lexicon")
-
-        print(f"--- {name} ---")
-        cwd = args.root.resolve() if args.root else repo_root_from_script()
-        result = subprocess.run(cmd, cwd=cwd)
-        if result.returncode != 0:
-            failed.append(name)
-
-    if failed:
-        print(f"\nFAILED: {', '.join(failed)}")
-        return 1
-    print("\nok    all validators passed")
-    return 0
+    return report(run_steps(GATES, args.root, extra), "all validators passed")
 
 
 if __name__ == "__main__":
