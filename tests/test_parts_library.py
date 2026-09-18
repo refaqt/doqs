@@ -37,6 +37,7 @@ from validate_variants import check_all, check_parts_table  # noqa: E402
 
 LIBRARY = _REPO / "tests" / "fixtures" / "parts-library"
 MACHINE = _REPO / "tests" / "fixtures" / "variant-machine"
+MINIMAL = _REPO / "tests" / "fixtures" / "minimal-machine"
 
 
 class LibraryCopy(unittest.TestCase):
@@ -61,15 +62,11 @@ class TestTheMarker(LibraryCopy):
         self.assertFalse(is_parts_library(MACHINE))
 
     def test_a_library_is_recognised_wherever_it_is_mounted(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            machine = Path(tmp) / "machine"
-            shutil.copytree(MACHINE, machine)
-            mounted = machine / "modules" / "stoq"
-            shutil.copytree(LIBRARY, mounted)
-            inside = mounted / "modules/hiwin/okh.toml"
-            self.assertTrue(is_under_parts_library(inside, machine))
-            outside = machine / "modules/x-stage/okh.toml"
-            self.assertFalse(is_under_parts_library(outside, machine))
+        """The machine fixture mounts one at modules/stoq."""
+        inside = MACHINE / "modules/stoq/modules/hiwin/okh.toml"
+        self.assertTrue(is_under_parts_library(inside, MACHINE))
+        outside = MACHINE / "modules/x-stage/okh.toml"
+        self.assertFalse(is_under_parts_library(outside, MACHINE))
 
 
 class TestLicence(LibraryCopy):
@@ -161,8 +158,7 @@ class TestMountedInAMachine(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
         self.root = Path(self._tmp.name) / "machine"
-        shutil.copytree(MACHINE, self.root)
-        shutil.copytree(LIBRARY, self.root / "modules" / "stoq")
+        shutil.copytree(MACHINE, self.root)   # already mounts modules/stoq
         self.addCleanup(self._tmp.cleanup)
 
     def test_the_librarys_manifests_do_not_fail_the_machines_licence_rule(self) -> None:
@@ -197,7 +193,6 @@ class TestLibraryLookupIsCached(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "machine"
             shutil.copytree(MACHINE, root)
-            shutil.copytree(LIBRARY, root / "modules" / "stoq")
             manifest = root / "modules/stoq/okh.toml"
             self.assertTrue(is_under_parts_library(manifest, root))
             before = _library_roots_cached.cache_info()
@@ -211,7 +206,7 @@ class TestLibraryLookupIsCached(unittest.TestCase):
         """The cache assumes a read-only pass. Say so with a test, not a comment."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "machine"
-            shutil.copytree(MACHINE, root)
+            shutil.copytree(MINIMAL, root)   # a machine with no library yet
             probe = root / "modules" / "stoq" / "okh.toml"
             self.assertFalse(is_under_parts_library(probe, root))
             shutil.copytree(LIBRARY, root / "modules" / "stoq")

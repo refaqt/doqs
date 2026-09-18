@@ -1,0 +1,27 @@
+okhv = "OKH-LOSHv1.0"
+name = "X Linear Guide"
+repo = "https://example.com/variant-machine/tree/main/modules/linear-guide-x"
+version = "0.1.0"
+license = "CERN-OHL-S-2.0"
+licensor = "DOQS Tests"
+function = "Guides the X carriage over its travel."
+# What the role adds itself. The rail comes from [role]; these are the
+# fasteners that hold it. One cell in the part column buys each of them.
+bom = "bom/bom.csv"
+
+# The JOB, named after what it does. Which brand fills it is one line below,
+# and changing that line moves nothing above this folder. See doqs/docs/roles.md.
+[role]
+library = "modules/stoq"
+selected = "hiwin/hgr-rail#HGR20R500"
+# Parts checked against this role's requirements and found acceptable. This is
+# where "we evaluated THK once and it was fine" stops living in somebody's
+# memory. Validation holds every entry to the same interface rule.
+approved = [
+  "hiwin/hgr-rail#HGR20R500",
+  "thk/shs-rail#SHS20R500",
+]
+
+[[consumes-interface]]
+name = "LinearGuide20MountInterface"
+version = "1.0"

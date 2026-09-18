@@ -52,7 +52,7 @@ bash setup-tooling.sh
 
 It checks every submodule out at its recorded pin, then moves **only** `doqs` and
 `.agents` to the latest `main`, then installs the root launchers and agent
-configuration (see section 8).
+configuration (see section 9).
 
 Two things to expect:
 
@@ -112,7 +112,7 @@ When `doqs check` fails, this tells you which part of your repository it is abou
 | `validate_names.py` | Module slugs, BOM ids and headers, model slugs, the naming lexicon |
 | `validate_links.py` | SysML imports and OKH relative paths. With `--markdown`, markdown links too |
 | `validate_build.py` | Every `builds/**/build.toml`: does each consumed interface have a provider? |
-| `validate_variants.py` | Families: the catalogue, models, compositions, length-table coverage, vendor geometry, instance freshness |
+| `validate_variants.py` | Families, parts libraries and roles: catalogues, models, compositions, length-table coverage, supplier files and their checksums, instance freshness, and whether a role's chosen part still exists, is still sold and still fits |
 | `validate_cad.py` | FreeCAD documents: the save guard, fingerprint currency, stale exports |
 | `resolve_params.py --check` | Is `cad/params-table.csv` current? |
 | `resolve_instance.py --check` | Are the resolved instance files current? |
@@ -155,6 +155,8 @@ committed, not whatever landed in doqs this morning.
 | --- | --- |
 | [architecture.md](architecture.md) | New modules, versioning, interfaces, builds, licensing, folder layout |
 | [variants.md](variants.md) | Product families: several lengths or options of one design |
+| [parts-library.md](parts-library.md) | Recording parts other people make, so two projects do not research the same rail twice |
+| [roles.md](roles.md) | Buying a part into a machine, and changing brand later without moving anything |
 | [agent-cad.md](agent-cad.md) | Creating or editing FreeCAD models, the save guard, fingerprints |
 | [naming.md](naming.md) | Naming modules, parts, campaigns, BOM ids |
 | [naming-lexicon.md](naming-lexicon.md) | Approved words for BOM and part names |
@@ -165,7 +167,36 @@ committed, not whatever landed in doqs this morning.
 Your own `docs/architecture.md` should be a short overview that points here, not a
 second copy of the specification.
 
-## 8. What doqs puts in your repository
+## 8. Buying a part
+
+A part somebody else makes comes from a **parts library** mounted like any other
+external project:
+
+```bash
+git submodule add https://github.com/refaqt/stoq modules/stoq
+```
+
+Your own checks skip its contents. It is validated in its own repository, and a
+machine should not re-run hundreds of supplier checks on every commit.
+
+**An ordinary part is one extra cell** on a row you already write. No folder, no
+generated file:
+
+```csv
+id,name,spec,category,qty,unit,unit_mass_g,equiv_class,brand,brand_pn,part,notes
+STD-004,Cap Screw,DIN912 M4x10 A2-70,fastener,8,pc,2,M4X10-SHCS,DIN,M4X10,stoq:din/din-912#M4X10,
+```
+
+The reference names the brand and the family, then the brand's own part number.
+Validation checks it resolves, is still sold, and agrees with the brand and part
+number you wrote beside it.
+
+**A part with requirements gets a role module** instead — a folder named after
+the job, holding the requirements and one line saying what fills the job today.
+Changing brand is then one line of text, and nothing above the role moves. See
+[roles.md](roles.md).
+
+## 9. What doqs puts in your repository
 
 | Template | Lands at | How | Who does it |
 | --- | --- | --- | --- |
@@ -198,7 +229,7 @@ Three rules follow from that table:
   no script puts it anywhere. Copy it into the module you are building and replace
   `build()` with your geometry.
 
-## 9. Working in FreeCAD
+## 10. Working in FreeCAD
 
 Three scripts run **inside** FreeCAD, so no `doqs` command can reach them. `doqs list`
 names them too.
@@ -220,7 +251,7 @@ handling, which is why a module must never carry its own copy.
 
 Read [agent-cad.md](agent-cad.md) before letting an agent touch a model.
 
-## 10. When something goes wrong
+## 11. When something goes wrong
 
 | What you see | What it means |
 | --- | --- |
@@ -231,7 +262,7 @@ Read [agent-cad.md](agent-cad.md) before letting an agent touch a model.
 | `.mcp.json` appears as an untracked file | The installer wrote it. Keep it if you use FreeCAD through an agent; otherwise delete it or gitignore it |
 | A `.FCStd` has no fingerprint | Rebuild it: `FreeCADCmd <module>/cad/build_model.py` |
 
-## 11. Where to change what
+## 12. Where to change what
 
 | Change | Repository |
 | --- | --- |

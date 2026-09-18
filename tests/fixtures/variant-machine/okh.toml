@@ -13,3 +13,6 @@ component = "https://example.com/variant-machine/blob/main/modules/x-stage/okh.t
 
 [[hasComponent]]
 component = "https://example.com/variant-machine/blob/main/modules/y-stage/okh.toml"
+
+[[hasComponent]]
+component = "https://example.com/variant-machine/blob/main/modules/linear-guide-x/okh.toml"

@@ -1,0 +1,6 @@
+# Marks this repository as a parts library: parts other people make, which we
+# only record. A machine mounts it under modules/ like any other external DOQS
+# project, and skips it in its own gates because of this file, not because of
+# where it sits. See doqs/docs/parts-library.md.
+schema = "doqs-library-v1"
+name = "parts-library-fixture"

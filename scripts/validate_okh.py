@@ -88,6 +88,7 @@ def validate(
     errors.extend(_validate_instance(p, data, root))
     errors.extend(_validate_composition(p, data))
     errors.extend(_validate_brand(data))
+    errors.extend(_validate_role(data, root))
     for comp in data.get("hasComponent", []):
         # Selection shortcut for the zero-override case: a parent may pin the
         # composition and model directly on the component declaration instead
@@ -104,6 +105,43 @@ def validate(
         for item in part.get("source", []) + part.get("export", []):
             if not (p.parent / item).exists():
                 errors.append(f"part '{part.get('name', '?')}' file not found: {item}")
+    return errors
+
+
+def _validate_role(data: dict, root: Path | None) -> list[str]:
+    """Shape-check a [role] table.
+
+    Whether the selected part still exists, is still sold and still fits is the
+    job of validate_variants.py, which can read the library's catalogue.
+    """
+    role = data.get("role")
+    if role is None:
+        return []
+    errors = []
+    for key in ("library", "selected"):
+        if not role.get(key):
+            errors.append(f"[role] is missing {key!r}")
+    library = role.get("library")
+    if library and root is not None and not (root / library).is_dir():
+        errors.append(
+            f"[role] library not found: {library} "
+            "(run: git submodule update --init --recursive)"
+        )
+    approved = role.get("approved")
+    if approved is not None and not isinstance(approved, list):
+        errors.append("[role] approved must be a list of parts")
+        approved = []
+    selected = role.get("selected")
+    for part in ([selected] if selected else []) + list(approved or []):
+        if "#" not in str(part):
+            errors.append(
+                f"[role] {part!r} must name a part number: <family>#<part number>"
+            )
+    if selected and approved and str(selected) not in [str(a) for a in approved]:
+        errors.append(
+            "[role] selected is not in approved. What you buy today must be one "
+            "of the parts you decided are acceptable."
+        )
     return errors
 
 

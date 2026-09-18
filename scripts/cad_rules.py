@@ -18,6 +18,8 @@ runs and platforms does not produce a diff on every rebuild.  See
 from __future__ import annotations
 
 import hashlib
+import zipfile
+import re
 import json
 import math
 from pathlib import Path
@@ -195,12 +197,57 @@ def hook_is_registered(settings: dict) -> bool:
     return False
 
 
+#: An external link inside a FreeCAD document. A .FCStd is a zip whose
+#: Document.xml records each link to another document as an XLink with the
+#: path it points at. Reading it needs no FreeCAD, which matters because a
+#: validator must run in CI where FreeCAD is not installed.
+_XLINK_FILE = re.compile(r'<XLink\b[^>]*\bfile="([^"]+)"')
+
+
+def document_links(fcstd: Path) -> list[str]:
+    """Paths this document links to, as written inside it.
+
+    Returns an empty list for a file that is not a readable FreeCAD document,
+    so a stub or a partial download reports "links to nothing" rather than
+    crashing a gate.
+    """
+    try:
+        with zipfile.ZipFile(fcstd) as archive:
+            xml = archive.read("Document.xml").decode("utf-8", errors="replace")
+    except (zipfile.BadZipFile, KeyError, OSError):
+        return []
+    return _XLINK_FILE.findall(xml)
+
+
+def links_resolve_to(fcstd: Path, target: Path) -> bool:
+    """True when this document links the given file.
+
+    Link paths are written relative to the document, and FreeCAD is configured
+    to keep them that way so a clone elsewhere still resolves.
+    """
+    target = target.resolve()
+    for link in document_links(fcstd):
+        try:
+            if (fcstd.parent / link).resolve() == target:
+                return True
+        except OSError:
+            continue
+    return False
+
+
 def cad_documents(root: Path) -> list[Path]:
-    """Every committed `.FCStd` outside the tooling submodules."""
-    from naming_rules import is_under_tooling_submodule
+    """Every committed `.FCStd` that this repository is responsible for.
+
+    Skips the tooling submodules, and skips a mounted parts library: those
+    documents were built from files a brand published, so there is no
+    build_model.py to rebuild them from and no fingerprint to keep current.
+    Their integrity is proved by the checksum in the library's own manifest.
+    """
+    from naming_rules import is_under_parts_library, is_under_tooling_submodule
 
     return [
         p
         for p in sorted(root.rglob("*.FCStd"))
         if not is_under_tooling_submodule(p, root)
+        and not is_under_parts_library(p, root)
     ]

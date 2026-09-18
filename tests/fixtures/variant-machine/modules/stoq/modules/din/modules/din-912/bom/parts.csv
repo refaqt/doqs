@@ -1,0 +1,3 @@
+pn,description,spec,unit_mass_g,cad,datasheet,terms,revision,status,notes
+M4X10,DIN 912 M4x10,A2-70 stainless,2,,,fetch-only,A,active,
+M5X20,DIN 912 M5x20,A2-70 stainless,6,,,fetch-only,A,active,

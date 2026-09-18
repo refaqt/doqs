@@ -1,0 +1,5 @@
+pn,description,spec,unit_mass_g,cad,datasheet,terms,revision,status,notes
+HGR20R300,HGR20 rail 300 mm,rail width 20 mm; hole pitch 60 mm,1290,cad/parts/HGR20R300.FCStd,docs/datasheets/hgr-series.pdf,redistributable,A,active,
+HGR20R500,HGR20 rail 500 mm,rail width 20 mm; hole pitch 60 mm,2150,cad/parts/HGR20R500.FCStd,docs/datasheets/hgr-series.pdf,redistributable,A,active,
+HGR20R800,HGR20 rail 800 mm,rail width 20 mm; hole pitch 60 mm,3440,,docs/datasheets/hgr-series.pdf,redistributable,A,active,
+HGR20R200,HGR20 rail 200 mm,rail width 20 mm; hole pitch 60 mm,860,,,redistributable,A,eol,Replaced by HGR20R300

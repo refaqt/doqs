@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/refaqt/doqs/schemas/role.schema.json",
+  "title": "DOQS role declaration",
+  "description": "The [role] table of an okh.toml in a machine repository. A role is a job the machine needs doing -- 'the X-axis linear guide' -- named after the job and never after the product bought, so changing brand moves nothing above it. It generates no files: a library update cannot substitute a different part number, so there is nothing to copy and protect against. See docs/roles.md.",
+  "type": "object",
+  "required": ["library", "selected"],
+  "properties": {
+    "library": {
+      "type": "string",
+      "description": "Repository-root-relative path of the mounted parts library, e.g. modules/stoq."
+    },
+    "selected": {
+      "type": "string",
+      "pattern": "^[^#]+#.+$",
+      "description": "What you buy today: family path inside the library, then '#', then the brand's own part number."
+    },
+    "approved": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[^#]+#.+$" },
+      "description": "Parts checked against this role's requirements and found acceptable, including the selected one. Optional, and the place engineering judgement gets written down instead of living in somebody's memory."
+    }
+  }
+}
