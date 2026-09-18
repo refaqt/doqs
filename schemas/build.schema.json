@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/org/doqs/schemas/build.schema.json",
+  "$id": "https://github.com/refaqt/doqs/schemas/build.schema.json",
   "title": "DOQS build lockfile",
   "type": "object",
   "required": [
@@ -29,12 +29,23 @@
       "properties": {
         "repo": {
           "type": "string",
-          "format": "uri"
+          "format": "uri",
+          "description": "Where to fetch this from. Without it nobody knows."
         },
         "version": {
           "type": "string"
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$",
+          "description": "The exact commit. A tag can be moved or deleted; this cannot, so it is what makes the record openable."
         }
-      }
+      },
+      "required": [
+        "repo",
+        "version",
+        "commit"
+      ]
     },
     "module": {
       "type": "array",
@@ -42,7 +53,9 @@
         "type": "object",
         "required": [
           "path",
-          "version"
+          "version",
+          "repo",
+          "commit"
         ],
         "properties": {
           "path": {
@@ -72,6 +85,16 @@
           "sku": {
             "type": "string",
             "description": "Commercial catalogue id from the family's catalog.toml."
+          },
+          "repo": {
+            "type": "string",
+            "format": "uri",
+            "description": "Where to fetch this from. Without it nobody knows."
+          },
+          "commit": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$",
+            "description": "The exact commit. A tag can be moved or deleted; this cannot, so it is what makes the record openable."
           }
         }
       }
@@ -97,5 +120,6 @@
         }
       }
     }
-  }
+  },
+  "description": "A record of one physical machine. It is only worth having if you can still get back what went into it, so every entry names the repository, the readable tag and the exact commit. See docs/decisions/2026-09-18_build-records.md."
 }

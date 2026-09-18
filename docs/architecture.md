@@ -719,19 +719,27 @@ built-date   = "2025-03-15"
 owner        = "Workshop X"
 location     = "Antwerp, BE"
 
-# Pin the top-level machine version this build is based on
+# Pin the top-level machine version this build is based on. Three fields make
+# it a record rather than a reference: where to fetch it, the readable tag, and
+# the exact commit — because a tag can be moved or deleted and the file would
+# still look unchanged. See decisions/2026-09-18_build-records.md.
 [base]
 repo    = "https://github.com/refaqt/qarve"
 version = "v1.0.0"
+commit  = "9f2c1ab4e7d05c8b3a6f1e2d4c7b8a9f0e1d2c3b"
 
 # Pin every module individually — these can deviate from the base
 [[module]]
 path    = "modules/frame"
+repo    = "https://github.com/refaqt/qarve"
 version = "v1.0.0"
+commit  = "4b1d8e02fa37c96d5e0a71b3c8d4f6902ea5c17b"
 
 [[module]]
 path    = "modules/x-axis"
+repo    = "https://github.com/refaqt/x-axis"
 version = "v1.2.1"           # upgraded from v1.0.0 in 2025-04
+commit  = "7c3e9a15d84b206fe3719c05ab8d2f4361e0b9a8"
 model   = "default"          # selects which parametric model
 
 # A product family vendored as one submodule: composition + model say which
@@ -761,7 +769,14 @@ description = "Spindle v1 → v2 upgrade; adapter installed"
 
 The lockfile serves three purposes:
 
-1. **Reproducibility** — anyone can rebuild this exact machine by checking out the pinned versions.
+1. **Reproducibility** — `python doqs/doqs.py restore-build builds/serial-0042 --out <dir>`
+   clones every pinned repository at its exact commit, so you get the editable
+   design files that machine was built from. `--check` asks whether every pin is
+   still reachable and fetches nothing; run it on a schedule and a record that
+   has become unopenable turns up while somebody can still act. It exits `1` when
+   a commit is gone and `2` when a repository could not be reached, because those
+   are different problems. It is not one of the gates: it needs a network, and no
+   machine's CI should depend on every module host being up.
 2. **Support** — when serial-0042 reports a problem, the maintainer knows precisely what's installed.
 3. **Validation** — the compatibility validator checks that the pinned combination is interface-consistent (and that any required adapters are present).
 

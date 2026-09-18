@@ -90,7 +90,8 @@ and every `doqs` command will fail with a missing-file error.
 | `doqs setup` | Installs the root launchers and agent configuration | Rarely: `setup-tooling.sh` already does it |
 | `doqs syson …` | Opens or saves `architecture/*.sysml` in SysON | Graphical SysML editing — see [syson.md](syson.md) |
 | `doqs export …` | Exports geometry for one composition and model | Making a STEP file for one variant |
-| `doqs bom …` | Resolves one module's BOM for one model | Checking what one variant costs |
+| `doqs bom …` | Resolves one module's BOM for one model | Checking what one variant is made of |
+| `doqs restore-build …` | Fetches back the files a machine was built from | Supporting a machine in the field, or checking a record can still be opened |
 | `doqs run <script> …` | Runs any script in `doqs/scripts/` by name | Something the commands above do not cover |
 | `doqs list` | Every command, and the scripts each one runs | When you forget |
 
