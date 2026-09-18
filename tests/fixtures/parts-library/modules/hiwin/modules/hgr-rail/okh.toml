@@ -1,0 +1,20 @@
+okhv = "OKH-LOSHv1.0"
+name = "HIWIN HGR Rail"
+repo = "https://example.com/parts-library/tree/main/modules/hiwin/modules/hgr-rail"
+version = "0.1.0"
+license = "CC-BY-SA-4.0"
+licensor = "DOQS Tests"
+function = "Profile rail guideway, 20 mm width, in stocked lengths."
+
+[brand]
+name = "HIWIN Technologies Corp."
+website = "https://www.hiwin.tw"
+cad-terms = "https://example.com/hiwin-terms"
+redistribute = true
+
+# A role that needs this interface may select any part that provides it. That
+# is what lets a machine swap HIWIN for THK without moving anything above the
+# role. See doqs/docs/roles.md.
+[[provides-interface]]
+name = "LinearGuide20MountInterface"
+version = "1.0"

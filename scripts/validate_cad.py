@@ -50,7 +50,11 @@ from cad_rules import (
     missing_guard_rules,
 )
 from license_rules import is_doqs_tools_repo
-from naming_rules import is_under_tooling_submodule, repo_root_from_script
+from naming_rules import (
+    is_parts_library,
+    is_under_tooling_submodule,
+    repo_root_from_script,
+)
 
 SETTINGS_PATH = Path(".claude") / "settings.json"
 HOOK_PATH = Path(".claude") / "hooks" / "session-start.sh"
@@ -226,6 +230,16 @@ def main() -> int:
 
     if is_doqs_tools_repo(root):
         print("ok    doqs tools repo (no machine CAD to validate)")
+        return 0
+
+    # A parts library holds documents built from files brands published, not
+    # parametric designs of ours. There is no build_model.py behind them, so a
+    # fingerprint could not be regenerated, and it would be the weaker check
+    # anyway: every committed file already carries a byte-exact checksum in
+    # vendor-index.csv, which validate_variants.py compares.
+    # See docs/decisions/2026-09-18_parts-library.md.
+    if is_parts_library(root):
+        print("ok    parts library (supplier files are checked by their checksums)")
         return 0
 
     legacy = legacy_tool_copies(root)

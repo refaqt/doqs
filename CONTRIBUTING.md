@@ -64,9 +64,11 @@ python scripts/validate_licenses.py --root .
 python scripts/apply_licenses.py --check --root .
 python scripts/validate_all.py --root tests/fixtures/variant-family
 python scripts/validate_all.py --root tests/fixtures/variant-machine
+python scripts/validate_all.py --root tests/fixtures/parts-library
 python scripts/validate_links.py --root . --markdown
 python doqs.py check --root tests/fixtures/variant-family
 python doqs.py check --root tests/fixtures/variant-machine
+python doqs.py check --root tests/fixtures/parts-library
 python doqs.py list
 python scripts/resolve_params.py --root tests/fixtures/variant-family --table --check
 python scripts/resolve_instance.py --root tests/fixtures/variant-machine --check
@@ -74,6 +76,11 @@ python scripts/resolve_instance.py --root tests/fixtures/variant-machine --check
 
 `tests/fixtures/variant-family/` is a worked product family (three lengths, two
 drive options, two feedback options, two compositions) and
+`tests/fixtures/parts-library/` is a worked parts library: two brands with one
+rail family each, one committed file set and one that may not be redistributed.
+It uses the library licence kit (CC BY-SA for the record, supplier terms for
+their files), not the machine three-way split.
+
 `tests/fixtures/variant-machine/` is a machine consuming it at two different
 lengths. Both carry committed generated files, so a change to a resolver that
 alters output will fail the `--check` runs until the fixtures are regenerated.

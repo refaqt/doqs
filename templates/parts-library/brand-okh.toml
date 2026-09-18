@@ -1,0 +1,24 @@
+# Copy to modules/<brand>/okh.toml in a parts library.
+#
+# A brand is the name on the part -- HIWIN, Beckhoff, DIN. It is stable for
+# decades. It is NOT the supplier you buy from: that is commercial, often
+# several at once, and does not live in a design repository at all.
+okhv = "OKH-LOSHv1.0"
+name = "HIWIN"
+repo = "https://github.com/ORG/stoq/tree/main/modules/hiwin"
+version = "0.1.0"
+# CC BY-SA, not CERN-OHL-S. Nothing in a library is hardware we designed; what
+# is ours is the record we compile. See the repository root LICENSE.
+license = "CC-BY-SA-4.0"
+licensor = "ORG"
+function = "Linear motion components from HIWIN."
+
+[brand]
+name = "HIWIN Technologies Corp."
+website = "https://www.hiwin.tw"
+# The address of the download terms you read before deciding what may be
+# committed. Recording it means the decision can be checked later.
+cad-terms = "https://www.hiwin.tw/terms-of-use"
+# Default for this brand's files. Leave it false unless the terms clearly allow
+# redistribution: storing the link costs nothing and needs no legal opinion.
+redistribute = false

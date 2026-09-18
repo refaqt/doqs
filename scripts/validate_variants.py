@@ -18,10 +18,14 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import tomllib
 from pathlib import Path
 
 from naming_rules import (
+    PARTS_STATUS,
+    csv_reader_skipping_comments,
+    PARTS_TABLE_HEADERS,
     SKU_ID,
     family_root,
     is_under_tooling_submodule,
@@ -36,6 +40,8 @@ CATALOG_SCHEMA = "doqs-catalog-v1"
 SKU_STATUS = ("active", "preview", "eol")
 VENDOR_TERMS = ("redistributable", "fetch-only")
 VENDOR_INDEX = "vendor-index.csv"
+#: A library family's catalogue lives at bom/parts.csv.
+PARTS_TABLE_NAME = "parts.csv"
 VENDOR_INDEX_HEADERS = (
     "supplier", "pn", "relpath", "bytes", "sha256", "source_url", "terms", "retrieved_utc",
 )
@@ -216,23 +222,104 @@ def check_sources(root: Path, module_dir: Path) -> list[Finding]:
     return findings
 
 
+def module_root_of(path: Path) -> Path:
+    """The module directory a file belongs to: nearest ancestor with okh.toml.
+
+    Counting a fixed number of directories up works only while every caller
+    sits at the same depth. Walking to the manifest is what actually defines a
+    module, so a nested vendor directory resolves against the right base.
+    """
+    for candidate in path.parents:
+        if (candidate / "okh.toml").is_file():
+            return candidate
+    return path.parent
+
+
 def check_vendor_index(root: Path, index_path: Path) -> list[Finding]:
     findings: list[Finding] = []
     rel = index_path.relative_to(root).as_posix()
-    with open(index_path, newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        headers = tuple(h.strip() for h in (reader.fieldnames or []))
-        if headers != VENDOR_INDEX_HEADERS:
-            findings.append(Finding(rel, f"header must be exactly {list(VENDOR_INDEX_HEADERS)}"))
-            return findings
-        module_dir = index_path.parent.parent.parent
-        for row in reader:
-            terms = (row.get("terms") or "").strip()
-            if terms not in VENDOR_TERMS:
-                findings.append(Finding(rel, f"{row.get('pn')}: terms must be one of {VENDOR_TERMS}"))
-            relpath = (row.get("relpath") or "").strip()
-            if relpath and not (module_dir / relpath).exists() and terms != "fetch-only":
-                findings.append(Finding(rel, f"{row.get('pn')}: file not found: {relpath}"))
+    reader = csv_reader_skipping_comments(index_path.read_text(encoding="utf-8"))
+    headers = tuple(h.strip() for h in (reader.fieldnames or []))
+    if headers != VENDOR_INDEX_HEADERS:
+        findings.append(Finding(rel, f"header must be exactly {list(VENDOR_INDEX_HEADERS)}"))
+        return findings
+    module_dir = module_root_of(index_path)
+    for row in reader:
+        pn = (row.get("pn") or "").strip()
+        terms = (row.get("terms") or "").strip()
+        if terms not in VENDOR_TERMS:
+            findings.append(Finding(rel, f"{pn}: terms must be one of {VENDOR_TERMS}"))
+        relpath = (row.get("relpath") or "").strip()
+        if not relpath:
+            continue
+        target = module_dir / relpath
+        if not target.exists():
+            if terms != "fetch-only":
+                findings.append(Finding(rel, f"{pn}: file not found: {relpath}"))
+            continue
+        # A brand can revise a file and keep the part number. The checksum
+        # was already recorded and nothing compared it, so the change went
+        # unnoticed. See docs/decisions/2026-09-18_parts-library.md.
+        recorded = (row.get("sha256") or "").strip().lower()
+        if not recorded:
+            continue
+        actual = hashlib.sha256(target.read_bytes()).hexdigest()
+        if actual != recorded:
+            findings.append(Finding(
+                rel,
+                f"{pn}: {relpath} no longer matches its recorded checksum. "
+                "Either the brand changed the file under the same part "
+                "number, or it was edited here. Check which, then add a new "
+                "row rather than overwriting this one.",
+            ))
+    return findings
+
+
+def check_parts_table(root: Path, table_path: Path) -> list[Finding]:
+    """A library family's catalogue: one row per orderable part number."""
+    findings: list[Finding] = []
+    rel = table_path.relative_to(root).as_posix()
+    module_dir = module_root_of(table_path)
+    reader = csv_reader_skipping_comments(table_path.read_text(encoding="utf-8"))
+    headers = tuple(h.strip() for h in (reader.fieldnames or []))
+    if headers != PARTS_TABLE_HEADERS:
+        findings.append(
+            Finding(rel, f"header must be exactly {list(PARTS_TABLE_HEADERS)}")
+        )
+        return findings
+    seen: set[str] = set()
+    for row in reader:
+        pn = (row.get("pn") or "").strip()
+        if not pn:
+            continue
+        if pn in seen:
+            findings.append(Finding(rel, f"duplicate part number {pn!r}"))
+        seen.add(pn)
+        status = (row.get("status") or "").strip()
+        if status not in PARTS_STATUS:
+            findings.append(
+                Finding(rel, f"{pn}: status must be one of {PARTS_STATUS}")
+            )
+        terms = (row.get("terms") or "").strip()
+        if terms not in VENDOR_TERMS:
+            findings.append(
+                Finding(rel, f"{pn}: terms must be one of {VENDOR_TERMS}")
+            )
+        for key in ("cad", "datasheet"):
+            target = (row.get(key) or "").strip()
+            if not target:
+                # Geometry fills up as people use parts. A row without it
+                # is normal, and the table is still the full catalogue.
+                continue
+            if (module_dir / target).exists():
+                continue
+            findings.append(Finding(
+                rel,
+                f"{pn}: {key} not found: {target}"
+                + (" (fetch-only -- fetch it before CAD work)"
+                   if terms == "fetch-only" else ""),
+                warning=(terms == "fetch-only"),
+            ))
     return findings
 
 
@@ -256,10 +343,15 @@ def check_all(root: Path) -> tuple[list[Finding], list[Finding]]:
         add(check_models(root, okh))
         add(check_sources(root, okh.parent))
 
-    for index in sorted(root.rglob(f"cad/vendor/{VENDOR_INDEX}")):
+    for index in sorted(root.rglob(VENDOR_INDEX)):
         if is_under_tooling_submodule(index, root):
             continue
         add(check_vendor_index(root, index))
+
+    for table in sorted(root.rglob(f"bom/{PARTS_TABLE_NAME}")):
+        if is_under_tooling_submodule(table, root):
+            continue
+        add(check_parts_table(root, table))
 
     for instance_dir in resolve_instance.instance_modules(root):
         rel = instance_dir.relative_to(root).as_posix()

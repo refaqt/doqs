@@ -1,0 +1,25 @@
+# Copy to modules/<brand>/modules/<family>/okh.toml in a parts library.
+#
+# The FAMILY is the module. A single orderable part number is a row in
+# bom/parts.csv, not a folder: a machine buys hundreds of part numbers and a
+# folder each does not scale.
+okhv = "OKH-LOSHv1.0"
+name = "HIWIN HGR Rail"
+repo = "https://github.com/ORG/stoq/tree/main/modules/hiwin/modules/hgr-rail"
+version = "0.1.0"
+license = "CC-BY-SA-4.0"
+licensor = "ORG"
+function = "Profile rail guideway, 20 mm width, in stocked lengths."
+
+[brand]
+name = "HIWIN Technologies Corp."
+website = "https://www.hiwin.tw"
+cad-terms = "https://www.hiwin.tw/terms-of-use"
+redistribute = false
+
+# Declare an interface where the family has a real mechanical one. A role in a
+# machine names the interface it needs, and validation refuses a selection that
+# does not provide it -- which is what lets a brand swap stay safe.
+[[provides-interface]]
+name = "LinearGuide20MountInterface"
+version = "1.0"

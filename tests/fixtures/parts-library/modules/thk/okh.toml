@@ -1,0 +1,13 @@
+okhv = "OKH-LOSHv1.0"
+name = "THK"
+repo = "https://example.com/parts-library/tree/main/modules/thk"
+version = "0.1.0"
+license = "CC-BY-SA-4.0"
+licensor = "DOQS Tests"
+function = "Linear motion components from THK."
+
+[brand]
+name = "THK Co., Ltd."
+website = "https://www.thk.com"
+cad-terms = "https://example.com/thk-terms"
+redistribute = false

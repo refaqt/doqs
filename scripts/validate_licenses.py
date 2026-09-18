@@ -5,7 +5,7 @@ import argparse
 from pathlib import Path
 
 from license_rules import check_any_repo, is_doqs_tools_repo, iter_repo_roots
-from naming_rules import repo_root_from_script
+from naming_rules import is_parts_library, repo_root_from_script
 
 
 def main() -> int:
@@ -31,7 +31,12 @@ def main() -> int:
     for repo in iter_repo_roots(root):
         errors = check_any_repo(repo)
         rel = "." if repo == root else repo.relative_to(root)
-        kind = "tools" if is_doqs_tools_repo(repo) else "machine"
+        if is_doqs_tools_repo(repo):
+            kind = "tools"
+        elif is_parts_library(repo):
+            kind = "parts library"
+        else:
+            kind = "machine"
         if errors:
             all_ok = False
             print(f"FAIL  {rel} ({kind})")

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/refaqt/doqs/schemas/library.schema.json",
+  "title": "DOQS parts-library marker",
+  "description": "library.toml at the root of a parts library: a repository recording parts other people design, make and sell. The marker, not the mount path, is what identifies one, so a machine may mount a library anywhere under modules/ and still skip it in its own gates. Inside a library a manifest declares CC-BY-SA-4.0 rather than CERN-OHL-S-2.0, because the record is ours and the parts are not.",
+  "type": "object",
+  "required": ["schema", "name"],
+  "properties": {
+    "schema": { "const": "doqs-library-v1" },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "The library's own name, used as the first part of a part reference: stoq:hiwin/hgr-rail#HGR20R500."
+    },
+    "description": { "type": "string" }
+  }
+}

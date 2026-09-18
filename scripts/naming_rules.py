@@ -1,7 +1,10 @@
 """Shared naming conventions for DOQS validators and tests."""
 from __future__ import annotations
 
+import csv
+import io
 import re
+from functools import lru_cache
 from pathlib import Path
 
 MODULE_SLUG = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
@@ -93,6 +96,103 @@ LIBRARY_PART_REF = re.compile(
     r"(/[a-z0-9]+(-[a-z0-9]+)*)*"        # family, and any deeper nesting
     r"#[^\s]+$"                          # the brand's own part number, verbatim
 )
+
+#: Marks a repository as a parts library: parts other people make, which we
+#: only record. It is the marker and not the mount path that identifies one, so
+#: a machine may mount a library anywhere under modules/ and still skip it.
+#: See docs/decisions/2026-09-18_parts-library.md.
+LIBRARY_MARKER = "library.toml"
+
+#: One row per orderable part number, in a library family's bom/parts.csv.
+#: No price and no distributor: a library is technical. See ADR-006.
+PARTS_TABLE_HEADERS = (
+    "pn",
+    "description",
+    "spec",
+    "unit_mass_g",
+    "cad",
+    "datasheet",
+    "terms",
+    "revision",
+    "status",
+    "notes",
+)
+
+#: What a library row's `status` may say. A part you can no longer buy is
+#: marked, never deleted: an existing machine is still made of it.
+PARTS_STATUS = ("active", "eol")
+
+
+def csv_reader_skipping_comments(text: str) -> "csv.DictReader":
+    """A CSV reader over `text` with leading `#` comment lines removed.
+
+    Every table a person edits by hand ships as a template with comments
+    explaining what to write. Feeding those straight to csv.DictReader makes
+    the first comment the header row, and the failure then blames the header
+    rather than the comment. Strip them once, here, so the templates can be
+    copied as they are.
+    """
+    lines = text.splitlines(keepends=True)
+    body = "".join(line for line in lines if not line.lstrip().startswith("#"))
+    return csv.DictReader(io.StringIO(body))
+
+
+def is_parts_library(root: Path) -> bool:
+    """True when `root` is a parts-library repository."""
+    return (root / LIBRARY_MARKER).is_file()
+
+
+@lru_cache(maxsize=None)
+def _library_roots_cached(root: Path) -> tuple[Path, ...]:
+    """Cached because callers ask once per manifest.
+
+    Without this the cost is manifests x paths: a validator walks the whole
+    tree again for every okh.toml it checks, which is seconds on a fixture and
+    minutes on a real library. Validators are read-only single passes, so the
+    set of mounted libraries cannot change underneath a run. A test that mounts
+    a library after calling this must clear the cache.
+    """
+    found: list[Path] = []
+    for marker in sorted(root.rglob(LIBRARY_MARKER)):
+        if marker.parent == root:
+            continue
+        found.append(marker.parent.resolve())
+    return tuple(found)
+
+
+def library_roots(root: Path) -> list[Path]:
+    """Every parts library mounted under `root`, at any depth."""
+    return list(_library_roots_cached(root.resolve()))
+
+
+def forget_library_roots() -> None:
+    """Drop the cache above. For tests that change a tree between calls."""
+    _library_roots_cached.cache_clear()
+
+
+def is_under_parts_library(path: Path, root: Path) -> bool:
+    """True when `path` sits inside a parts library mounted under `root`.
+
+    A machine's own gates skip a mounted library: it is validated in its own
+    repository, and a machine should not re-run hundreds of supplier checks on
+    every commit. Compares the path relative to the repository root, never the
+    absolute path -- see
+    docs/mistakes/2026-09-18_orphan-check-read-the-path-to-the-repository.md.
+    """
+    try:
+        resolved = path.resolve()
+        root = root.resolve()
+        resolved.relative_to(root)
+    except (ValueError, OSError):
+        return False
+    for library in library_roots(root):
+        try:
+            resolved.relative_to(library)
+        except ValueError:
+            continue
+        return True
+    return False
+
 
 _DOQS_ROOT = Path(__file__).resolve().parent.parent
 _LEXICON_PATH = _DOQS_ROOT / "data" / "naming-lexicon.txt"

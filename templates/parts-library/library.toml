@@ -1,0 +1,8 @@
+# Copy to the ROOT of a new parts library. This file is what makes it one.
+#
+# A machine mounts the library under modules/ like any other external DOQS
+# project. Its own gates skip the whole checkout because of this marker, not
+# because of where it sits: the library is validated in its own repository, and
+# a machine should not re-run hundreds of supplier checks on every commit.
+schema = "doqs-library-v1"
+name = "stoq"
