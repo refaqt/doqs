@@ -15,7 +15,11 @@ if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
 from naming_rules import (  # noqa: E402
+    BOM_COLUMNS_REMOVED,
+    BOM_HEADERS,
     BOM_ID,
+    LEGACY_BOM_HEADERS,
+    LIBRARY_PART_REF,
     OKH_VERSION,
     is_under_tooling_submodule,
     load_lexicon,
@@ -23,7 +27,7 @@ from naming_rules import (  # noqa: E402
     validate_bom_id,
     validate_module_slug,
 )
-from validate_names import check_module_directories  # noqa: E402
+from validate_names import check_bom_file, check_module_directories  # noqa: E402
 
 _FIXTURE = _REPO / "tests" / "fixtures" / "minimal-machine"
 
@@ -248,3 +252,96 @@ class TestOrphanModuleWarning(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestBomColumnsHoldNoMoney(unittest.TestCase):
+    """ADR-006: the bill of materials says what is inside, not what it costs."""
+
+    def test_header_has_no_price_and_no_distributor(self):
+        for column in BOM_COLUMNS_REMOVED:
+            self.assertNotIn(column, BOM_HEADERS)
+
+    def test_header_carries_the_brand_and_a_library_reference(self):
+        for column in ("brand", "brand_pn", "part"):
+            self.assertIn(column, BOM_HEADERS)
+
+    def test_mass_stays_because_it_is_a_physical_property(self):
+        self.assertIn("unit_mass_g", BOM_HEADERS)
+
+    def test_an_old_file_is_told_how_to_migrate(self):
+        """A puzzling 'header mismatch' would send people hunting. Name the fix."""
+        with tempfile.TemporaryDirectory() as tmp:
+            bom = Path(tmp) / "bom.csv"
+            bom.write_text(",".join(LEGACY_BOM_HEADERS) + "\n", encoding="utf-8")
+            findings = check_bom_file(bom, "bom/bom.csv", load_lexicon())
+        self.assertEqual(len(findings), 1)
+        message = findings[0].message
+        self.assertIn("old 16 columns", message)
+        self.assertIn("supplier_1", message)
+        self.assertIn("brand", message)
+        self.assertIn("2026-09-18_money-out-of-the-bom.md", message)
+
+    def test_a_header_that_is_neither_gets_the_plain_message(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bom = Path(tmp) / "bom.csv"
+            bom.write_text("id,name,whatever\n", encoding="utf-8")
+            findings = check_bom_file(bom, "bom/bom.csv", load_lexicon())
+        self.assertEqual(len(findings), 1)
+        self.assertIn("header mismatch", findings[0].message)
+
+    def test_no_committed_bom_file_holds_a_price_or_a_distributor(self):
+        """The migration is only done when nothing is left behind."""
+        offenders = []
+        for base in ("tests/fixtures", "templates"):
+            for path in sorted((_REPO / base).rglob("*.csv")):
+                first = path.read_text(encoding="utf-8").splitlines()
+                header = next((ln for ln in first if not ln.startswith("#")), "")
+                columns = [c.strip() for c in header.split(",")]
+                for column in BOM_COLUMNS_REMOVED:
+                    if column in columns:
+                        offenders.append(f"{path.relative_to(_REPO)}: {column}")
+        self.assertEqual(offenders, [])
+
+
+class TestLibraryPartReference(unittest.TestCase):
+    """The one identifier a pricing system joins on."""
+
+    def test_accepts_a_library_family_and_part_number(self):
+        for ref in ("stoq:din/din-912#M4X10",
+                    "stoq:hiwin/hgr-rail#HGR20R500"):
+            self.assertRegex(ref, LIBRARY_PART_REF)
+
+    def test_keeps_the_brands_own_part_number_verbatim(self):
+        """Part numbers are not kebab-case. You order by them exactly."""
+        self.assertRegex("stoq:beckhoff/am8000#AM8113-0F20", LIBRARY_PART_REF)
+
+    def test_refuses_a_reference_with_no_part_number(self):
+        self.assertNotRegex("stoq:hiwin/hgr-rail", LIBRARY_PART_REF)
+
+    def test_refuses_an_uppercase_path(self):
+        self.assertNotRegex("stoq:HIWIN/hgr-rail#HGR20R500", LIBRARY_PART_REF)
+
+
+class TestPartCellShape(unittest.TestCase):
+    """A `part` cell is the key a pricing system joins on, so its shape is checked."""
+
+    def _check(self, part_cell: str) -> list:
+        header = ",".join(BOM_HEADERS)
+        row = ["STD-004", "Cap Screw", "DIN912 M4x10", "fastener", "24", "pc",
+               "2", "M4X10-SHCS", "DIN", "912", part_cell, ""]
+        with tempfile.TemporaryDirectory() as tmp:
+            bom = Path(tmp) / "bom.csv"
+            bom.write_text(f"{header}\n" + ",".join(row) + "\n", encoding="utf-8")
+            return check_bom_file(bom, "bom/bom.csv", load_lexicon())
+
+    def test_a_good_reference_passes(self):
+        self.assertEqual(self._check("stoq:din/din-912#M4X10"), [])
+
+    def test_an_empty_cell_passes(self):
+        """Most bought parts are not in a library, and that is fine."""
+        self.assertEqual(self._check(""), [])
+
+    def test_a_malformed_reference_is_refused_with_an_example(self):
+        findings = self._check("just-a-name")
+        self.assertEqual(len(findings), 1)
+        self.assertIn("stoq:hiwin/hgr-rail#HGR20R500", findings[0].message)

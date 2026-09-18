@@ -17,6 +17,13 @@ The rest of this file is about changing doqs itself.
 
 See [docs/naming.md](docs/naming.md) and [docs/naming-lexicon.md](docs/naming-lexicon.md). Record product-specific exceptions as ADRs in the machine repo under `docs/decisions/`.
 
+**The bill-of-materials header changed on 2026-09-18** and machine repositories must migrate.
+Prices, distributors and distributor part numbers left the design: sixteen columns became twelve,
+`supplier_1` and `supplier_1_pn` became `brand` and `brand_pn`, and a `part` column was added for a
+reference into a parts library. `validate_names.py` recognises an old file and prints the steps.
+The reasons and the migration are in
+[ADR-006](docs/decisions/2026-09-18_money-out-of-the-bom.md).
+
 ## How scripts are named
 
 A file in `scripts/` is `<verb>_<object>.py`, and the verb says what it does:

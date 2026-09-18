@@ -7,7 +7,11 @@ from pathlib import Path
 import tomllib
 
 from naming_rules import (
+    BOM_COLUMNS_REMOVED,
+    BOM_COLUMNS_RENAMED,
     BOM_HEADERS,
+    LEGACY_BOM_HEADERS,
+    LIBRARY_PART_REF,
     load_lexicon,
     lexicon_violations,
     is_under_tooling_submodule,
@@ -124,10 +128,25 @@ def check_bom_file(bom_path: Path, rel: str, lexicon: frozenset[str]) -> list[Fi
             return findings
         headers = [h.strip() for h in reader.fieldnames]
         if tuple(headers) != BOM_HEADERS:
-            findings.append(Finding(
-                rel,
-                f"BOM header mismatch; expected {list(BOM_HEADERS)}",
-            ))
+            if tuple(headers) == LEGACY_BOM_HEADERS:
+                renames = ", ".join(
+                    f"{old} to {new}" for old, new in BOM_COLUMNS_RENAMED.items()
+                )
+                dropped = ", ".join(
+                    c for c in BOM_COLUMNS_REMOVED if c not in BOM_COLUMNS_RENAMED
+                )
+                findings.append(Finding(
+                    rel,
+                    "BOM still has the old 16 columns. Prices and distributors "
+                    f"moved out of the design on 2026-09-18: drop {dropped}, "
+                    f"rename {renames}, and add an empty 'part' column. See "
+                    "doqs/docs/decisions/2026-09-18_money-out-of-the-bom.md",
+                ))
+            else:
+                findings.append(Finding(
+                    rel,
+                    f"BOM header mismatch; expected {list(BOM_HEADERS)}",
+                ))
             return findings
         seen_ids: set[str] = set()
         for row in reader:
@@ -141,6 +160,13 @@ def check_bom_file(bom_path: Path, rel: str, lexicon: frozenset[str]) -> list[Fi
                 findings.append(Finding(rel, f"duplicate id {part_id!r}"))
             else:
                 seen_ids.add(part_id)
+            part_ref = (row.get("part") or "").strip()
+            if part_ref and not LIBRARY_PART_REF.match(part_ref):
+                findings.append(Finding(
+                    rel,
+                    f"part {part_ref!r}: expected <library>:<brand>/<family>#<part number>, "
+                    "e.g. stoq:hiwin/hgr-rail#HGR20R500",
+                ))
             name = (row.get("name") or "").strip()
             if name:
                 for token in lexicon_violations(name, lexicon):

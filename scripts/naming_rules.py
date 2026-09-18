@@ -29,7 +29,28 @@ BOM_PREFIXES = frozenset({
     "BRK",
 })
 
+# Design data only. What a part costs is answered by a different system, which
+# joins on `part` (or on `brand` + `brand_pn` where there is no library entry).
+# See docs/decisions/2026-09-18_money-out-of-the-bom.md.
 BOM_HEADERS = (
+    "id",
+    "name",
+    "spec",
+    "category",
+    "qty",
+    "unit",
+    "unit_mass_g",
+    "equiv_class",
+    "brand",
+    "brand_pn",
+    "part",
+    "notes",
+)
+
+# The header used before 2026-09-18. Kept so validate_names.py can recognise a
+# file that has not migrated yet and say what to do, instead of only reporting
+# that the columns are wrong.
+LEGACY_BOM_HEADERS = (
     "id",
     "name",
     "spec",
@@ -46,6 +67,31 @@ BOM_HEADERS = (
     "supplier_3",
     "supplier_3_pn",
     "notes",
+)
+
+# Columns that left the bill of materials, and where the first two went.
+# supplier_1 held a brand in practice -- our own fixtures wrote HIWIN there --
+# which is the confusion the decision record is about.
+BOM_COLUMNS_REMOVED = (
+    "unit_cost_eur",
+    "supplier_1",
+    "supplier_1_pn",
+    "supplier_2",
+    "supplier_2_pn",
+    "supplier_3",
+    "supplier_3_pn",
+)
+BOM_COLUMNS_RENAMED = {
+    "supplier_1": "brand",
+    "supplier_1_pn": "brand_pn",
+}
+
+# A reference into a parts library: <library>:<family path>#<part number>.
+LIBRARY_PART_REF = re.compile(
+    r"^[a-z0-9]+(-[a-z0-9]+)*:"          # library name, e.g. stoq
+    r"[a-z0-9]+(-[a-z0-9]+)*"            # brand
+    r"(/[a-z0-9]+(-[a-z0-9]+)*)*"        # family, and any deeper nesting
+    r"#[^\s]+$"                          # the brand's own part number, verbatim
 )
 
 _DOQS_ROOT = Path(__file__).resolve().parent.parent

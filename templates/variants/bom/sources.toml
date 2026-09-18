@@ -1,5 +1,5 @@
 # Binds BOM rows to things that cannot live in bom.csv, which keeps its exact
-# 16-column DOQS header so every existing validator reads it unchanged.
+# 12-column DOQS header so every existing validator reads it unchanged.
 
 # --- Supplier length tables --------------------------------------------------
 # Rails, ballscrews and belts come in discrete stocked lengths, each with its
@@ -10,8 +10,7 @@ id      = "PRF-001"                  # the BOM row to fill
 table   = "tables/rail.csv"          # relative to bom/
 key     = "rail_length"              # parameter alias selecting the row
 match   = "exact"                    # exact | nearest-up | nearest-down
-columns = ["spec", "unit_cost_eur", "unit_mass_g",
-           "supplier_1", "supplier_1_pn", "supplier_2", "supplier_2_pn"]
+columns = ["spec", "unit_mass_g", "brand", "brand_pn"]
 # `exact` refuses a length no supplier stocks — a CI failure rather than a
 # purchasing surprise. `nearest-up` buys the next stock length and records the
 # cut in `notes`.

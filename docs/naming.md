@@ -133,11 +133,24 @@ Sequences are **scoped per module** `bom/bom.csv`. The same `MEC-001` may appear
 
 Duplicate `id` values within one BOM file are not allowed.
 
-### `spec` and `equiv_class`
+### `spec`, `equiv_class`, `brand` and `part`
 
 - **`spec`:** Human-readable requirement or norm designation (e.g. `DIN912 M4x10 A4-70`, `SPDT 5A lever`).
-- **`equiv_class`:** Short interchange tag for LTS supplier substitutions (e.g. `SPDT-5A-LEVER`).
+- **`equiv_class`:** Short interchange tag for parts you may swap without a design change (e.g. `SPDT-5A-LEVER`).
 - **`id`:** Internal handle; keep stable across sourcing changes.
+- **`brand`:** The name on the part — `HIWIN`, `Beckhoff`, `DIN`. Stable for decades. **Not** the
+  supplier you buy from: that is commercial and left the bill of materials with the prices.
+- **`brand_pn`:** The brand's own part number, **verbatim** (`HGR20R500`, `AM8113-0F20`). The same
+  exception to kebab-case that `cad/vendor/` paths get, and for the same reason: it is the string
+  you order by and search for.
+- **`part`:** Optional reference into a parts library, `stoq:hiwin/hgr-rail#HGR20R500`. When it is
+  set, `brand` and `brand_pn` must agree with the library. See [parts-library.md](parts-library.md).
+
+### No prices in the bill of materials
+
+Cost, distributors and distributor part numbers are not design data and left these columns on
+2026-09-18. A separate application answers what a machine costs, joining on `part`, or on `brand`
+plus `brand_pn`. See [ADR-006](decisions/2026-09-18_money-out-of-the-bom.md).
 
 ## Interface names
 

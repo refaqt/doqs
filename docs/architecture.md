@@ -752,7 +752,7 @@ adapter = "modules/adapters/spindle-mount-v1-to-v2@v1.0.0"
 [[modification]]
 date        = "2025-08-22"
 description = "Replaced X20 limit switch with X25 (X20 EOL)"
-bom-impact  = "SW-01: supplier_1_pn changed Omron X20-1 → Omron X25-1"
+bom-impact  = "SW-01: brand_pn changed Omron X20-1 → Omron X25-1"
 
 [[modification]]
 date        = "2026-01-15"
@@ -1327,24 +1327,32 @@ Used for: BOM, parameter tables, measurement data.
 **BOM column convention:**
 
 ```
-id,name,spec,category,qty,unit,unit_cost_eur,unit_mass_g,equiv_class,
-supplier_1,supplier_1_pn,
-supplier_2,supplier_2_pn,
-supplier_3,supplier_3_pn,
+id,name,spec,category,qty,unit,unit_mass_g,equiv_class,
+brand,brand_pn,part,
 notes
 ```
 
-Supplier columns 2 and 3 may be empty but must always be present.
+**The BOM says what is inside, not what it costs.** Prices, distributors and
+distributor part numbers left these columns on 2026-09-18; a price changes every
+week and a design rarely does, so they do not share a file or a history. A
+separate application answers cost, joining on `part` — or on `brand` plus
+`brand_pn` where the item is not in a parts library. See
+[ADR-006](decisions/2026-09-18_money-out-of-the-bom.md).
+
+`brand` is the name on the part (HIWIN, Beckhoff, DIN) and is stable for
+decades. It is not the supplier you buy from, which is commercial and belongs
+with the prices. `part` is a reference into a parts library,
+`stoq:hiwin/hgr-rail#HGR20R500` — see [parts-library.md](parts-library.md).
 
 **Equivalence classes for LTS sourcing.** The `spec` column describes what the design requires (e.g. `"SPDT 5A lever microswitch"`). The `equiv_class` column tags interchangeable parts with a short identifier (e.g. `SPDT-5A-LEVER`). When a supplier part goes EOL, an updated `bom.csv` on a `release/vN.x` branch substitutes another part in the same `equiv_class` — no design change, only sourcing. This separates *part specification* (lives forever, defined by the design) from *part instance* (evolves with the market, refreshed on LTS branches).
 
 Example row:
 
 ```
-SW-001,Limit Switch,"SPDT 5A lever",electrical,4,pc,3.20,18,SPDT-5A-LEVER,Omron,X20-1,Honeywell,V7-2,Generic,LM-9,
+SW-001,Limit Switch,"SPDT 5A lever",electrical,4,pc,18,SPDT-5A-LEVER,Omron,X20-1,,
 ```
 
-**Model-aware BOMs.** The 16 columns above are fixed — validators check the header exactly — so anything that varies per model lives beside `bom.csv`, not in it:
+**Model-aware BOMs.** The 12 columns above are fixed — validators check the header exactly — so anything that varies per model lives beside `bom.csv`, not in it:
 
 | File | Purpose |
 | --- | --- |

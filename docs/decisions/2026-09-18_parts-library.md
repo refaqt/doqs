@@ -1,7 +1,7 @@
 # ADR-004 — A shared library for parts we buy
 
 - **Date:** 2026-09-18
-- **Status:** Proposed
+- **Status:** Accepted
 - **Extends:** [ADR-003 product families](2026-09-15_product-family-variants.md)
 - **Works with:** [ADR-005 role modules](2026-09-18_role-modules.md),
   [ADR-006 money leaves the bill of materials](2026-09-18_money-out-of-the-bom.md)

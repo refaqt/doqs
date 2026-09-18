@@ -1,7 +1,7 @@
 # ADR-005 — Role modules: a stable name for a changing part
 
 - **Date:** 2026-09-18
-- **Status:** Proposed
+- **Status:** Accepted
 - **Extends:** [ADR-003 product families](2026-09-15_product-family-variants.md)
 - **Works with:** [ADR-004 a shared library for parts we buy](2026-09-18_parts-library.md)
 
@@ -147,6 +147,23 @@ document is an assembly of reference geometry plus a link, so it sits at
 statement about two part numbers: take either. An interface is a **design**
 statement about a module: this fits here.
 
+### 7. Our own families keep their generated files
+
+Decided on 2026-09-18, after this record was first written. The difference
+between a role and one of our own product families **stays**, and it is not an
+inconsistency: the two situations differ in who makes the choice.
+
+| | Who picks the part | Can a submodule bump change your design? | So |
+| --- | --- | --- | --- |
+| **A role** | You do, by part number | No. It can only change facts about that part. | Nothing to generate. Check instead. |
+| **One of our families** | The family does | Yes. Its bill of materials names the parts. | The generated file is how you see what changed for *your* variant. |
+
+ADR-003's resolved files therefore stay exactly as they are. Applying the rule
+in section 4 to both cases gives different answers because the rule asks whether
+the value lives in someone else's repository *and you have no other way to see it
+change*. For a role, you have another way: you wrote the part number yourself.
+
+
 ## Consequences
 
 - Switching brand is one line of text plus re-placing one object in one FreeCAD
@@ -159,16 +176,8 @@ statement about a module: this fits here.
   Writing the first ones is real work and it is the point: it is where the
   requirements finally get written down.
 - The CAD rule depends on FreeCAD behaviour that has to be proven on real
-  geometry before a project relies on it. See the open question below.
-
-### Open question: our own families
-
-Where the *family* picks the parts, a submodule bump really can change your
-design without you choosing it. That is the case ADR-003 was written for, and
-its resolved files stay for now. The asymmetry is deliberate. If our own
-families also moved to explicit selection, those files could go too, and DOQS
-would generate nothing at all outside the three cases listed in
-[roles.md](../roles.md). That is worth deciding separately, not by accident.
+  geometry before a project relies on it. See the open question below — it is
+  the only one left.
 
 ### Open question: the FreeCAD spike
 
