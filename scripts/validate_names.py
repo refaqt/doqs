@@ -34,6 +34,45 @@ def module_slug_from_path(modules_dir: Path, mod_dir: Path) -> str:
     return parts[-1]
 
 
+def module_candidate_dirs(modules_dir: Path) -> list[Path]:
+    """Directories that may hold a module, at every nesting depth.
+
+    A module sits directly under a `modules/` directory, or under
+    `modules/adapters/`. Nothing else is a module position, so `docs/`,
+    `cad/`, `firmware/` and everything inside them are content and are never
+    candidates. Every module may carry its own `modules/`, so the same rule
+    repeats one level down (architecture.md nests modules at every depth).
+    """
+    candidates: list[Path] = []
+    if not modules_dir.is_dir():
+        return candidates
+    for child in sorted(modules_dir.iterdir()):
+        if not child.is_dir():
+            continue
+        if child.name == "adapters":
+            # `adapters/` groups adapter modules and carries no okh.toml of
+            # its own. Its children sit in a module position.
+            for adapter in sorted(child.iterdir()):
+                if adapter.is_dir():
+                    candidates.append(adapter)
+                    _descend(candidates, adapter)
+            continue
+        candidates.append(child)
+        _descend(candidates, child)
+    return candidates
+
+
+def _descend(candidates: list[Path], module_dir: Path) -> None:
+    """Add the modules inside `module_dir`, if it holds any.
+
+    A symbolic link is never followed. A link back up the tree would
+    otherwise make the search run forever.
+    """
+    if module_dir.is_symlink():
+        return
+    candidates.extend(module_candidate_dirs(module_dir / "modules"))
+
+
 def check_module_directories(root: Path, modules_dir: Path) -> list[Finding]:
     findings: list[Finding] = []
     if not modules_dir.is_dir():
@@ -60,29 +99,15 @@ def check_module_directories(root: Path, modules_dir: Path) -> list[Finding]:
                 f"module slug {slug!r} must be kebab-case functional name",
             ))
 
-    for child in modules_dir.rglob("*"):
-        if not child.is_dir() or child == modules_dir:
-            continue
+    for child in module_candidate_dirs(modules_dir):
         if is_under_tooling_submodule(child, root):
             continue
         if (child / "okh.toml").exists():
             continue
-        # Containers, not modules: `adapters/` groups adapter modules, and a
-        # nested `modules/` holds a module's own sub-modules (architecture.md
-        # nests them at every depth). Neither carries an okh.toml by design.
-        if child.name in ("adapters", "modules"):
-            continue
-        rel = child.relative_to(root)
-        if any(p == "cad" or p == "bom" or p == "architecture" for p in child.parts):
-            continue
-        if child.parent == modules_dir / "adapters":
-            continue
-        if list(child.glob("okh.toml")):
-            continue
         if not any(child.iterdir()):
             continue
         findings.append(Finding(
-            str(rel),
+            str(child.relative_to(root)),
             "directory under modules/ has no okh.toml (orphan?)",
             warning=True,
         ))

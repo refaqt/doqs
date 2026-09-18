@@ -29,6 +29,26 @@ Canonical rules for **machines**, **modules**, **parts**, and **version fields**
 names its *options*, never its length: `linear-stage-servo-linear`, never
 `linear-stage-500mm`. Length is a model slug — see below.
 
+### Where a module may sit
+
+A module folder sits in one of two places, and nowhere else:
+
+- directly under a `modules/` folder, for example `modules/x-axis/`
+- directly under `modules/adapters/`, for example `modules/adapters/spindle-mount-v1-to-v2/`
+
+Every module may carry its own `modules/` folder, so the same rule repeats at
+every depth: `modules/x-axis/modules/drive-belt/` is a module too.
+
+Everything else inside a module is **content**, not a module. The first-level
+folders `bom/`, `cad/`, `architecture/`, `docs/`, `manufacturing/`,
+`simulation/` and `measurement/`, and every folder inside them, hold files for
+the module they belong to. They never need an `okh.toml`. See
+[Architecture — Folder Structure](architecture.md#folder-structure) for the
+full list.
+
+`validate_names.py` uses this rule. It warns about a folder in a module
+position that has no `okh.toml`, and leaves content folders alone.
+
 ### Extracted module repositories
 
 When a module becomes its own Git repo, keep the **same slug** as the folder (`x-axis`). The `repo` URL and organization disambiguate globally. Avoid prefixed names like `qarve-x-axis` unless publishing a fork.

@@ -12,3 +12,4 @@ Write entries in B2 English. Follow `.agents/rules/communication.md`.
 | 2026-09-16 | [One page for people who use doqs](2026-09-16_using-doqs.md) | software | 0 |
 | 2026-09-16 | [The session hook is a template now](2026-09-16_session-hook-seed.md) | software | 0 |
 | 2026-09-16 | [Three scripts renamed, sixteen left alone](2026-09-16_three-renames.md) | software | 0 |
+| 2026-09-18 | [The orphan warning only looks where a module can sit](2026-09-18_orphan-warning-only-in-module-folders.md) | software | 0 |
