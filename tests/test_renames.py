@@ -53,9 +53,10 @@ class TestStubs(unittest.TestCase):
 
 
 class TestNamingRule(unittest.TestCase):
-    """Every command script starts with one of five verbs, or is a library."""
+    """Every command script starts with one of the contract verbs."""
 
-    VERBS = ("validate_", "resolve_", "apply_", "aggregate_", "export_", "install_")
+    VERBS = ("validate_", "resolve_", "apply_", "aggregate_", "export_",
+             "install_", "restore_")
 
     def command_scripts(self) -> list[Path]:
         skip = set(RENAMED) | {"cli.py", "syson.py"}

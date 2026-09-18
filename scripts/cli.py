@@ -66,6 +66,7 @@ PASSTHROUGH: dict[str, str] = {
     "syson": "syson.py",
     "export": "export_variant.py",
     "bom": "resolve_bom.py",
+    "restore-build": "restore_build.py",
 }
 
 #: Scripts that cannot become a subcommand: they run inside a FreeCAD
@@ -159,6 +160,7 @@ def cmd_list() -> int:
         ("syson …", "Open or save architecture/*.sysml in SysON"),
         ("export …", "Export geometry for one composition and model"),
         ("bom …", "Resolve one module's BOM for one model"),
+        ("restore-build …", "Fetch back the files a machine was built from"),
         ("run <script> …", "Any script in doqs/scripts/, by name"),
         ("list", "This list"),
     )

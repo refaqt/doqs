@@ -59,8 +59,14 @@ class TempRoot(unittest.TestCase):
         build_dir = self.root / "builds" / name
         build_dir.mkdir(parents=True)
         text = 'schema = "doqs-build-v1"\nmachine = "test"\n'
-        for slug in modules:
-            text += f'\n[[module]]\npath = "modules/{slug}"\nversion = "v1.0.0"\n'
+        for index, slug in enumerate(modules):
+            # A record must name where to fetch from and the exact commit, so
+            # these tests carry them too. See ADR-007.
+            text += (
+                f'\n[[module]]\npath = "modules/{slug}"\n'
+                f'repo = "https://example.com/{slug}"\n'
+                f'version = "v1.0.0"\ncommit = "{str(index) * 40}"\n'
+            )
         path = build_dir / "build.toml"
         path.write_text(text, encoding="utf-8")
         return path

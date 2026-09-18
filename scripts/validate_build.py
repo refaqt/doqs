@@ -1,11 +1,18 @@
-"""Validate that build.toml lockfiles represent interface-consistent compositions."""
+"""Validate build lockfiles: interface consistency, and pins you can act on.
+
+A lockfile records a machine that exists. It is only worth having if you can
+still get back what went into it, so each entry names the repository, the
+readable tag, and the exact commit. A tag can be moved or deleted; a commit
+cannot. See docs/decisions/2026-09-18_build-records.md.
+"""
 from __future__ import annotations
 
 import argparse
+import re
 from pathlib import Path
 import tomllib
 
-from naming_rules import repo_root_from_script
+from naming_rules import GIT_TAG, repo_root_from_script
 
 
 def load_module_manifest(root: Path, mod_entry: dict) -> dict:
@@ -38,6 +45,43 @@ def collect_interfaces(modules: list[dict]) -> tuple[dict, list]:
     return provided, consumed
 
 
+COMMIT = re.compile(r"^[0-9a-f]{40}$")
+
+
+def check_pins(build: dict) -> list[str]:
+    """Can this record still be opened?
+
+    Three things make the difference between a record and a reference: which
+    repository, which readable version, and which exact commit. Only the last
+    one cannot drift.
+    """
+    errors: list[str] = []
+    entries = [("[base]", build["base"])] if "base" in build else []
+    entries += [(f"[[module]] {e.get('path', '?')}", e) for e in build.get("module", [])]
+    for label, entry in entries:
+        if not entry.get("repo"):
+            errors.append(
+                f"{label} has no 'repo'. Without it nobody knows where to fetch "
+                "this from."
+            )
+        version = str(entry.get("version", ""))
+        if version and not GIT_TAG.match(version):
+            errors.append(
+                f"{label} version {version!r} is not a tag like 'v1.2.0'"
+            )
+        commit = str(entry.get("commit", ""))
+        if not commit:
+            errors.append(
+                f"{label} has no 'commit'. A tag can be moved or deleted, so a "
+                "version alone does not pin anything."
+            )
+        elif not COMMIT.match(commit):
+            errors.append(
+                f"{label} commit {commit!r} is not a full 40-character commit id"
+            )
+    return errors
+
+
 def validate(build_path: Path, repo_root: Path) -> list[str]:
     errors: list[str] = []
     with open(build_path, "rb") as f:
@@ -59,6 +103,8 @@ def validate(build_path: Path, repo_root: Path) -> list[str]:
             "version": entry["adapter"].split("@")[1],
             "manifest": load_module_manifest(repo_root, {"path": adapter_path}),
         })
+
+    errors.extend(check_pins(build))
 
     provided, consumed = collect_interfaces(modules)
     for need in consumed:

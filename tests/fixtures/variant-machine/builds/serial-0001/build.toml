@@ -6,22 +6,31 @@ owner      = "DOQS Tests"
 [base]
 repo    = "https://example.com/variant-machine"
 version = "v0.1.0"
+# The exact commit. A tag can be moved or deleted; this is what lets someone
+# fetch back the files this machine was actually built from.
+commit  = "bd033eb28278ac717c389de937651b917cf39570"
 
 # The instance module carries the design-time choice; the lockfile pins the
 # VERSION of that choice. Configuration and pinning are different things.
 [[module]]
 path    = "modules/x-stage"
+repo    = "https://example.com/variant-machine"
 version = "v0.1.0"
+commit  = "dcc07ae9aa4a691c3728035833b440430436b91b"
 
 [[module]]
 path    = "modules/y-stage"
+repo    = "https://example.com/variant-machine"
 version = "v0.1.0"
+commit  = "3b79f9f51b31cbcd83e78b36cf5b7e6f6dce6b17"
 
 # The family is pinned once, and the composition + model say which variant of
 # it this physical machine was built to.
 [[module]]
 path        = "modules/linear-stage"
+repo        = "https://example.com/linear-stage"
 version     = "v0.1.0"
+commit      = "5001fa6c06a9fe99015b812eb6e10f08401b6b32"
 composition = "modules/linear-stage-servo-linear"
 model       = "500mm"
 sku         = "ALS-SL-500"

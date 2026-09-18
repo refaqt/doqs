@@ -1,0 +1,52 @@
+# Copy to builds/<your-id>/build.toml and fill it in.
+#
+# This records ONE physical machine: what actually went into it, on the day it
+# was built. It is not a design document and it never changes afterwards.
+#
+# Three fields per entry make it a record rather than a reference:
+#   repo     where to fetch it from
+#   version  the readable tag, for a person
+#   commit   the exact commit, because a tag can be moved or deleted
+#
+# Check it with:  python doqs/doqs.py restore-build builds/<your-id> --check
+# Open it with:   python doqs/doqs.py restore-build builds/<your-id> --out <dir>
+#
+# See doqs/docs/decisions/2026-09-18_build-records.md.
+
+schema     = "doqs-build-v1"
+machine    = "your-machine"
+built-date = "2026-01-31"
+owner      = "Workshop name"
+location   = "City, country"
+
+# The machine repository this build started from.
+[base]
+repo    = "https://github.com/ORG/your-machine"
+version = "v1.0.0"
+commit   = "0000000000000000000000000000000000000000"
+
+# One entry per module. A module may deviate from the base: that is the point of
+# recording each one instead of only the machine version.
+[[module]]
+path    = "modules/frame"
+repo    = "https://github.com/ORG/your-machine"
+version = "v1.0.0"
+commit  = "0000000000000000000000000000000000000000"
+
+# A product family is pinned once. The composition and model say which variant
+# of it this physical machine was built to.
+[[module]]
+path        = "modules/linear-stage"
+repo        = "https://github.com/ORG/linear-stage"
+version     = "v1.0.0"
+commit      = "0000000000000000000000000000000000000000"
+composition = "modules/linear-stage-servo-linear"
+model       = "500mm"
+sku         = "ALS-SL-500"
+
+# Anything done to this machine that the design does not describe. A record with
+# no modifications is a machine nobody has ever repaired.
+[[modification]]
+date        = "2026-08-22"
+description = "Replaced the X20 limit switch with an X25 after the X20 went out of production"
+bom-impact  = "SW-001: brand_pn changed X20-1 to X25-1"

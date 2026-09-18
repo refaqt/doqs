@@ -35,6 +35,7 @@ A file in `scripts/` is `<verb>_<object>.py`, and the verb says what it does:
 | `apply_` | Writes a fixed set of files into a repository |
 | `aggregate_`, `export_` | Produce one artefact, at `--out` |
 | `install_` | Copies files from `templates/` into a repository |
+| `restore_` | Rebuilds a working tree from a record; takes `--out` and `--check` |
 
 A module with no command line is `<topic>_rules.py`. The `cad_` prefix is the one
 exception: it marks code that runs **inside FreeCAD**, which is a fact about the
