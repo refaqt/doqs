@@ -1,0 +1,4 @@
+supplier,pn,relpath,bytes,sha256,source_url,terms,retrieved_utc
+hiwin,HGR20R300,cad/original/HGR20R300.step,106,785d119ef741517bdae69c7ada96f05040124c1d4f00666d0ebcb19f55634f71,https://example.com/hiwin/guideways,redistributable,2026-09-18T00:00:00Z
+hiwin,HGR20R500,cad/original/HGR20R500.step,106,d0f9835d396d1e19d1f1f4d8e4a37f11dfba04a3ec137843869b65787f7966ee,https://example.com/hiwin/guideways,redistributable,2026-09-18T00:00:00Z
+hiwin,HGR-SERIES,docs/datasheets/hgr-series.pdf,28,592ab672fad00933594d88410f356ba3e9907c5323c0e547b4a402326b5e5c47,https://example.com/hiwin/catalogue,redistributable,2026-09-18T00:00:00Z

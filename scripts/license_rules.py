@@ -15,7 +15,11 @@ import re
 import tomllib
 from pathlib import Path
 
-from naming_rules import TOOLING_SUBMODULE_NAMES, is_under_tooling_submodule
+from naming_rules import (
+    TOOLING_SUBMODULE_NAMES,
+    is_parts_library,
+    is_under_tooling_submodule,
+)
 
 HARDWARE_LICENSE = "CERN-OHL-S-2.0"
 DEFAULT_ORGANISATION = "REFAQT"
@@ -83,6 +87,35 @@ TOOLS_FULL_TEXT_FILES: dict[str, tuple[str, ...]] = {
 TOOLS_ROOT_LICENSE_MARKERS = (
     "GPL-3.0",
     "CC BY-SA",
+    "TRADEMARKS.md",
+    "LICENSES",
+)
+
+# Parts-library mapping -- a repository of parts other people make.
+#
+# Nothing here is our design, so there is no CERN-OHL-S and the vendor
+# carve-out moves up from `cad/vendor/` to the whole `cad/` tree. What IS ours
+# is the compiled record: the part tables, our notes, the manifests. That is
+# CC BY-SA, the same licence our documentation already uses.
+# See docs/decisions/2026-09-18_parts-library.md.
+LIBRARY_DIR_KIND: dict[str, str] = {
+    "bom": "media",
+    "docs": "media",
+    "modules": "media",
+    "cad": "vendor",
+}
+
+#: Inside a library, datasheets are the brand's own PDFs, so they are carved
+#: out of the CC BY-SA that covers the rest of `docs/`.
+LIBRARY_DATASHEET_DIR = Path("docs") / "datasheets"
+
+LIBRARY_LICENSE = "CC-BY-SA-4.0"
+LIBRARY_FULL_TEXT_FILES: dict[str, tuple[str, ...]] = {
+    "CC-BY-SA-4.0.txt": FULL_TEXT_FILES["CC-BY-SA-4.0.txt"],
+}
+LIBRARY_ROOT_LICENSE_MARKERS = (
+    "CC BY-SA",
+    "supplier",
     "TRADEMARKS.md",
     "LICENSES",
 )
@@ -164,6 +197,17 @@ def expected_stub(kind: str) -> str:
     if kind == "upstream":
         return read_template("tools/spec.LICENSE")
     return read_template(f"dir/{kind}.LICENSE")
+
+
+def expected_library_root_license(project_name: str, organisation: str) -> str:
+    return render(read_template("library/LICENSE"), project_name, organisation)
+
+
+def expected_library_stub(kind: str) -> str:
+    """A library's vendor stub names no CERN-OHL-S: there is none here."""
+    if kind == "vendor":
+        return read_template("library/vendor.LICENSE")
+    return expected_stub(kind)
 
 
 def expected_tools_root_license() -> str:
@@ -526,27 +570,183 @@ def apply_tools_repo(root: Path) -> list[str]:
     return actions
 
 
+def mapped_library_dirs(root: Path) -> list[tuple[Path, str]]:
+    """Directories in a library that need a LICENSE stub.
+
+    `cad/` is carved out whole, not just `cad/vendor/`: in a library every
+    geometry file is the brand's work or derived from it.
+    """
+    found: list[tuple[Path, str]] = []
+    for name, kind in LIBRARY_DIR_KIND.items():
+        d = root / name
+        if d.is_dir():
+            found.append((d, kind))
+    datasheets = root / LIBRARY_DATASHEET_DIR
+    if datasheets.is_dir():
+        found.append((datasheets, "vendor"))
+    for module_cad in sorted(root.rglob("cad")):
+        if not module_cad.is_dir() or module_cad.parent == root:
+            continue
+        found.append((module_cad, "vendor"))
+    for module_sheets in sorted(root.rglob(LIBRARY_DATASHEET_DIR.as_posix())):
+        if not module_sheets.is_dir() or module_sheets.parent.parent == root:
+            continue
+        found.append((module_sheets, "vendor"))
+    return found
+
+
+def check_library_generated_files(root: Path) -> list[str]:
+    """Errors for the parts-library licence kit."""
+    errors: list[str] = []
+    name, org = load_identity(root)
+    if not _file_ok(root / "LICENSE", LIBRARY_ROOT_LICENSE_MARKERS):
+        errors.append(
+            "LICENSE missing or incomplete (must name CC BY-SA, say that "
+            "supplier files keep their own terms, and point at TRADEMARKS.md "
+            "and LICENSES/)"
+        )
+    if not _file_ok(root / "TRADEMARKS.md", ("trademark", name)):
+        errors.append(
+            f"TRADEMARKS.md missing or incomplete (must mention {name!r} "
+            "and trademarks)"
+        )
+    licenses_dir = root / "LICENSES"
+    if not licenses_dir.is_dir():
+        errors.append("LICENSES/ directory missing")
+    else:
+        for filename, markers in LIBRARY_FULL_TEXT_FILES.items():
+            if not _file_ok(licenses_dir / filename, markers):
+                errors.append(
+                    f"LICENSES/{filename} missing or is not the expected licence text"
+                )
+        if (licenses_dir / "CERN-OHL-S-2.0.txt").is_file():
+            errors.append(
+                "LICENSES/CERN-OHL-S-2.0.txt must not be in a parts library: "
+                "nothing here is hardware we designed"
+            )
+    for directory, kind in mapped_library_dirs(root):
+        stub = directory / "LICENSE"
+        if not _file_ok(stub, STUB_MARKERS[kind]):
+            rel = directory.relative_to(root)
+            errors.append(
+                f"{rel}/LICENSE missing or does not declare the {kind} licence"
+            )
+    return errors
+
+
+def check_library_okh_license(root: Path) -> list[str]:
+    path = root / "okh.toml"
+    if not path.is_file():
+        return ["okh.toml missing"]
+    with open(path, "rb") as f:
+        data = tomllib.load(f)
+    value = data.get("license")
+    if value is None:
+        return ["okh.toml missing license field"]
+    if str(value) != LIBRARY_LICENSE:
+        return [
+            f"okh.toml license must be {LIBRARY_LICENSE!r} in a parts library "
+            f"(the record is ours; the parts are not), got: {value!r}"
+        ]
+    return []
+
+
+def check_library_readme(root: Path) -> list[str]:
+    path = root / "README.md"
+    if not path.is_file():
+        return ["README.md missing (needs a Licence section)"]
+    text = path.read_text(encoding="utf-8")
+    if not _README_HEADING.search(text):
+        return ["README.md has no Licence/License heading"]
+    lowered = text.lower()
+    if "cc by-sa" in lowered or _README_LICENSE_LINK.search(text):
+        return []
+    return ["README.md Licence section must name CC BY-SA, or link to LICENSE"]
+
+
+def check_library_repo(root: Path) -> list[str]:
+    return (
+        check_library_generated_files(root)
+        + check_library_readme(root)
+        + check_library_okh_license(root)
+    )
+
+
+def apply_library_repo(root: Path) -> list[str]:
+    """Write missing/invalid parts-library licence files."""
+    name, org = load_identity(root)
+    actions: list[str] = []
+    wrote = _write_if_needed(
+        root / "LICENSE", expected_library_root_license(name, org),
+        LIBRARY_ROOT_LICENSE_MARKERS,
+    )
+    if wrote:
+        actions.append(wrote)
+    wrote = _write_if_needed(
+        root / "TRADEMARKS.md",
+        render(read_template("TRADEMARKS.md"), name, org),
+        ("trademark", name),
+    )
+    if wrote:
+        actions.append(wrote)
+    for filename, markers in LIBRARY_FULL_TEXT_FILES.items():
+        source = TEMPLATES_DIR / "LICENSES" / filename
+        wrote = _write_if_needed(
+            root / "LICENSES" / filename,
+            source.read_text(encoding="utf-8"),
+            markers,
+        )
+        if wrote:
+            actions.append(wrote)
+    for directory, kind in mapped_library_dirs(root):
+        wrote = _write_if_needed(
+            directory / "LICENSE", expected_library_stub(kind), STUB_MARKERS[kind]
+        )
+        if wrote:
+            actions.append(wrote)
+    return actions
+
+
+def advice_library_messages(root: Path) -> list[str]:
+    notes: list[str] = []
+    if check_library_readme(root):
+        notes.append(
+            "Add a Licence section to README.md naming CC BY-SA 4.0 for the "
+            "record we compile, and saying supplier files keep their own terms."
+        )
+    notes.extend(f"okh.toml: {e}" for e in check_library_okh_license(root))
+    return notes
+
+
 def check_any_repo(root: Path) -> list[str]:
     if is_doqs_tools_repo(root):
         return check_tools_repo(root)
+    if is_parts_library(root):
+        return check_library_repo(root)
     return check_repo(root)
 
 
 def check_any_generated_files(root: Path) -> list[str]:
     if is_doqs_tools_repo(root):
         return check_tools_generated_files(root)
+    if is_parts_library(root):
+        return check_library_generated_files(root)
     return check_generated_files(root)
 
 
 def apply_any_repo(root: Path) -> list[str]:
     if is_doqs_tools_repo(root):
         return apply_tools_repo(root)
+    if is_parts_library(root):
+        return apply_library_repo(root)
     return apply_repo(root)
 
 
 def advice_any_messages(root: Path) -> list[str]:
     if is_doqs_tools_repo(root):
         return advice_tools_messages(root)
+    if is_parts_library(root):
+        return advice_library_messages(root)
     return advice_messages(root)
 
 

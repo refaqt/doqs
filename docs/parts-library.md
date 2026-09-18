@@ -68,6 +68,7 @@ For standards the brand is the standards body: `modules/din/modules/din-912/`.
 modules/stoq/modules/hiwin/modules/hgr-rail/
 ├── okh.toml            what this family is, [brand], [[provides-interface]]
 ├── bom/parts.csv       ONE row per orderable part number
+├── vendor-index.csv    provenance: address, checksum, date, for every file
 ├── cad/
 │   ├── parts/HGR20R500.FCStd     the document a role links
 │   └── original/HGR20R500.step   the untouched download
@@ -105,10 +106,10 @@ re-argued.
 
 ```csv
 # modules/hiwin/modules/hgr-rail/bom/parts.csv
-pn,description,spec,unit_mass_g,cad,datasheet,terms,revision,status
-HGR20R300,HGR20 rail 300 mm,rail width 20 mm; hole pitch 60 mm,1290,cad/parts/HGR20R300.FCStd,docs/datasheets/hgr-series.pdf,redistributable,A,active
-HGR20R500,HGR20 rail 500 mm,rail width 20 mm; hole pitch 60 mm,2150,cad/parts/HGR20R500.FCStd,docs/datasheets/hgr-series.pdf,redistributable,A,active
-HGR20R800,HGR20 rail 800 mm,rail width 20 mm; hole pitch 60 mm,3440,,docs/datasheets/hgr-series.pdf,fetch-only,A,active
+pn,description,spec,unit_mass_g,cad,datasheet,terms,revision,status,notes
+HGR20R300,HGR20 rail 300 mm,rail width 20 mm; hole pitch 60 mm,1290,cad/parts/HGR20R300.FCStd,docs/datasheets/hgr-series.pdf,redistributable,A,active,
+HGR20R500,HGR20 rail 500 mm,rail width 20 mm; hole pitch 60 mm,2150,cad/parts/HGR20R500.FCStd,docs/datasheets/hgr-series.pdf,redistributable,A,active,
+HGR20R800,HGR20 rail 800 mm,rail width 20 mm; hole pitch 60 mm,3440,,docs/datasheets/hgr-series.pdf,fetch-only,A,active,
 ```
 
 | Column | Meaning |
@@ -122,6 +123,10 @@ HGR20R800,HGR20 rail 800 mm,rail width 20 mm; hole pitch 60 mm,3440,,docs/datash
 | `terms` | `redistributable` or `fetch-only` |
 | `revision` | The brand's revision of this part. Never reused. |
 | `status` | `active` or `eol` |
+| `notes` | Free text. On a discontinued row, name the replacement part number. |
+
+Lines starting with `#` are comments and are skipped, so the template can be
+copied as it is.
 
 **No price and no distributor.** The library is technical. What a part costs is
 answered by a different system; see

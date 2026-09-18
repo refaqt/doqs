@@ -1,0 +1,10 @@
+# Supplier files we may not redistribute. Only their row in vendor-index.csv is
+# committed; the file itself is fetched from the brand under the brand's terms.
+# Validation warns rather than fails when one is absent, so CI stays green on a
+# fresh clone.
+#
+# Append to .gitignore at the root of a parts library, then list the exact paths
+# your fetch-only rows name, for example:
+#
+# modules/thk/modules/shs-rail/cad/parts/SHS20R300.FCStd
+# modules/thk/modules/shs-rail/cad/original/SHS20R300.step

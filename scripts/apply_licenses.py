@@ -23,7 +23,7 @@ from license_rules import (
     is_doqs_tools_repo,
     iter_repo_roots,
 )
-from naming_rules import repo_root_from_script
+from naming_rules import is_parts_library, repo_root_from_script
 
 
 def main() -> int:
@@ -51,7 +51,12 @@ def main() -> int:
     failed = False
     for repo in iter_repo_roots(root):
         rel = "." if repo == root else repo.relative_to(root)
-        kind = "tools" if is_doqs_tools_repo(repo) else "machine"
+        if is_doqs_tools_repo(repo):
+            kind = "tools"
+        elif is_parts_library(repo):
+            kind = "parts library"
+        else:
+            kind = "machine"
         if args.check:
             errors = check_any_generated_files(repo)
             if errors:

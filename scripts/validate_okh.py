@@ -5,9 +5,11 @@ import argparse
 from pathlib import Path
 import tomllib
 
-from license_rules import HARDWARE_LICENSE
+from license_rules import HARDWARE_LICENSE, LIBRARY_LICENSE
 from naming_rules import (
     MODEL_SLUG,
+    is_parts_library,
+    is_under_parts_library,
     OKH_VERSION,
     is_under_tooling_submodule,
     repo_root_from_script,
@@ -29,10 +31,21 @@ def validate(
         if field not in data:
             errors.append(f"Missing: {field}")
     license_val = data.get("license")
-    if license_val is not None and str(license_val) != HARDWARE_LICENSE:
+    # A parts library records parts other people designed, so claiming the
+    # hardware licence over them would be false. What IS ours there is the
+    # compiled record. See docs/decisions/2026-09-18_parts-library.md.
+    in_library = root is not None and (
+        is_parts_library(root) or is_under_parts_library(p, root)
+    )
+    expected_license = LIBRARY_LICENSE if in_library else HARDWARE_LICENSE
+    if license_val is not None and str(license_val) != expected_license:
+        reason = (
+            "the record is ours; the parts are not"
+            if in_library
+            else "hardware; see LICENSE for the split"
+        )
         errors.append(
-            f"license must be {HARDWARE_LICENSE!r} "
-            f"(hardware; see LICENSE for the split), got: {license_val!r}"
+            f"license must be {expected_license!r} ({reason}), got: {license_val!r}"
         )
     version = data.get("version")
     if version is not None:
@@ -74,6 +87,7 @@ def validate(
                 )
     errors.extend(_validate_instance(p, data, root))
     errors.extend(_validate_composition(p, data))
+    errors.extend(_validate_brand(data))
     for comp in data.get("hasComponent", []):
         # Selection shortcut for the zero-override case: a parent may pin the
         # composition and model directly on the component declaration instead
@@ -90,6 +104,29 @@ def validate(
         for item in part.get("source", []) + part.get("export", []):
             if not (p.parent / item).exists():
                 errors.append(f"part '{part.get('name', '?')}' file not found: {item}")
+    return errors
+
+
+def _validate_brand(data: dict) -> list[str]:
+    """Shape-check a [brand] table in a parts library.
+
+    `brand` is the name on the part, not the supplier you buy from. `cad-terms`
+    is the address of the download terms somebody read before deciding what may
+    be committed; recording it means the decision can be checked later instead
+    of being argued again.
+    """
+    brand = data.get("brand")
+    if brand is None:
+        return []
+    errors = []
+    for key in ("name", "website", "cad-terms"):
+        if not brand.get(key):
+            errors.append(f"[brand] is missing {key!r}")
+    redistribute = brand.get("redistribute")
+    if redistribute is not None and not isinstance(redistribute, bool):
+        errors.append(
+            f"[brand] redistribute must be true or false, got: {redistribute!r}"
+        )
     return errors
 
 

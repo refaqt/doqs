@@ -1,0 +1,14 @@
+# One row per ORDERABLE PART NUMBER. This one table is the whole catalogue: it
+# replaces catalog.toml, bom.csv, sources.toml and bom/tables/ that our own
+# families carry, because in a library all four would say the same thing.
+#
+# No price and no distributor. A library is technical; what a part costs is
+# answered by a different system. See doqs/docs/decisions/2026-09-18_money-out-of-the-bom.md.
+#
+# `cad` and `datasheet` may be empty: the table is the complete catalogue and
+# the files are a cache that fills as people use parts.
+# `terms` is redistributable only where that brand's terms allow it.
+# `status` is eol for a part you can no longer buy. Never delete the row: an
+# existing machine is still made of it.
+pn,description,spec,unit_mass_g,cad,datasheet,terms,revision,status,notes
+HGR20R300,HGR20 rail 300 mm,rail width 20 mm; hole pitch 60 mm,1290,cad/parts/HGR20R300.FCStd,docs/datasheets/hgr-series.pdf,fetch-only,A,active,

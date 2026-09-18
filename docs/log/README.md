@@ -16,3 +16,4 @@ Write entries in B2 English. Follow `.agents/rules/communication.md`.
 | 2026-09-18 | [One home for the parts we buy](2026-09-18_parts-library.md) | software | 0 |
 | 2026-09-18 | [The shared agent kit moves to its newest version](2026-09-18_agent-kit-update.md) | software | 0 |
 | 2026-09-18 | [The parts list says what is inside, not what it costs](2026-09-18_money-out-of-the-bom.md) | software | 0 |
+| 2026-09-18 | [The shared parts library checks itself](2026-09-18_parts-library-validates.md) | software | 0 |

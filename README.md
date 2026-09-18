@@ -60,12 +60,14 @@ doqs/
   tools/          # Docker Compose for local SysON (GPL-3.0)
   data/           # Machine-readable lexicon (CC BY-SA 4.0)
   templates/      # OKH fragments, measurement templates, split-licence kit,
-                  # variants/ (product-family kit), cad/ (the build_model.py
-                  # seed), agent-cad/ (MCP config and the save guard),
+                  # variants/ (product-family kit), parts-library/ (kit for a
+                  # library of bought parts), cad/ (the build_model.py seed),
+                  # agent-cad/ (MCP config and the save guard),
                   # setup-tooling/ (copy-once bootstrap) and syson/ (root
                   # launchers)
   schemas/        # JSON Schema for lockfiles, catalogues, instances,
-                  # BOM sources, firmware config (GPL-3.0)
+                  # BOM sources, parts libraries, brands, firmware config
+                  # (GPL-3.0)
   spec/otrl.ttl   # Source ontology (IOP Alliance, GPL-3.0-or-later)
 ```
 

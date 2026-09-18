@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/refaqt/doqs/schemas/brand.schema.json",
+  "title": "DOQS brand declaration",
+  "description": "The [brand] table of an okh.toml in a parts library. A brand is the name on the part -- HIWIN, Beckhoff, DIN -- and is stable for decades. It is NOT the supplier you buy from, which is commercial, often several at once, and changed with the prices when they left the bill of materials.",
+  "type": "object",
+  "required": ["name", "website", "cad-terms"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The company's legal name, or the standards body for a standard part."
+    },
+    "website": { "type": "string", "format": "uri" },
+    "cad-terms": {
+      "type": "string",
+      "format": "uri",
+      "description": "Address of the download terms somebody read before deciding what may be committed. Recording it means the decision can be checked later instead of argued again."
+    },
+    "redistribute": {
+      "type": "boolean",
+      "description": "Whether this brand's terms allow committing their files. Default for the brand; each row still carries its own terms.",
+      "default": false
+    }
+  }
+}

@@ -11,7 +11,7 @@ Four things happen, in order:
 4. ``[[vendor]]`` entries (and the table's ``cad`` column) resolve the STEP file
    of each purchased component for the selected length.
 
-The output keeps the exact 16-column DOQS BOM header and carries no comment
+The output keeps the exact DOQS BOM header and carries no comment
 lines, so ``validate_names.check_bom_file`` reads it like any hand-written BOM.
 """
 from __future__ import annotations
@@ -23,7 +23,11 @@ import re
 import tomllib
 from pathlib import Path
 
-from naming_rules import BOM_HEADERS, repo_root_from_script
+from naming_rules import (
+    BOM_HEADERS,
+    csv_reader_skipping_comments,
+    repo_root_from_script,
+)
 from param_rules import ParamError, resolve_model
 
 SOURCES_NAME = "sources.toml"
@@ -100,11 +104,12 @@ def load_sources(module_dir: Path) -> dict:
 
 
 def _lookup_table(table_path: Path, wanted: float, mode: str) -> dict[str, str]:
-    with open(table_path, newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        if reader.fieldnames is None or "key" not in reader.fieldnames:
-            raise BomError(f"{table_path}: first column must be 'key'")
-        table = [{k: (v or "").strip() for k, v in row.items() if k} for row in reader]
+    reader = csv_reader_skipping_comments(
+        table_path.read_text(encoding="utf-8")
+    )
+    if reader.fieldnames is None or "key" not in reader.fieldnames:
+        raise BomError(f"{table_path}: first column must be 'key'")
+    table = [{k: (v or "").strip() for k, v in row.items() if k} for row in reader]
 
     keys: list[tuple[float, dict[str, str]]] = []
     for row in table:
