@@ -14,3 +14,4 @@ Write entries in B2 English. Follow `.agents/rules/communication.md`.
 | 2026-09-16 | [Three scripts renamed, sixteen left alone](2026-09-16_three-renames.md) | software | 0 |
 | 2026-09-18 | [The orphan warning only looks where a module can sit](2026-09-18_orphan-warning-only-in-module-folders.md) | software | 0 |
 | 2026-09-18 | [One home for the parts we buy](2026-09-18_parts-library.md) | software | 0 |
+| 2026-09-18 | [The shared agent kit moves to its newest version](2026-09-18_agent-kit-update.md) | software | 0 |

@@ -36,14 +36,19 @@ Leave the moved `.agents` gitlink uncommitted unless you mean to freeze a new pi
 This repo mounts [refaqt/refaqt-agents](https://github.com/refaqt/refaqt-agents) at [`.agents/`](.agents/).
 
 1. Read [`.agents/rules/core.md`](.agents/rules/core.md),
-   [`.agents/rules/communication.md`](.agents/rules/communication.md), and
-   [`.agents/rules/living-docs.md`](.agents/rules/living-docs.md).
+   [`.agents/rules/communication.md`](.agents/rules/communication.md),
+   [`.agents/rules/living-docs.md`](.agents/rules/living-docs.md), and
+   [`.agents/rules/reporting.md`](.agents/rules/reporting.md).
 2. Read [`docs/decisions/`](docs/decisions/) before larger work, and say which decisions apply.
 3. Read [`docs/architecture.md`](docs/architecture.md) before any change to the DOQS specification.
 4. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) for the gate list you must run before a pull request.
 
 Write every reply and every file in B2 English. Follow `.agents/rules/communication.md`.
 Keep licence names, file paths, script names, and version numbers exact.
+
+Write pull requests, commit messages, comments on GitHub and log entries in the shape
+`.agents/rules/reporting.md` gives. The box on GitHub already starts with those headings,
+from [`.github/pull_request_template.md`](.github/pull_request_template.md).
 
 ## This repository
 
