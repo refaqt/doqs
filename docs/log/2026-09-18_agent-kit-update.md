@@ -26,6 +26,8 @@ Work done:
   saved.
 - The pull request template the new rule asks for was added. The box on GitHub
   now starts with the four headings.
+- The list of rules to read in `AGENTS.md` named three rules. It named the
+  reporting rule as the fourth.
 - All project checks were run against the new version. Nothing broke.
 
 ## Decisions
