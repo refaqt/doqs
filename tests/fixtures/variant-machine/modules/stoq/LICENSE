@@ -1,0 +1,49 @@
+Parts Library Fixture — Licence overview
+
+This repository is a **parts library**: a record of components that other
+companies design, make and sell. We did not design anything in it.
+
+That makes its licensing different from a machine repository, and the
+difference is the whole point of this file. Two kinds of content live here.
+
+## The record we compile — CC BY-SA 4.0
+
+Applies to: [`bom/`](bom/) part tables, the `okh.toml` manifests, our own
+notes under `docs/`, this file, README and other text written by this project.
+
+Part numbers, dimensions, masses and the specifications we write down are facts
+we gathered and organised ourselves. They are not a copy of anyone's catalogue.
+
+Full text: [`LICENSES/CC-BY-SA-4.0.txt`](LICENSES/CC-BY-SA-4.0.txt)
+
+## Supplier files — their own terms, not ours
+
+Applies to: everything under any `cad/` directory, and every
+`docs/datasheets/` directory.
+
+These are geometry files and datasheets belonging to the brands that make the
+parts, together with the FreeCAD documents we build from them. A document built
+from a supplier's model is derived from their work, so it sits on their side of
+this line. **None of it is covered by the licence above.**
+
+Each brand records its own download terms in the `[brand]` table of its
+`okh.toml`. A file is committed only where those terms allow it. Everything
+else is recorded as `fetch-only`: the address, the checksum and the date are
+committed, and each person downloads it from the brand under the brand's terms.
+
+## Nothing here is hardware we designed
+
+There is deliberately no CERN Open Hardware Licence in this repository. Writing
+one over a supplier's file would claim a licence on something we do not own.
+
+## Directory-level pointers
+
+Each content directory also carries a short `LICENSE` file restating which of
+the above applies to it.
+
+## Trademarks
+
+The REFAQT name and logo are trademarks and are not covered by the
+licence above. Brand names and part numbers recorded in this repository are the
+trademarks of the companies that own them, used here to identify their parts.
+See [`TRADEMARKS.md`](TRADEMARKS.md).

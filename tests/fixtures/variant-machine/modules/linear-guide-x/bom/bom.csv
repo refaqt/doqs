@@ -1,0 +1,2 @@
+id,name,spec,category,qty,unit,unit_mass_g,equiv_class,brand,brand_pn,part,notes
+STD-004,Cap Screw,DIN912 M4x10 A2-70,fastener,8,pc,2,M4X10-SHCS,DIN,M4X10,stoq:din/din-912#M4X10,Mounts the rail to the carriage plate

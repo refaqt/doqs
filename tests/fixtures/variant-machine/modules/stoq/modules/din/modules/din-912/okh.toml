@@ -1,0 +1,15 @@
+okhv = "OKH-LOSHv1.0"
+name = "DIN 912 Socket Head Cap Screw"
+repo = "https://example.com/parts-library/tree/main/modules/din/modules/din-912"
+version = "0.1.0"
+license = "CC-BY-SA-4.0"
+licensor = "DOQS Tests"
+function = "Hexagon socket head cap screw, metric."
+
+# For a standard part the brand is the standards body. Same shape, no special
+# case: see docs/decisions/2026-09-18_parts-library.md.
+[brand]
+name = "Deutsches Institut für Normung e.V."
+website = "https://www.din.de"
+cad-terms = "https://example.com/din-terms"
+redistribute = false

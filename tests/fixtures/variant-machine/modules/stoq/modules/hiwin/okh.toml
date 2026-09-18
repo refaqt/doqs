@@ -1,0 +1,16 @@
+okhv = "OKH-LOSHv1.0"
+name = "HIWIN"
+repo = "https://example.com/parts-library/tree/main/modules/hiwin"
+version = "0.1.0"
+license = "CC-BY-SA-4.0"
+licensor = "DOQS Tests"
+function = "Linear motion components from HIWIN."
+
+# The name on the part, not the supplier you buy from. `cad-terms` is the
+# address somebody read before deciding what may be committed, so the decision
+# can be checked later instead of argued again.
+[brand]
+name = "HIWIN Technologies Corp."
+website = "https://www.hiwin.tw"
+cad-terms = "https://example.com/hiwin-terms"
+redistribute = true

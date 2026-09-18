@@ -1,0 +1,3 @@
+supplier,pn,relpath,bytes,sha256,source_url,terms,retrieved_utc
+thk,SHS20R300,cad/parts/SHS20R300.FCStd,,,https://example.com/thk/guideways,fetch-only,2026-09-18T00:00:00Z
+thk,SHS20R500,cad/parts/SHS20R500.FCStd,,,https://example.com/thk/guideways,fetch-only,2026-09-18T00:00:00Z

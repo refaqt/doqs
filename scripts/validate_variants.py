@@ -19,6 +19,8 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
+import cad_rules
+import naming_rules
 import tomllib
 from pathlib import Path
 
@@ -323,6 +325,222 @@ def check_parts_table(root: Path, table_path: Path) -> list[Finding]:
     return findings
 
 
+def family_path_of(reference: str) -> str:
+    """Turn `hiwin/hgr-rail` into the path it means inside a library.
+
+    A reference names the brand and the family, not the folders between them.
+    That keeps it short enough to read in a table cell, and it survives the
+    library changing how deeply it nests its own modules.
+    """
+    parts = [p for p in reference.split("/") if p]
+    return "/".join(f"modules/{p}" for p in parts)
+
+
+def library_part(root: Path, library: str, part: str) -> tuple[dict[str, str] | None, str]:
+    """Find one row in a library's catalogue.
+
+    `part` is `<brand>/<family>`, then `#`, then the brand's own part number.
+    Returns the row and the family path, or None and the reason.
+    """
+    reference, _, pn = part.partition("#")
+    if not pn:
+        return None, f"{part!r} names no part number (expected <brand>/<family>#<part number>)"
+    family_path = family_path_of(reference)
+    family = root / library / family_path
+    table = family / "bom" / PARTS_TABLE_NAME
+    if not table.is_file():
+        return None, (f"no family {reference!r} in {library} "
+                      f"(looked for {family_path}/bom/{PARTS_TABLE_NAME})")
+    for row in csv_reader_skipping_comments(table.read_text(encoding="utf-8")):
+        if (row.get("pn") or "").strip() == pn:
+            return row, family_path
+    return None, f"{pn!r} is not in the {reference!r} catalogue"
+
+
+def _interfaces_of(okh_path: Path, key: str) -> set[tuple[str, str]]:
+    """Interface name and major version, which is what compatibility turns on."""
+    if not okh_path.is_file():
+        return set()
+    data = load_toml(okh_path)
+    found = set()
+    for entry in data.get(key, []):
+        name = str(entry.get("name", ""))
+        version = str(entry.get("version", ""))
+        if name:
+            found.add((name, version.split(".")[0]))
+    return found
+
+
+def check_role(root: Path, okh_path: Path) -> list[Finding]:
+    """A role names the job; this checks that what fills it still fits.
+
+    An earlier design had the role commit a copy of what it buys. A library
+    update cannot substitute a different part number, so there was nothing to
+    protect against. These checks replace that file and catch more.
+    See docs/decisions/2026-09-18_role-modules.md.
+    """
+    data = load_toml(okh_path)
+    role = data.get("role")
+    if role is None:
+        return []
+    findings: list[Finding] = []
+    rel = okh_path.relative_to(root).as_posix()
+    library = str(role.get("library", ""))
+    selected = str(role.get("selected", ""))
+    if not library or not selected:
+        return findings  # shape is validate_okh.py's job
+    if not (root / library / naming_rules.LIBRARY_MARKER).is_file():
+        findings.append(Finding(rel, f"[role] library {library!r} is not a parts library"))
+        return findings
+
+    needs = _interfaces_of(okh_path, "consumes-interface")
+    candidates = [("selected", selected)]
+    candidates += [("approved", str(a)) for a in role.get("approved", [])
+                   if str(a) != selected]
+
+    for label, part in candidates:
+        row, detail = library_part(root, library, part)
+        if row is None:
+            findings.append(Finding(rel, f"[role] {label} {part!r}: {detail}"))
+            continue
+        status = (row.get("status") or "").strip()
+        if status == "eol":
+            note = (row.get("notes") or "").strip()
+            findings.append(Finding(
+                rel,
+                f"[role] {label} {part!r} is discontinued"
+                + (f" -- {note}" if note else ""),
+                warning=True,
+            ))
+        family_okh = root / library / detail / "okh.toml"
+        provides = _interfaces_of(family_okh, "provides-interface")
+        missing = sorted(needs - provides)
+        if missing:
+            findings.append(Finding(
+                rel,
+                f"[role] {label} {part!r} does not provide "
+                + ", ".join(f"{n} {v}.x" for n, v in missing),
+            ))
+
+    findings.extend(_check_role_document(root, okh_path, role, library, selected))
+    return findings
+
+
+def _check_role_document(
+    root: Path, okh_path: Path, role: dict, library: str, selected: str
+) -> list[Finding]:
+    """The role's drawing must link the part its text selects.
+
+    This is the check worth more than any generated file: it catches changing
+    the selection in text and forgetting the model, or the reverse. Nothing
+    written from the text could catch it, because it never looks at the CAD.
+    """
+    module_dir = okh_path.parent
+    rel = okh_path.relative_to(root).as_posix()
+    documents = sorted((module_dir / "cad").glob("*.FCStd"))
+    if not documents:
+        return []  # a role may be text-only until somebody draws it
+    row, family_path = library_part(root, library, selected)
+    if row is None:
+        return []  # already reported above
+    target_rel = (row.get("cad") or "").strip()
+    if not target_rel:
+        return []  # geometry fills up as people use parts
+    target = root / library / family_path / target_rel
+    if not target.exists():
+        return []  # fetch-only; validate_variants already warns on the row
+    for document in documents:
+        if cad_rules.links_resolve_to(document, target):
+            return []
+    linked = sorted({
+        Path(link).name
+        for document in documents
+        for link in cad_rules.document_links(document)
+    })
+    doc_names = ", ".join(d.name for d in documents)
+    return [Finding(
+        rel,
+        f"[role] selected is {selected!r} but {doc_names} links "
+        + (f"{', '.join(linked)}" if linked else "nothing")
+        + ". Change the selection and the model together.",
+    )]
+
+
+def mounted_libraries(root: Path) -> list[str]:
+    """Repository-root-relative paths of every parts library mounted here."""
+    return [lib.relative_to(root.resolve()).as_posix()
+            for lib in naming_rules.library_roots(root)]
+
+
+def check_bom_part_refs(root: Path, bom_path: Path) -> list[Finding]:
+    """A `part` cell points a bill-of-materials row at a library part.
+
+    One cell buys an ordinary part with no folder and no generated file. What
+    it needs in return is a check: a reference that no longer resolves, or a
+    brand that disagrees with the library, is caught here rather than at
+    ordering time.
+    """
+    findings: list[Finding] = []
+    rel = bom_path.relative_to(root).as_posix()
+    libraries = mounted_libraries(root)
+    for row in csv_reader_skipping_comments(bom_path.read_text(encoding="utf-8")):
+        ref = (row.get("part") or "").strip()
+        if not ref:
+            continue
+        part_id = (row.get("id") or "").strip()
+        name, _, part = ref.partition(":")
+        if not part:
+            continue  # shape is validate_names.py's job
+        matching = [lib for lib in libraries if Path(lib).name == name]
+        if not matching:
+            findings.append(Finding(
+                rel,
+                f"{part_id}: no parts library named {name!r} is mounted"
+                + (f" (mounted: {', '.join(libraries)})" if libraries else ""),
+            ))
+            continue
+        library_rel = matching[0]
+        found, detail = library_part(root, library_rel, part)
+        if found is None:
+            findings.append(Finding(rel, f"{part_id}: {detail}"))
+            continue
+        if (found.get("status") or "").strip() == "eol":
+            note = (found.get("notes") or "").strip()
+            findings.append(Finding(
+                rel,
+                f"{part_id}: {ref} is discontinued" + (f" -- {note}" if note else ""),
+                warning=True,
+            ))
+        # The row repeats the brand so a reader can see it without opening the
+        # library. Repeating it is only safe if it is checked.
+        family_okh = root / library_rel / detail / "okh.toml"
+        brand = ""
+        if family_okh.is_file():
+            brand = str(load_toml(family_okh).get("brand", {}).get("name", ""))
+        written_pn = (row.get("brand_pn") or "").strip()
+        library_pn = (found.get("pn") or "").strip()
+        if written_pn and written_pn != library_pn:
+            findings.append(Finding(
+                rel,
+                f"{part_id}: brand_pn is {written_pn!r} but {ref} is {library_pn!r}",
+            ))
+        # A row writes the everyday name -- DIN, HIWIN, Beckhoff -- while the
+        # library records the legal one. Accept either: the reference's own
+        # brand segment, or anything appearing in the legal name.
+        written_brand = (row.get("brand") or "").strip()
+        slug = part.split("/")[0]
+        if written_brand and not (
+            written_brand.lower() == slug.lower()
+            or (brand and written_brand.lower() in brand.lower())
+        ):
+            findings.append(Finding(
+                rel,
+                f"{part_id}: brand is {written_brand!r} but {ref} comes from "
+                f"{brand or slug!r}",
+            ))
+    return findings
+
+
 def check_all(root: Path) -> tuple[list[Finding], list[Finding]]:
     errors: list[Finding] = []
     warnings: list[Finding] = []
@@ -342,6 +560,7 @@ def check_all(root: Path) -> tuple[list[Finding], list[Finding]]:
         add(check_composition(root, okh))
         add(check_models(root, okh))
         add(check_sources(root, okh.parent))
+        add(check_role(root, okh))
 
     for index in sorted(root.rglob(VENDOR_INDEX)):
         if is_under_tooling_submodule(index, root):
@@ -352,6 +571,13 @@ def check_all(root: Path) -> tuple[list[Finding], list[Finding]]:
         if is_under_tooling_submodule(table, root):
             continue
         add(check_parts_table(root, table))
+
+    for bom in sorted(root.rglob("bom/bom.csv")):
+        if is_under_tooling_submodule(bom, root):
+            continue
+        if naming_rules.is_under_parts_library(bom, root):
+            continue
+        add(check_bom_part_refs(root, bom))
 
     for instance_dir in resolve_instance.instance_modules(root):
         rel = instance_dir.relative_to(root).as_posix()

@@ -1,0 +1,3 @@
+pn,description,spec,unit_mass_g,cad,datasheet,terms,revision,status,notes
+SHS20R300,SHS20 rail 300 mm,rail width 20 mm; hole pitch 60 mm,1310,cad/parts/SHS20R300.FCStd,,fetch-only,A,active,
+SHS20R500,SHS20 rail 500 mm,rail width 20 mm; hole pitch 60 mm,2180,cad/parts/SHS20R500.FCStd,,fetch-only,A,active,

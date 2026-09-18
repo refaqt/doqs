@@ -52,10 +52,10 @@ function = "Guides the X carriage over 500 mm of travel."
 
 [role]
 library  = "modules/stoq"
-selected = "modules/hiwin/modules/hgr-rail#HGR20R500"
+selected = "hiwin/hgr-rail#HGR20R500"
 approved = [
-  "modules/hiwin/modules/hgr-rail#HGR20R500",
-  "modules/thk/modules/shs-rail#SHS20R500",
+  "hiwin/hgr-rail#HGR20R500",
+  "thk/shs-rail#SHS20R500",
 ]
 
 [[consumes-interface]]
@@ -66,12 +66,18 @@ version = "1.0"
 | Key | Meaning |
 | --- | --- |
 | `library` | Repository-root-relative path of the mounted parts library |
-| `selected` | The part you buy today: family path, then `#`, then the part number |
+| `selected` | The part you buy today: `<brand>/<family>`, then `#`, then the brand's own part number. It must also appear in `approved`. |
 | `approved` | Optional. Parts you checked against this role's requirements and would accept |
 
 `approved` is where engineering judgement gets written down. Without it, "we
 evaluated THK once and it was fine" lives in somebody's memory and dies when
-they leave.
+they leave. Validation holds every entry to the same rules as the selected part,
+so the record cannot rot into a wrong claim, and it refuses a `selected` that is
+not among them: what you buy today must be something you decided is acceptable.
+
+**A reference names the brand and the family**, not the folders between them:
+`hiwin/hgr-rail#HGR20R500`. That keeps it short enough to read in a table cell,
+and it stays valid if the library changes how it nests its own modules.
 
 ---
 
@@ -200,7 +206,7 @@ cell on the row you already write does the whole job:
 
 ```csv
 id,name,spec,category,qty,unit,unit_mass_g,equiv_class,brand,brand_pn,part,notes
-STD-004,Cap Screw,DIN912 M4x10 A2-70,fastener,24,pc,2,M4X10-SHCS,DIN,912,stoq:din/din-912#M4X10,
+STD-004,Cap Screw,DIN912 M4x10 A2-70,fastener,24,pc,2,M4X10-SHCS,DIN,M4X10,stoq:din/din-912#M4X10,
 ```
 
 Use a role module when the part has requirements, an interface, or a place in

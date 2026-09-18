@@ -1,0 +1,22 @@
+Third-party supplier files — NOT covered by this project's licence.
+
+Files in this directory belong to the brand that makes the part: geometry
+downloaded from them, datasheets and catalogues they published, and the FreeCAD
+documents we build from those files. A document built from a supplier's model is
+derived from their work, so it is theirs too.
+
+They are used here under each brand's own terms, which are recorded in the
+`[brand]` table of that brand's `okh.toml`. They are excluded from the
+CC BY-SA 4.0 licence that covers the record this project compiles, and from
+every other licence named in the repository root LICENSE.
+
+Provenance for each file — brand, part number, source address, checksum and
+redistribution terms — is recorded in `vendor-index.csv`.
+
+Files marked `fetch-only` may not be redistributed and are therefore not
+committed. Only their manifest row is. Fetch them from the brand before CAD
+work.
+
+Removing or replacing a supplier's file does not change the licence of the
+record this project compiles. See the repository root LICENSE for the full
+overview and TRADEMARKS.md for reserved marks.
