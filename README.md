@@ -37,6 +37,8 @@ files.
 | [docs/using-doqs.md](docs/using-doqs.md) | **Start here if you use doqs in your own repository**: what to run, what gets copied, what for |
 | [docs/architecture.md](docs/architecture.md) | Full DOQS system specification (module layout, `simulation/`, versioning, interfaces) |
 | [docs/variants.md](docs/variants.md) | Product families: many lengths and options of one design, and how a machine consumes one configuration |
+| [docs/parts-library.md](docs/parts-library.md) | Parts we buy: one shared library, how it is structured, and what may be committed |
+| [docs/roles.md](docs/roles.md) | Buying a part without letting the brand's name leak into your design |
 | [docs/syson.md](docs/syson.md) | Local SysON (graphical SysML) via Docker |
 | [docs/readiness-levels.md](docs/readiness-levels.md) | OTRL / ODRL definitions for `okh.toml` |
 | [docs/naming.md](docs/naming.md) | Naming conventions (machines, modules, parts) |
