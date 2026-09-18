@@ -1,6 +1,6 @@
-id,name,spec,category,qty,unit,unit_cost_eur,unit_mass_g,equiv_class,supplier_1,supplier_1_pn,supplier_2,supplier_2_pn,supplier_3,supplier_3_pn,notes
-PRF-001,Linear Rail,HGR20 profile rail,mechanical,2,pc,0.00,0,HGR20-RAIL,,,,,,,
-PRF-002,Extrusion,"40x80 profile, cut to {extrusion_length} mm",mechanical,1,pc,22.50,4100,ALU-40X80,Motedis,40x80-I,,,,,
-MEC-001,Carriage Plate,"6061-T6, 10 mm",mechanical,1,pc,38.00,620,,Local,,,,,,
-BRK-001,End Plate,"6061-T6, {end_plate_thickness} mm",mechanical,2,pc,16.00,310,,Local,,,,,,
-STD-001,Rail Bolt,DIN912 M5x20 A2-70,fastener,24,pc,0.14,6,M5X20-SHCS,Wuerth,0912 5 20,,,,,
+id,name,spec,category,qty,unit,unit_mass_g,equiv_class,brand,brand_pn,part,notes
+PRF-001,Linear Rail,HGR20 profile rail,mechanical,2,pc,0,HGR20-RAIL,,,,
+PRF-002,Extrusion,"40x80 profile, cut to {extrusion_length} mm",mechanical,1,pc,4100,ALU-40X80,Motedis,40x80-I,,
+MEC-001,Carriage Plate,"6061-T6, 10 mm",mechanical,1,pc,620,,Local,,,
+BRK-001,End Plate,"6061-T6, {end_plate_thickness} mm",mechanical,2,pc,310,,Local,,,
+STD-001,Rail Bolt,DIN912 M5x20 A2-70,fastener,24,pc,6,M5X20-SHCS,Wuerth,0912 5 20,,

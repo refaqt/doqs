@@ -9,8 +9,7 @@ id      = "PRF-001"
 table   = "tables/hgr20-rail.csv"
 key     = "rail_length"
 match   = "exact"
-columns = ["spec", "unit_cost_eur", "unit_mass_g",
-           "supplier_1", "supplier_1_pn", "supplier_2", "supplier_2_pn"]
+columns = ["spec", "unit_mass_g", "brand", "brand_pn"]
 
 # Geometry for the same row. No `cad` key here: the table supplies a different
 # STEP per length, and resolve_bom.py picks the one for the selected model.

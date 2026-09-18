@@ -148,7 +148,7 @@ class TestInstanceFreshness(FixtureCopy):
 
     def test_stale_resolved_bom_is_refused(self) -> None:
         bom = self.root / "modules/x-stage/bom/resolved.csv"
-        bom.write_text(bom.read_text().replace("27.10", "99.99"))
+        bom.write_text(bom.read_text().replace("HGR20R500", "HGR25R500"))
         self.assertFails("stale")
 
     def test_missing_resolved_file_is_refused(self) -> None:

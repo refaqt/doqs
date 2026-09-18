@@ -50,8 +50,8 @@ class TestTwoInstancesOfOneFamily(MachineCopy):
     def test_each_instance_resolves_its_own_length(self) -> None:
         x_rail = next(r for r in self.resolved_bom(self.x) if r["id"] == "PRF-001")
         y_rail = next(r for r in self.resolved_bom(self.y) if r["id"] == "PRF-001")
-        self.assertEqual(x_rail["supplier_1_pn"], "HGR20R500")
-        self.assertEqual(y_rail["supplier_1_pn"], "HGR20R300")
+        self.assertEqual(x_rail["brand_pn"], "HGR20R500")
+        self.assertEqual(y_rail["brand_pn"], "HGR20R300")
 
     def test_each_instance_resolves_its_own_drive(self) -> None:
         x_motor = next(r for r in self.resolved_bom(self.x) if r["id"] == "MOT-001")
@@ -74,7 +74,7 @@ class TestGeneratedFiles(MachineCopy):
 
     def test_stale_output_fails_check(self) -> None:
         bom = self.x / "bom" / "resolved.csv"
-        bom.write_text(bom.read_text().replace("27.10", "99.99"))
+        bom.write_text(bom.read_text().replace("HGR20R500", "HGR25R500"))
         self.assertFalse(resolve_instance.process(self.root, self.x, check=True))
 
     def test_missing_output_fails_check(self) -> None:

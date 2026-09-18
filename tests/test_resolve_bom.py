@@ -39,12 +39,12 @@ class TestLengthTables(FamilyCopy):
         for model, pn in expected.items():
             with self.subTest(model=model):
                 rows, _ = resolve(self.core, model)
-                self.assertEqual(self.row(rows, "PRF-001")["supplier_1_pn"], pn)
+                self.assertEqual(self.row(rows, "PRF-001")["brand_pn"], pn)
 
-    def test_price_and_mass_come_from_the_table(self) -> None:
+    def test_brand_and_mass_come_from_the_table(self) -> None:
         rows, _ = resolve(self.core, "500mm")
         rail = self.row(rows, "PRF-001")
-        self.assertEqual(rail["unit_cost_eur"], "27.10")
+        self.assertEqual(rail["brand"], "HIWIN")
         self.assertEqual(rail["unit_mass_g"], "2150")
 
     def test_vendor_step_follows_the_selected_length(self) -> None:
@@ -68,7 +68,7 @@ class TestLengthTables(FamilyCopy):
             "alias,value,unit,description\nrail_length,640,mm,x\n")
         rows, _ = resolve(self.core, "640mm")
         rail = self.row(rows, "PRF-001")
-        self.assertEqual(rail["supplier_1_pn"], "HGR20R800")
+        self.assertEqual(rail["brand_pn"], "HGR20R800")
         self.assertIn("stock length 800, cut to 640", rail["notes"])
 
 
@@ -98,7 +98,7 @@ class TestOverlays(FamilyCopy):
         bolt = self.row(rows, "STD-001")
         self.assertEqual(bolt["qty"], "32")
         self.assertEqual(bolt["name"], "Rail Bolt")          # untouched
-        self.assertEqual(bolt["unit_cost_eur"], "0.14")      # untouched
+        self.assertEqual(bolt["brand_pn"], "0912 5 20")      # untouched
 
     def test_qty_zero_removes_a_row(self) -> None:
         rows = self.overlay("id,qty\nSTD-001,0\n")

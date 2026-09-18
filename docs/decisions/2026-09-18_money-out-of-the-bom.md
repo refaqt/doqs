@@ -1,7 +1,7 @@
 # ADR-006 — Money leaves the bill of materials
 
 - **Date:** 2026-09-18
-- **Status:** Proposed
+- **Status:** Accepted
 - **Changes:** [ADR-001 naming and versioning](2026-06-04_naming-and-versioning.md),
   [ADR-003 product families](2026-09-15_product-family-variants.md)
 - **Breaking:** yes. See *Migration*.

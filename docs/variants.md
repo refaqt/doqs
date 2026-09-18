@@ -197,10 +197,10 @@ part number **and its own vendor STEP**. One table gives all of it.
 
 ```csv
 # bom/tables/hgr20-rail.csv
-key,spec,unit_cost_eur,unit_mass_g,supplier_1,supplier_1_pn,supplier_2,supplier_2_pn,cad
-300,HGR20 rail 300 mm,18.40,1290,HIWIN,HGR20R300,CPC,ARR20-300,cad/vendor/hiwin/HGR20R300.step
-500,HGR20 rail 500 mm,27.10,2150,HIWIN,HGR20R500,CPC,ARR20-500,cad/vendor/hiwin/HGR20R500.step
-800,HGR20 rail 800 mm,41.80,3440,HIWIN,HGR20R800,,,cad/vendor/hiwin/HGR20R800.step
+key,spec,unit_mass_g,brand,brand_pn,cad
+300,HGR20 rail 300 mm,1290,HIWIN,HGR20R300,cad/vendor/hiwin/HGR20R300.step
+500,HGR20 rail 500 mm,2150,HIWIN,HGR20R500,cad/vendor/hiwin/HGR20R500.step
+800,HGR20 rail 800 mm,3440,HIWIN,HGR20R800,cad/vendor/hiwin/HGR20R800.step
 ```
 
 ```toml
@@ -210,13 +210,17 @@ id      = "PRF-001"                 # the BOM row to fill
 table   = "tables/hgr20-rail.csv"
 key     = "rail_length"             # parameter alias selecting the row
 match   = "exact"                   # exact | nearest-up | nearest-down
-columns = ["spec", "unit_cost_eur", "unit_mass_g",
-           "supplier_1", "supplier_1_pn", "supplier_2", "supplier_2_pn"]
+columns = ["spec", "unit_mass_g", "brand", "brand_pn"]
 ```
 
-`bom/bom.csv` keeps its exact 16-column DOQS header, so every existing validator
+`bom/bom.csv` keeps its exact 12-column DOQS header, so every existing validator
 reads it unchanged; the binding lives in the sidecar. **Adding a length needs no
 BOM edit at all.**
+
+The table holds no price, because the bill of materials no longer has a column
+for one — see [ADR-006](decisions/2026-09-18_money-out-of-the-bom.md). A second
+source is recorded with `equiv_class` on the BOM row, which says "take either"
+without limiting you to three named distributors.
 
 - `match = "exact"` refuses a length no supplier stocks. Declaring a `640mm`
   model then fails CI with *"no row for key 640. Stocked: 300, 500, 800"* —
@@ -243,7 +247,7 @@ id,qty,notes
 STD-004,6,Extra carriage bolts for the 800 mm variant
 ```
 
-An unknown `id` adds a row (and must then carry the full 16-column header).
+An unknown `id` adds a row (and must then carry the full 12-column header).
 `qty = 0` removes one.
 
 ---

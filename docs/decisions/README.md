@@ -17,6 +17,6 @@ follows from it. The guide that explains how to use the result lives in `docs/`.
 | 2026-09-16 | [A session hook downloads the shared agent kit](2026-09-16_agent-kit-session-hook.md) | Accepted |
 | 2026-09-16 | [CAD tools live in doqs, not as per-module copies](2026-09-16_cad-tools-in-doqs.md) | Accepted |
 | 2026-09-16 | [What `export_variant.py` promises](2026-09-16_export-variant-contract.md) | Accepted |
-| 2026-09-18 | [ADR-004 — A shared library for parts we buy](2026-09-18_parts-library.md) | Proposed |
-| 2026-09-18 | [ADR-005 — Role modules: a stable name for a changing part](2026-09-18_role-modules.md) | Proposed |
-| 2026-09-18 | [ADR-006 — Money leaves the bill of materials](2026-09-18_money-out-of-the-bom.md) | Proposed |
+| 2026-09-18 | [ADR-004 — A shared library for parts we buy](2026-09-18_parts-library.md) | Accepted |
+| 2026-09-18 | [ADR-005 — Role modules: a stable name for a changing part](2026-09-18_role-modules.md) | Accepted |
+| 2026-09-18 | [ADR-006 — Money leaves the bill of materials](2026-09-18_money-out-of-the-bom.md) | Accepted |
