@@ -24,20 +24,22 @@ Work done:
 
 - The pointer to the shared agent kit was moved to the newest version and
   saved.
+- The pull request template the new rule asks for was added. The box on GitHub
+  now starts with the four headings.
 - All project checks were run against the new version. Nothing broke.
 
 ## Decisions
 
-Only the pointer was changed. The new reporting rule asks a repository to copy
-a pull request template into its own `.github/` folder. This repository does
-not have that template yet. Adding it is a separate choice, so it was left for
-a later change.
+The copy of the pull request template leaves out one line of the original. That
+line tells a repository to copy the file into its own `.github/` folder. Once
+the file is the template, the line has done its job, and it would show up in
+every pull request box. The shared kit drops the same line in its own copy.
 
 ## Next Steps
 
 From now on, write pull requests, commit messages and log entries in the shape
-the reporting rule gives. Anyone who wants the pull request box on GitHub to
-start with those headings can copy the template the kit ships.
+the reporting rule gives. The pull request box on GitHub already starts with
+the right headings.
 
 ## Related
 
