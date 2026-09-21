@@ -50,6 +50,10 @@ SKIPPED_TYPE_PREFIXES = (
     "App::Origin",
     "App::Line",
     "App::Plane",
+    # An origin's point was missing here while its line and its plane were on
+    # the list, so every document measured its origin points. A vertex has no
+    # mass and nothing worth fingerprinting.
+    "App::Point",
     "App::Placement",
     "PartDesign::CoordinateSystem",
     "PartDesign::Line",
@@ -110,6 +114,19 @@ def write_fingerprint(path: Path, data: dict) -> dict:
         encoding="utf-8",
     )
     return payload
+
+
+def measured_nothing(payload: dict) -> bool:
+    """True when every object in a fingerprint run failed to be measured.
+
+    A document with no geometry at all — a spreadsheet, say — measures zero
+    objects and reports zero errors, which is correct and must stay quiet. The
+    case worth shouting about is zero measured *and* something failed: the file
+    then describes no geometry while looking like a finished result. That is how
+    the tool wrote empty fingerprints for every real model without anyone
+    noticing.
+    """
+    return not payload.get("objects") and bool(payload.get("errors"))
 
 
 def load_fingerprint(path: Path) -> dict:
