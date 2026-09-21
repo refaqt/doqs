@@ -94,6 +94,27 @@ class TestLicence(LibraryCopy):
     def test_the_library_vendor_stub_names_no_hardware_licence(self) -> None:
         self.assertNotIn("CERN", expected_library_stub("vendor"))
 
+    def test_the_licence_walk_stops_at_the_tooling_submodules(self) -> None:
+        """A real library mounts doqs, and doqs ships cad/ folders of its own.
+
+        Without this the library is told to write a licence stub into the tool
+        that is checking it.
+        """
+        for mount in ("doqs", ".agents"):
+            (self.root / mount / "templates" / "cad").mkdir(parents=True)
+            (self.root / mount / "docs" / "datasheets").mkdir(parents=True)
+        found = [d.relative_to(self.root).as_posix()
+                 for d, _ in mapped_library_dirs(self.root)]
+        self.assertFalse([p for p in found
+                          if p.startswith("doqs/") or p.startswith(".agents/")],
+                         found)
+        self.assertIn("modules/hiwin/modules/hgr-rail/cad", found)
+
+    def test_a_library_that_mounts_doqs_still_passes(self) -> None:
+        """The shape every real parts library has, unlike this fixture."""
+        (self.root / "doqs" / "templates" / "cad").mkdir(parents=True)
+        self.assertEqual(check_any_repo(self.root), [])
+
     def test_the_library_trademarks_name_only_the_licence_a_library_has(self) -> None:
         """The machine template names three licences. A library carries one.
 

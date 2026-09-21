@@ -587,6 +587,12 @@ def mapped_library_dirs(root: Path) -> list[tuple[Path, str]]:
 
     `cad/` is carved out whole, not just `cad/vendor/`: in a library every
     geometry file is the brand's work or derived from it.
+
+    The walk skips `doqs/` and `.agents/`, the same way `vendor_dirs` does. A
+    real parts library mounts doqs to run these checks at all, and doqs ships
+    `cad` directories of its own under `templates/` and `tests/`. Without this
+    the library would be asked to write a licence stub into the tool checking
+    it. See docs/mistakes/2026-09-16_validators-walked-agent-kit.md.
     """
     found: list[tuple[Path, str]] = []
     for name, kind in LIBRARY_DIR_KIND.items():
@@ -599,9 +605,13 @@ def mapped_library_dirs(root: Path) -> list[tuple[Path, str]]:
     for module_cad in sorted(root.rglob("cad")):
         if not module_cad.is_dir() or module_cad.parent == root:
             continue
+        if is_under_tooling_submodule(module_cad, root):
+            continue
         found.append((module_cad, "vendor"))
     for module_sheets in sorted(root.rglob(LIBRARY_DATASHEET_DIR.as_posix())):
         if not module_sheets.is_dir() or module_sheets.parent.parent == root:
+            continue
+        if is_under_tooling_submodule(module_sheets, root):
             continue
         found.append((module_sheets, "vendor"))
     return found
