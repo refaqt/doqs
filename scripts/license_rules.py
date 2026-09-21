@@ -210,6 +210,18 @@ def expected_library_stub(kind: str) -> str:
     return expected_stub(kind)
 
 
+def expected_library_trademarks(project_name: str, organisation: str) -> str:
+    """A library's own template, for the same reason the tools repo has one.
+
+    The machine template names CERN-OHL-S, GPL and CC BY-SA. A library has only
+    CC BY-SA -- `check_library_generated_files` treats a CERN-OHL-S text here as
+    an error -- so the machine wording would contradict the validator beside it.
+    It also says nothing about the brands' own marks, which is the one trademark
+    question a parts library actually raises.
+    """
+    return render(read_template("library/TRADEMARKS.md"), project_name, organisation)
+
+
 def expected_tools_root_license() -> str:
     return read_template("tools/LICENSE")
 
@@ -684,7 +696,7 @@ def apply_library_repo(root: Path) -> list[str]:
         actions.append(wrote)
     wrote = _write_if_needed(
         root / "TRADEMARKS.md",
-        render(read_template("TRADEMARKS.md"), name, org),
+        expected_library_trademarks(name, org),
         ("trademark", name),
     )
     if wrote:
