@@ -214,6 +214,14 @@ It does three jobs at once:
 Centre of mass earns its place by catching mirrored and rotated parts whose
 volume, area and bounding box are all unchanged.
 
+FreeCAD spreads that one number over two properties, and a fingerprint reads
+whichever the shape carries. `CenterOfMass` covers a solid, a shell, a face, a
+wire and an edge. `CenterOfGravity` covers a compound — which is what an
+`App::Part`, an `App::Link`, an assembly, a PartDesign `Body` and every
+PartDesign feature actually return. For a compound of solids the two give the
+same number, so entries written by either route compare directly. A shape with
+no mass at all records `com: null` and keeps the rest of its entry.
+
 Values are rounded to six significant figures. OCCT recomputes are not bit-stable
 across platforms, and without that tolerance every rebuild would emit a diff.
 

@@ -62,18 +62,46 @@ def read_params(cad_dir=None, path=None):
     return params
 
 
+def _centre_of_mass(shape):
+    """The centre of mass of a shape, or ``None`` when it has none.
+
+    No single FreeCAD property covers every shape, and the gap is not a corner
+    case: it is the whole model tree.
+
+    ``CenterOfMass`` is defined on a solid, a shell, a face, a wire and an edge.
+    It does **not** exist on a compound — and a compound is exactly what an
+    ``App::Part``, an ``App::Link``, an assembly, a PartDesign ``Body`` and every
+    PartDesign feature hand back.  Reading it there raises ``AttributeError``,
+    which was caught one level up and recorded as a build error, so a document of
+    any real shape fingerprinted zero objects and failed its own gate.
+
+    ``CenterOfGravity`` covers the compound.  On a compound of solids it returns
+    the volume-weighted centroid, which is bit for bit the quantity
+    ``CenterOfMass`` gives for one solid, so the recorded value keeps its
+    meaning.  It raises ``RuntimeError`` for a shape with no mass at all, such as
+    a vertex, where there is nothing to record.
+    """
+    for attribute in ("CenterOfMass", "CenterOfGravity"):
+        try:
+            point = getattr(shape, attribute)
+        except (AttributeError, RuntimeError):
+            continue
+        return [float(point.x), float(point.y), float(point.z)]
+    return None
+
+
 def _measure_shape(shape, rules):
     """Bounding box, mass properties and topology counts for one shape."""
     box = shape.BoundBox
-    com = shape.CenterOfMass
     return {
         "valid": bool(shape.isValid()),
         "closed": bool(shape.isClosed()),
         "volume": float(shape.Volume),
         "area": float(shape.Area),
         # Centre of mass is what catches a mirrored or rotated part whose
-        # volume, area and bounding box are all unchanged.
-        "com": [float(com.x), float(com.y), float(com.z)],
+        # volume, area and bounding box are all unchanged. A shape with no mass
+        # records null rather than losing the whole object to an error.
+        "com": _centre_of_mass(shape),
         "bbox": [
             float(box.XMin), float(box.YMin), float(box.ZMin),
             float(box.XMax), float(box.YMax), float(box.ZMax),
@@ -170,6 +198,15 @@ def write(doc=None, path=None, params=None, cad_dir=None):
     print(f"Fingerprinted {len(payload['objects'])} objects -> {target}")
     for err in payload["errors"]:
         print(f"  warning: {err}")
+    if rules.measured_nothing(payload):
+        # Catching one broken feature is right; writing a file that measured
+        # none of them and calling it done is not. This is the line that was
+        # missing while the tool produced empty fingerprints for every real
+        # model. See docs/mistakes/2026-09-21_fingerprint-measured-nothing.md.
+        print(
+            f"  ERROR: nothing was measured. All {len(payload['errors'])} objects "
+            "failed, so this fingerprint describes no geometry. Do not commit it."
+        )
     return payload
 
 

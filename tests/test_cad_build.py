@@ -23,6 +23,7 @@ if str(_SCRIPTS) not in sys.path:
 
 import cad_build  # noqa: E402
 import cad_fingerprint  # noqa: E402
+import cad_rules  # noqa: E402
 import cad_sync_params  # noqa: E402
 
 _FIXTURE = _REPO / "tests" / "fixtures" / "minimal-machine"
@@ -287,6 +288,134 @@ class TestSyncActiveSaveDiscipline(unittest.TestCase):
         sheet = doc.getObjectsByLabel("Params")[0]
         self.assertEqual(sheet.cells, {"rail_length": "800 mm"})
 
+
+class _Vector:
+    def __init__(self, x, y, z):
+        self.x, self.y, self.z = x, y, z
+
+
+class _BoundBox:
+    XMin = YMin = ZMin = 0.0
+    XMax = YMax = ZMax = 1.0
+
+
+class _Shape:
+    """A stand-in for a FreeCAD shape, built to expose only what a real one does.
+
+    The real types differ in which centre-of-mass property they carry, and that
+    difference is the whole point of the test: a solid has `CenterOfMass`, a
+    compound has only `CenterOfGravity`, and a vertex has neither.
+    """
+
+    Volume = 10.0
+    Area = 30.0
+    Solids = [object()]
+    Shells = [object()]
+    Faces = [object(), object()]
+    Edges = [object()]
+    Vertexes = []
+
+    def __init__(self, centre_of_mass=None, centre_of_gravity=None):
+        self.BoundBox = _BoundBox()
+        if centre_of_mass is not None:
+            self.CenterOfMass = _Vector(*centre_of_mass)
+        if centre_of_gravity is not None:
+            self._centre_of_gravity = _Vector(*centre_of_gravity)
+
+    def __getattr__(self, name):
+        # A compound raises AttributeError for CenterOfMass; a massless shape
+        # raises RuntimeError for CenterOfGravity. Reproduce both exactly.
+        if name == "CenterOfGravity":
+            centre = self.__dict__.get("_centre_of_gravity")
+            if centre is None:
+                raise RuntimeError("Cannot get center of gravity")
+            return centre
+        raise AttributeError(f"{type(self).__name__!r} object has no attribute {name!r}")
+
+    def isValid(self):
+        return True
+
+    def isClosed(self):
+        return True
+
+
+class TestCentreOfMass(unittest.TestCase):
+    """FreeCAD spreads the centre of mass over two properties. Cover both."""
+
+    def test_solid_uses_center_of_mass(self):
+        shape = _Shape(centre_of_mass=(1.0, 2.0, 3.0))
+        self.assertEqual(cad_fingerprint._centre_of_mass(shape), [1.0, 2.0, 3.0])
+
+    def test_compound_falls_back_to_center_of_gravity(self):
+        """A compound has no CenterOfMass, and a compound is what a Body is.
+
+        Before this fallback existed, every App::Part, App::Link, assembly,
+        PartDesign Body and PartDesign feature raised AttributeError here, and
+        a document of any real shape fingerprinted zero objects.
+        """
+        shape = _Shape(centre_of_gravity=(4.0, 5.0, 6.0))
+        self.assertEqual(cad_fingerprint._centre_of_mass(shape), [4.0, 5.0, 6.0])
+
+    def test_center_of_mass_wins_when_a_shape_has_both(self):
+        shape = _Shape(centre_of_mass=(1.0, 2.0, 3.0), centre_of_gravity=(9.0, 9.0, 9.0))
+        self.assertEqual(cad_fingerprint._centre_of_mass(shape), [1.0, 2.0, 3.0])
+
+    def test_massless_shape_records_nothing(self):
+        self.assertIsNone(cad_fingerprint._centre_of_mass(_Shape()))
+
+
+class TestMeasureShape(unittest.TestCase):
+    def test_a_compound_is_measured_in_full(self):
+        measured = cad_fingerprint._measure_shape(
+            _Shape(centre_of_gravity=(4.0, 5.0, 6.0)), cad_fingerprint.cad_rules)
+        self.assertEqual(measured["com"], [4.0, 5.0, 6.0])
+        self.assertEqual(measured["volume"], 10.0)
+        self.assertEqual(measured["counts"]["faces"], 2)
+
+    def test_a_massless_shape_is_still_measured(self):
+        """No centre of mass must not cost the volume, the box and the counts."""
+        measured = cad_fingerprint._measure_shape(_Shape(), cad_fingerprint.cad_rules)
+        self.assertIsNone(measured["com"])
+        self.assertEqual(measured["bbox"], [0.0, 0.0, 0.0, 1.0, 1.0, 1.0])
+
+    def test_a_null_centre_survives_normalising_and_writing(self):
+        """`com: null` must reach the file, not raise while rounding floats."""
+        measured = cad_fingerprint._measure_shape(_Shape(), cad_fingerprint.cad_rules)
+        self.assertIsNone(cad_rules.normalise({"objects": {"X": measured}})
+                          ["objects"]["X"]["com"])
+
+
+class TestMeasuredNothing(unittest.TestCase):
+    """An empty fingerprint that reports success is how the bug stayed hidden."""
+
+    def test_every_object_failing_is_reported(self):
+        self.assertTrue(cad_rules.measured_nothing({"objects": {}, "errors": ["X: boom"]}))
+
+    def test_a_document_with_no_geometry_stays_quiet(self):
+        """A spreadsheet measures nothing and that is correct."""
+        self.assertFalse(cad_rules.measured_nothing({"objects": {}, "errors": []}))
+
+    def test_one_broken_feature_among_many_is_not_the_same_thing(self):
+        self.assertFalse(
+            cad_rules.measured_nothing({"objects": {"Pad": {}}, "errors": ["X: boom"]}))
+
+
+class TestSkippedTypes(unittest.TestCase):
+    def test_every_origin_datum_is_skipped(self):
+        """The origin's point was missing while its line and plane were listed."""
+        for type_id in ("App::Origin", "App::Line", "App::Plane", "App::Point"):
+            self.assertTrue(
+                type_id.startswith(cad_rules.SKIPPED_TYPE_PREFIXES),
+                f"{type_id} should be skipped",
+            )
+
+    def test_real_content_is_not_skipped(self):
+        for type_id in ("App::Part", "App::Link", "Assembly::AssemblyObject",
+                        "PartDesign::Body", "PartDesign::Pad", "Part::Feature"):
+            self.assertFalse(
+                type_id.startswith(cad_rules.SKIPPED_TYPE_PREFIXES),
+                f"{type_id} should be measured",
+            )
 
 if __name__ == "__main__":
     unittest.main()
