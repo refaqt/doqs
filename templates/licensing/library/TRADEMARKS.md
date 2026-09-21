@@ -1,26 +1,26 @@
 # Trademarks
 
-"REFAQT" and the REFAQT logo, and "Parts Library Fixture" and
-the Parts Library Fixture logo, are trademarks of REFAQT.
+"{{ORGANISATION}}" and the {{ORGANISATION}} logo, and "{{PROJECT_NAME}}" and
+the {{PROJECT_NAME}} logo, are trademarks of {{ORGANISATION}}.
 
 These marks are **not** covered by the CC BY-SA 4.0 licence that applies to the
 record this repository compiles (see [`LICENSE`](LICENSE)). You are free to use,
 modify, and redistribute that record under it, but that permission does not
-extend to the REFAQT or Parts Library Fixture names or logos.
+extend to the {{ORGANISATION}} or {{PROJECT_NAME}} names or logos.
 
 You may not:
 
-- Use the REFAQT or Parts Library Fixture names or logos on a modified
+- Use the {{ORGANISATION}} or {{PROJECT_NAME}} names or logos on a modified
   or derivative work in a way that implies it is the original project or is
-  endorsed by REFAQT.
-- Use the REFAQT or Parts Library Fixture names or logos in the name or
+  endorsed by {{ORGANISATION}}.
+- Use the {{ORGANISATION}} or {{PROJECT_NAME}} names or logos in the name or
   branding of a fork, derivative, or unrelated product.
-- Use the REFAQT or Parts Library Fixture names or logos in any way
+- Use the {{ORGANISATION}} or {{PROJECT_NAME}} names or logos in any way
   likely to cause confusion about the origin or affiliation of a product.
 
-Referring to this project by name (e.g. "based on Parts Library Fixture",
-"compatible with Parts Library Fixture") for accurate, non-confusing description
-is fine. For any other use of the marks, contact REFAQT for
+Referring to this project by name (e.g. "based on {{PROJECT_NAME}}",
+"compatible with {{PROJECT_NAME}}") for accurate, non-confusing description
+is fine. For any other use of the marks, contact {{ORGANISATION}} for
 permission.
 
 ## Marks that are not ours

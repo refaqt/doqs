@@ -22,6 +22,7 @@ from license_rules import (  # noqa: E402
     LIBRARY_LICENSE,
     check_any_repo,
     expected_library_stub,
+    expected_library_trademarks,
     mapped_library_dirs,
 )
 from naming_rules import (  # noqa: E402
@@ -92,6 +93,48 @@ class TestLicence(LibraryCopy):
 
     def test_the_library_vendor_stub_names_no_hardware_licence(self) -> None:
         self.assertNotIn("CERN", expected_library_stub("vendor"))
+
+    def test_the_licence_walk_stops_at_the_tooling_submodules(self) -> None:
+        """A real library mounts doqs, and doqs ships cad/ folders of its own.
+
+        Without this the library is told to write a licence stub into the tool
+        that is checking it.
+        """
+        for mount in ("doqs", ".agents"):
+            (self.root / mount / "templates" / "cad").mkdir(parents=True)
+            (self.root / mount / "docs" / "datasheets").mkdir(parents=True)
+        found = [d.relative_to(self.root).as_posix()
+                 for d, _ in mapped_library_dirs(self.root)]
+        self.assertFalse([p for p in found
+                          if p.startswith("doqs/") or p.startswith(".agents/")],
+                         found)
+        self.assertIn("modules/hiwin/modules/hgr-rail/cad", found)
+
+    def test_a_library_that_mounts_doqs_still_passes(self) -> None:
+        """The shape every real parts library has, unlike this fixture."""
+        (self.root / "doqs" / "templates" / "cad").mkdir(parents=True)
+        self.assertEqual(check_any_repo(self.root), [])
+
+    def test_the_library_trademarks_name_only_the_licence_a_library_has(self) -> None:
+        """The machine template names three licences. A library carries one.
+
+        Naming CERN-OHL-S here would contradict the check beside it, which
+        treats a CERN-OHL-S text in a library as an error.
+        """
+        text = expected_library_trademarks("STOQ", "REFAQT")
+        self.assertIn("CC BY-SA", text)
+        self.assertNotIn("CERN", text)
+        self.assertNotIn("GPL", text)
+
+    def test_the_library_trademarks_say_the_brands_marks_are_not_ours(self) -> None:
+        """The one trademark question a parts library actually raises."""
+        text = expected_library_trademarks("STOQ", "REFAQT")
+        self.assertIn("brand names", text.lower())
+        self.assertIn("part numbers", text.lower())
+
+    def test_the_fixture_trademarks_are_the_library_ones(self) -> None:
+        self.assertNotIn(
+            "CERN", (self.root / "TRADEMARKS.md").read_text(encoding="utf-8"))
 
     def test_the_fixture_licence_layout_is_complete(self) -> None:
         self.assertEqual(check_any_repo(self.root), [])
