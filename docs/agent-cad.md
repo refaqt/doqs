@@ -211,6 +211,12 @@ It does three jobs at once:
 * DOQS computes it, not the MCP, so headless CI and the live GUI session produce
   the same numbers.
 
+Only objects that carry real geometry are measured. Datum lines, planes and
+points are skipped, and so is an object whose `Shape` is a link to another object
+rather than geometry of its own. An analysis mesh is the common case: it points
+`Shape` at the part it was meshed from. The mesh is a result, not geometry the
+design owns, so it is left out and the part beside it is measured as usual.
+
 Centre of mass earns its place by catching mirrored and rotated parts whose
 volume, area and bounding box are all unchanged.
 

@@ -338,6 +338,9 @@ class _Shape:
     def isClosed(self):
         return True
 
+    def isNull(self):
+        return False
+
 
 class TestCentreOfMass(unittest.TestCase):
     """FreeCAD spreads the centre of mass over two properties. Cover both."""
@@ -416,6 +419,58 @@ class TestSkippedTypes(unittest.TestCase):
                 type_id.startswith(cad_rules.SKIPPED_TYPE_PREFIXES),
                 f"{type_id} should be measured",
             )
+
+
+class _Object:
+    """A stand-in for a FreeCAD document object, with whatever `Shape` holds."""
+
+    def __init__(self, name, type_id, shape=None):
+        self.Name = name
+        self.Label = name
+        self.TypeId = type_id
+        if shape is not None:
+            self.Shape = shape
+
+
+class _Document:
+    def __init__(self, objects):
+        self.Objects = objects
+        self.Name = "doc"
+
+
+class TestShapedObjects(unittest.TestCase):
+    """`Shape` does not always hold a shape, and one exception lost a document."""
+
+    def test_a_shape_property_that_links_to_an_object_is_skipped(self):
+        """A FEM mesh points `Shape` at the part it was meshed from.
+
+        The link is a document object, so every shape method on it raises. That
+        happened inside the generator, where the caller's per-object `except`
+        could not catch it, and the whole document went unmeasured.
+        """
+        pad = _Object("Pad", "PartDesign::Pad", shape=_Shape(centre_of_mass=(1.0, 2.0, 3.0)))
+        mesh = _Object("FEMMeshNetgen", "Fem::FemMeshShapeNetgenObject", shape=pad)
+        measured = list(cad_fingerprint._shaped_objects(
+            _Document([pad, mesh]), cad_fingerprint.cad_rules))
+        self.assertEqual([obj.Name for obj, _ in measured], ["Pad"])
+
+    def test_a_document_of_one_fem_mesh_still_measures_its_geometry(self):
+        """The regression that mattered: one mesh must not cost every object."""
+        shapes = [
+            _Object(f"Pad{index}", "PartDesign::Pad", shape=_Shape(centre_of_mass=(0.0, 0.0, 0.0)))
+            for index in range(3)
+        ]
+        mesh = _Object("FEMMeshGmsh", "Fem::FemMeshShapeBaseObjectPython", shape=shapes[0])
+        measured = list(cad_fingerprint._shaped_objects(
+            _Document([mesh, *shapes]), cad_fingerprint.cad_rules))
+        self.assertEqual(len(measured), 3)
+
+    def test_an_object_with_no_shape_at_all_is_skipped(self):
+        spreadsheet = _Object("Params", "Spreadsheet::Sheet")
+        measured = list(cad_fingerprint._shaped_objects(
+            _Document([spreadsheet]), cad_fingerprint.cad_rules))
+        self.assertEqual(measured, [])
+
 
 if __name__ == "__main__":
     unittest.main()
