@@ -18,5 +18,6 @@ Write entries in B2 English. Follow `.agents/rules/communication.md`.
 | 2026-09-18 | [The parts list says what is inside, not what it costs](2026-09-18_money-out-of-the-bom.md) | software | 0 |
 | 2026-09-18 | [The shared parts library checks itself](2026-09-18_parts-library-validates.md) | software | 0 |
 | 2026-09-18 | [A machine can buy from the shared library](2026-09-18_buying-from-the-library.md) | software | 0 |
+| 2026-09-22 | [The session hook finds its own repository](2026-09-22_the-hook-finds-its-own-repository.md) | software | 0 |
 | 2026-09-18 | [A build record you can open again](2026-09-18_build-records.md) | software | 0 |
 | 2026-09-21 | [Geometry fingerprints now measure real models](2026-09-21_fingerprints-measure-real-models.md) | software | 0 |

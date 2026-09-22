@@ -86,3 +86,12 @@ option. Two reasons:
 - A machine repo gets its own `.claude/settings.json` from
   `templates/agent-cad/claude-settings.json`, which holds the FreeCAD guard.
   That file and this hook are separate things and do not overlap.
+
+## Update — 2026-09-22
+
+This record assumed the hook always starts. It does not. Claude Code reads
+`.claude/settings.json` from the session's own project folder only, so a session
+that opens a parent folder, or that attaches several repositories at once, never
+registers the hook. It then prints nothing, and an empty `.agents/` looks exactly
+like a working one. See
+[The session hook finds its own repository](2026-09-22_hook-finds-its-own-root.md).
