@@ -117,13 +117,27 @@ def _measure_shape(shape, rules):
 
 
 def _shaped_objects(doc, rules):
-    """Objects worth measuring: a real Shape, and not a datum or origin."""
+    """Objects worth measuring: a real Shape, and not a datum or origin.
+
+    ``Shape`` is not always geometry.  On a FEM mesh object it is a link to the
+    document object the mesh was built from, so reading it hands back another
+    ``DocumentObject``.  ``Fem::FemMeshShapeNetgenObject`` and
+    ``Fem::FemMeshShapeBaseObjectPython`` both do this, and any analysis
+    document contains one.
+
+    That matters more than it looks.  Calling a shape method on a document
+    object raises ``AttributeError`` here, inside the generator, where the
+    caller's per-object ``except`` cannot reach it.  One FEM mesh therefore
+    aborted the whole measurement and the document got no fingerprint at all.
+    Checking for a shape method rather than a type keeps every real shape and
+    drops the link, whatever holds it.
+    """
     for obj in doc.Objects:
         type_id = getattr(obj, "TypeId", "")
         if type_id.startswith(rules.SKIPPED_TYPE_PREFIXES):
             continue
         shape = getattr(obj, "Shape", None)
-        if shape is None or shape.isNull():
+        if shape is None or not hasattr(shape, "isNull") or shape.isNull():
             continue
         yield obj, shape
 
