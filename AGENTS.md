@@ -8,7 +8,14 @@ Working in a machine repository that has doqs as a submodule is a different job.
 
 ## First step (required)
 
-Update the shared agent kit to the latest `main` before you read its rules or skills:
+Check the shared agent kit before you read its rules or skills. Run this from the repository
+root:
+
+```bash
+ls .agents/rules/core.md
+```
+
+If the file is missing, fill the folder and update it to the latest `main`:
 
 ```bash
 git submodule update --init --remote --checkout .agents
@@ -17,13 +24,17 @@ git submodule update --init --remote --checkout .agents
 `--checkout` is required: `.gitmodules` marks `.agents` as `update = none`, so a plain
 `git submodule update` skips it. See [Shared kit](#shared-kit) for why.
 
-In Claude Code a `SessionStart` hook runs this command for you. It lives in
+In Claude Code a `SessionStart` hook runs that command for you. It lives in
 [`.claude/hooks/session-start.sh`](.claude/hooks/session-start.sh) and is registered in
 [`.claude/settings.json`](.claude/settings.json). It matters most in a cloud session, where the
 container clones this repo without `--recurse-submodules` and `.agents/` starts empty. The hook
-never stops a session: with no network it prints a message and lets the session run. Read its
-output at the start of the session. If it says the kit is missing, run the command above
-yourself once you have a network. In every other tool, run the command yourself.
+never stops a session: with no network it prints a message and lets the session run.
+
+Do not trust the hook blindly. It runs only when the session opens **this folder** as its
+project folder. Claude Code reads `.claude/settings.json` from that folder only, so a session
+that opens a parent folder, or that attaches several repositories at once, never reads the file,
+never starts the hook, and prints nothing at all. Silence and success look the same. The `ls`
+check above is the only step that works in every session, in every tool.
 
 Do **not** copy `setup-tooling.sh` to this root. That helper is a template this repo *ships* for
 machine repos (see [`templates/setup-tooling/`](templates/setup-tooling/)); it runs

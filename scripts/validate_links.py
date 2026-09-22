@@ -16,7 +16,10 @@ MARKDOWN_LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 #: Files whose links resolve from a repository root, not from their own folder,
 #: because they are meant to be pasted into a root README. Checking them where
 #: they sit reports failures that are not failures.
-MARKDOWN_SKIP = ("templates/licensing/tools/README-licence-section.md",)
+MARKDOWN_SKIP = (
+    "templates/licensing/tools/README-licence-section.md",
+    "templates/setup-tooling/CLAUDE.md",
+)
 
 
 def check_sysml(root: Path) -> list[str]:

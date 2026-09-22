@@ -8,6 +8,13 @@
 # cannot run doqs/scripts/validate_all.py. The folders exist, so the failure is
 # silent: an agent that does not look reads no rules and keeps working.
 #
+# What this hook cannot do is start itself. Claude Code reads
+# .claude/settings.json from the session's own project folder only. A session
+# that opens a parent folder, or that attaches several repositories at once,
+# never reads that file, so this hook never runs and prints nothing at all.
+# CLAUDE.md carries the check that works in every session. See
+# doqs/docs/using-doqs.md, section 3.
+#
 # The two git calls mirror setup-tooling.sh and must stay in that order:
 #
 #   1. --init --recursive checks every submodule out at its recorded pin.
@@ -34,8 +41,45 @@
 
 set -uo pipefail
 
-root="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+# Find the repository root from this script's own place on disk.
+#
+# The file always sits at <root>/.claude/hooks/session-start.sh, so its own
+# folder gives the answer. $CLAUDE_PROJECT_DIR does not: a session that attaches
+# more than one repository opens their shared parent folder and sets the
+# variable to it. That folder is not a git repository, so every git call below
+# would fail and nothing would say why.
+start_dir="$PWD"
+self="${BASH_SOURCE[0]:-$0}"
+here="$(cd "$(dirname "$self")" 2>/dev/null && pwd -P)"
+
+# Print the top folder of the git work tree that holds "$1", or print nothing.
+work_tree() {
+  [ -n "${1:-}" ] || return 1
+  git -C "$1" rev-parse --show-toplevel 2>/dev/null
+}
+
+# Take the folder next to this script only when it really is .claude/hooks, so
+# a stray copy somewhere else cannot guess two levels up.
+root=""
+case "$here" in
+  */.claude/hooks) root="$(work_tree "$here/../..")" ;;
+esac
+[ -n "$root" ] || root="$(work_tree "${CLAUDE_PROJECT_DIR:-}")"
+[ -n "$root" ] || root="$(work_tree "$start_dir")"
+
+if [ -z "$root" ]; then
+  echo "The session hook found no git repository, so it checked nothing out."
+  echo "It looked next to itself (${here:-unknown}), at CLAUDE_PROJECT_DIR"
+  echo "(${CLAUDE_PROJECT_DIR:-not set}), and at ${start_dir}."
+  echo "The session continues, but the shared rules are missing."
+  echo "Write every reply and every file in B2 English anyway: short sentences, common words."
+  exit 0
+fi
+
 cd "$root" || exit 0
+
+# Say it only when it is worth saying. In a normal session these are the same.
+[ "$root" = "$start_dir" ] || echo "Session hook: the repository root is ${root}, not ${start_dir}."
 
 # A session start has no keyboard, so git must never wait for a password.
 export GIT_TERMINAL_PROMPT=0
@@ -67,20 +111,21 @@ missing=""
 if [ -z "$missing" ]; then
   kit="$(git -C .agents rev-parse --short HEAD 2>/dev/null || echo unknown)"
   tools="$(git -C doqs rev-parse --short HEAD 2>/dev/null || echo unknown)"
-  echo "Tooling submodules ready: .agents/ (${kit}), doqs/ (${tools})."
+  echo "Tooling submodules ready in ${root}: .agents/ (${kit}), doqs/ (${tools})."
   # The folders are usable even when only the first call succeeded, but then
   # they hold the recorded pins rather than the latest main. Say so, rather
   # than let a stale kit pass for a fresh one.
   if [ $remote_status -ne 0 ]; then
     echo "Could not reach the remotes, so both sit at their recorded pins, not the latest main."
-    echo "Run 'bash setup-tooling.sh' once you have a network again."
+    echo "Once you have a network again, run this from ${root}:"
+    echo "  bash setup-tooling.sh"
   fi
   echo "Read .agents/rules/core.md first, then AGENTS.md."
   echo "Write every reply and every file in B2 English: .agents/rules/communication.md."
   exit 0
 fi
 
-echo "Could not check out:${missing} (git exit codes ${status} and ${remote_status})."
+echo "Could not check out:${missing} in ${root} (git exit codes ${status} and ${remote_status})."
 
 # A failing clone repeats itself once per submodule per retry, so the raw output
 # runs to dozens of lines. A session start is not the place for that: keep the
@@ -92,6 +137,6 @@ if [ -n "$reason" ]; then
 fi
 echo "The session continues, but rules, skills and the doqs validators are missing."
 echo "Write every reply and every file in B2 English anyway: short sentences, common words."
-echo "Once you have a network again, run:"
+echo "Once you have a network again, run this from ${root}:"
 echo "  bash setup-tooling.sh"
 exit 0

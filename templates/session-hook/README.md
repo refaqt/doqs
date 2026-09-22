@@ -17,6 +17,18 @@ The file alone does nothing. `.claude/settings.json` is what starts it, and
 you keep in that file. `validate_cad.py` fails when the hook is on disk and the
 settings file does not run it, because that combination looks set up and is not.
 
+The registration has one limit that no repository can lift. Claude Code reads
+`.claude/settings.json` from the session's own project folder only. A session that
+opens a parent folder, or that attaches several repositories at once, never reads
+that file, so the hook never starts and prints nothing at all. Silence then means
+"never ran", not "nothing to report". Root `CLAUDE.md` carries the check that works
+in every session; the template for it is `templates/setup-tooling/CLAUDE.md`.
+
+The hook finds the repository root from its own place on disk, not from
+`$CLAUDE_PROJECT_DIR`. In the layout above that variable holds the parent folder,
+which is not a repository, so trusting it made every git call fail with no
+explanation.
+
 `.cursor/environment.json` can run the same script, so Cursor cloud agents get the
 same result from one implementation:
 
@@ -37,3 +49,6 @@ cause, and neither will ever be right for the other.
 
 `install_root_tools.py` also returns immediately on the tools repo, so doqs could
 not install this into itself even if the shapes matched.
+
+Both files find the repository root the same way, from their own place on disk.
+Everything else about them stays different, for the reason above.

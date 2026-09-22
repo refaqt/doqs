@@ -1,7 +1,7 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 
-# Consumer-root helpers (templates copied to machine roots)
-setup-tooling.sh text eol=lf
-templates/setup-tooling/setup-tooling.sh text eol=lf
-templates/syson/syson.sh text eol=lf
+# Shell files must never be stored with CRLF. A hook or helper that arrives
+# with CRLF fails with "bad interpreter", and install_root_tools.py would copy
+# those bytes on into every machine repository.
+*.sh text eol=lf

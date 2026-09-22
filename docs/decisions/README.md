@@ -21,3 +21,4 @@ follows from it. The guide that explains how to use the result lives in `docs/`.
 | 2026-09-18 | [ADR-005 — Role modules: a stable name for a changing part](2026-09-18_role-modules.md) | Accepted |
 | 2026-09-18 | [ADR-006 — Money leaves the bill of materials](2026-09-18_money-out-of-the-bom.md) | Accepted |
 | 2026-09-18 | [ADR-007 — A build record you can open](2026-09-18_build-records.md) | Accepted |
+| 2026-09-22 | [The session hook finds its own repository](2026-09-22_hook-finds-its-own-root.md) | Accepted |

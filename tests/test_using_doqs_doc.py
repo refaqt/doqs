@@ -46,6 +46,13 @@ class TestPageMatchesCli(unittest.TestCase):
         for name, _ in cli.FREECAD_ONLY:
             self.assertIn(name, text, f"{name} is not named in using-doqs.md")
 
+    def test_the_page_names_both_marker_files(self):
+        # The hook cannot start itself in every session, so the page has to say
+        # which two files prove the tooling folders are really filled.
+        text = _PAGE.read_text(encoding="utf-8")
+        for marker in (".agents/rules/core.md", "doqs/scripts/validate_all.py"):
+            self.assertIn(marker, text, f"{marker} is not named in using-doqs.md")
+
     def test_the_deleted_agent_guide_is_not_linked_anywhere(self):
         # Naming the file in prose is fine, and the migration note has to. A
         # link to it is not: the file is gone.
