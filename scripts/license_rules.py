@@ -129,6 +129,10 @@ PRIVATE_LIBRARY_ROOT_LICENSE_MARKERS = (
     "supplier",
     "TRADEMARKS.md",
 )
+#: The public library TRADEMARKS.md also names "trademark", so the private
+#: text needs a marker of its own, or a library that turned private would keep
+#: a file that says its record may be redistributed under CC BY-SA.
+PRIVATE_LIBRARY_TRADEMARKS_MARKER = "internal use"
 
 #: Executable source under a CC BY-SA directory is software in a documentation
 #: tree, so it needs its licence stated per file. CC BY-SA is not a software
@@ -776,10 +780,13 @@ def check_private_library_generated_files(root: Path) -> list[str]:
             "library is for internal use, that each file keeps its supplier's "
             "licence, and point at TRADEMARKS.md)"
         )
-    if not _file_ok(root / "TRADEMARKS.md", ("trademark", name)):
+    if not _file_ok(
+        root / "TRADEMARKS.md",
+        ("trademark", name, PRIVATE_LIBRARY_TRADEMARKS_MARKER),
+    ):
         errors.append(
-            f"TRADEMARKS.md missing or incomplete (must mention {name!r} "
-            "and trademarks)"
+            f"TRADEMARKS.md missing or not the private-library text (must "
+            f"mention {name!r}, trademarks, and internal use)"
         )
     return errors
 
@@ -833,7 +840,7 @@ def apply_private_library_repo(root: Path) -> list[str]:
     wrote = _write_if_needed(
         root / "TRADEMARKS.md",
         expected_private_library_trademarks(name, org),
-        ("trademark", name),
+        ("trademark", name, PRIVATE_LIBRARY_TRADEMARKS_MARKER),
     )
     if wrote:
         actions.append(wrote)

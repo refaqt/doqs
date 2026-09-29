@@ -108,6 +108,9 @@ class TestLicence(TempCopy):
         self.assertEqual(check_any_repo(self.root), [])
         self.assertIn("internal use",
                       (self.root / "LICENSE").read_text(encoding="utf-8"))
+        trademarks = (self.root / "TRADEMARKS.md").read_text(encoding="utf-8")
+        self.assertIn("internal use", trademarks)
+        self.assertNotIn("CC BY-SA", trademarks)
 
     def test_the_generator_never_overwrites_a_suppliers_licence(self) -> None:
         supplier = self.root / FAMILY / "cad" / "LICENSE"
