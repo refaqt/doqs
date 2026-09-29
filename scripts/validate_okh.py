@@ -8,6 +8,7 @@ import tomllib
 from license_rules import HARDWARE_LICENSE, LIBRARY_LICENSE
 from naming_rules import (
     MODEL_SLUG,
+    is_in_private_library,
     is_parts_library,
     is_under_parts_library,
     OKH_VERSION,
@@ -37,8 +38,18 @@ def validate(
     in_library = root is not None and (
         is_parts_library(root) or is_under_parts_library(p, root)
     )
+    # A private library holds files under their supplier's licence, so a
+    # manifest names that licence instead of one of ours. See
+    # docs/decisions/2026-09-29_private-parts-library.md.
+    private = in_library and is_in_private_library(p, root)
     expected_license = LIBRARY_LICENSE if in_library else HARDWARE_LICENSE
-    if license_val is not None and str(license_val) != expected_license:
+    if private:
+        if license_val is not None and not str(license_val).strip():
+            errors.append(
+                "license must name the supplier's licence (an SPDX id, or "
+                "LicenseRef-<name> for the supplier's own terms), got an empty value"
+            )
+    elif license_val is not None and str(license_val) != expected_license:
         reason = (
             "the record is ours; the parts are not"
             if in_library
