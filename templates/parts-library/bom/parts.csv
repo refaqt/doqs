@@ -7,7 +7,14 @@
 #
 # `cad` and `datasheet` may be empty: the table is the complete catalogue and
 # the files are a cache that fills as people use parts.
-# `terms` is redistributable only where that brand's terms allow it.
+# `terms` is one of:
+#   redistributable  the brand's terms or a written permission allow sharing,
+#                    and the brand's okh.toml records a public [[terms-review]]
+#   fetch-only       the file is not committed; each person downloads it
+#   private          the file is not committed and has no public address; the
+#                    only copy is in the private library
+#   own-model        `cad` is our own model under cad/own/, drawn from the
+#                    datasheet, with a <name>.checks.csv next to it
 # `status` is eol for a part you can no longer buy. Never delete the row: an
 # existing machine is still made of it.
 pn,description,spec,unit_mass_g,cad,datasheet,terms,revision,status,notes

@@ -63,6 +63,9 @@ STUB_MARKERS: dict[str, tuple[str, ...]] = {
     # over supplier files would claim a licence on files we do not own, so this
     # directory is carved out of the CERN-OHL-S that covers the rest of cad/.
     "vendor": ("Third-party", "not covered", "vendor-index.csv"),
+    # A library family's cad/own/: a model we drew ourselves from the brand's
+    # datasheet. It is our work, so it carries our licence, not the brand's.
+    "own": ("CC BY-SA", "datasheet", "LICENSES"),
 }
 
 #: Directory holding third-party supplier CAD, relative to a module root.
@@ -207,6 +210,8 @@ def expected_library_stub(kind: str) -> str:
     """A library's vendor stub names no CERN-OHL-S: there is none here."""
     if kind == "vendor":
         return read_template("library/vendor.LICENSE")
+    if kind == "own":
+        return read_template("library/own.LICENSE")
     return expected_stub(kind)
 
 
@@ -608,6 +613,11 @@ def mapped_library_dirs(root: Path) -> list[tuple[Path, str]]:
         if is_under_tooling_submodule(module_cad, root):
             continue
         found.append((module_cad, "vendor"))
+        # Our own models are carved back out of the brand's side. They sit
+        # in one place only: directly under a family's cad/.
+        own = module_cad / "own"
+        if own.is_dir():
+            found.append((own, "own"))
     for module_sheets in sorted(root.rglob(LIBRARY_DATASHEET_DIR.as_posix())):
         if not module_sheets.is_dir() or module_sheets.parent.parent == root:
             continue

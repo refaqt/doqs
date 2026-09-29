@@ -5,6 +5,7 @@ import argparse
 from pathlib import Path
 import tomllib
 
+from intake_rules import latest_review_of, review_errors
 from license_rules import HARDWARE_LICENSE, LIBRARY_LICENSE
 from naming_rules import (
     MODEL_SLUG,
@@ -165,6 +166,19 @@ def _validate_brand(data: dict) -> list[str]:
         errors.append(
             f"[brand] redistribute must be true or false, got: {redistribute!r}"
         )
+    # Each kind of file gets its own dated decision, approved by a named
+    # person. See docs/decisions/2026-09-29_component-intake.md.
+    errors.extend(review_errors(data)[0])
+    cad = latest_review_of(data, "cad")
+    if isinstance(redistribute, bool) and cad and cad.get("decision") in (
+        "public", "customers", "internal"
+    ):
+        public = cad["decision"] == "public"
+        if redistribute != public:
+            errors.append(
+                f"[brand] redistribute = {str(redistribute).lower()} disagrees with "
+                f"the newest cad [[terms-review]] (decision = {cad['decision']!r})"
+            )
     return errors
 
 

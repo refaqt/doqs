@@ -22,3 +22,24 @@ cad-terms = "https://www.hiwin.tw/terms-of-use"
 # Default for this brand's files. Leave it false unless the terms clearly allow
 # redistribution: storing the link costs nothing and needs no legal opinion.
 redistribute = false
+
+# One dated decision for each kind of file: `cad` (geometry) and
+# `documentation` (datasheets, manuals, drawings). They often come under
+# different terms. An agent may propose an entry; a named person approves it.
+# Never edit or delete an entry. When the terms change, add a new one: the
+# newest entry for a kind is the one that counts.
+#
+# decision  public | customers | internal
+# basis     terms (their published terms allow it) | permission (a written yes)
+#           | none (nothing allows it; public + none is flagged as a warning)
+# evidence  the dated copy of the terms page or the permission, as a path in
+#           the private library
+#
+# [[terms-review]]
+# kind     = "cad"
+# decision = "internal"
+# basis    = "terms"
+# source   = "https://www.hiwin.tw/terms-of-use"
+# evidence = "evidence/hiwin/2026-09-29_terms-of-use.pdf"
+# reviewer = "First Last"
+# reviewed = 2026-09-29

@@ -71,7 +71,9 @@ modules/stoq/modules/hiwin/modules/hgr-rail/
 ├── vendor-index.csv    provenance: address, checksum, date, for every file
 ├── cad/
 │   ├── parts/HGR20R500.FCStd     the document a role links
-│   └── original/HGR20R500.step   the untouched download
+│   ├── original/HGR20R500.step   the untouched download
+│   └── own/HGR20R800.FCStd       a model we drew from the datasheet, and
+│       own/HGR20R800.checks.csv  the record of how we drew it
 └── docs/datasheets/              catalogues and datasheets
 ```
 
@@ -120,7 +122,7 @@ HGR20R800,HGR20 rail 800 mm,rail width 20 mm; hole pitch 60 mm,3440,,docs/datash
 | `unit_mass_g` | Mass. A physical property, so it belongs here. |
 | `cad` | The FreeCAD document a role links. Empty until someone needs it. |
 | `datasheet` | Where the paper lives, or where to fetch it |
-| `terms` | `redistributable` or `fetch-only` |
+| `terms` | `redistributable`, `fetch-only`, `private` or `own-model`. See [Taking in a supplier's files](#taking-in-a-suppliers-files). |
 | `revision` | The brand's revision of this part. Never reused. |
 | `status` | `active` or `eol` |
 | `notes` | Free text. On a discontinued row, name the replacement part number. |
@@ -176,15 +178,20 @@ checksums are facts we compile, and they are the bulk of the value.
   retrieval date are committed. The file is not. Each person downloads under the
   brand's own terms. This needs no legal opinion and works in a public
   repository.
-- **`terms = "redistributable"`** — only where that brand's terms allow it, with
-  `cad-terms` on the brand recording what you read.
+- **`terms = "redistributable"`** — only where that brand's terms or a written
+  permission allow it, with a `public` decision recorded on the brand.
+- **`terms = "private"`** — like `fetch-only`, but there is no public address.
+  The file came with a quotation or an email, so the only copy is in the private
+  library.
+- **`terms = "own-model"`** — a model we drew ourselves from the datasheet. It
+  is ours, so it is always committed, under our licence.
 
-A private repository is a second tier, worth adding only for brands whose terms
-allow sharing with contractors but not the public. It is **not** a way around
-terms that forbid redistribution: giving a copy to a contractor is still making
-a copy, and a confidentiality agreement limits what they may then do rather than
-creating permission. It also closes an open-hardware machine to the people meant
-to be able to rebuild it.
+A private library keeps our own copy of every file we may not share, so a
+machine can still be serviced after the brand removes the download. Keeping
+that copy is normal use. It is **not** a way around terms that forbid
+redistribution: giving a copy to a contractor or a customer is still making a
+copy, and needs the brand's permission. A confidentiality agreement limits what
+they may then do rather than creating permission.
 
 Two things to check with a lawyer before committing any brand's files: the
 download terms of your main suppliers, and whether the EU database right affects
@@ -198,10 +205,85 @@ copying a large part of a catalogue. This page is not legal advice.
 | --- | --- |
 | `bom/`, `docs/` outside `datasheets/`, the manifests | CC BY-SA 4.0 — our compiled work |
 | `cad/`, `docs/datasheets/` | the brand's own terms — their work, and work derived from it |
+| `cad/own/` | CC BY-SA 4.0 — models we drew ourselves from the datasheet |
 
 One split at one level, instead of a carve-out per module. A FreeCAD document
 built from a supplier STEP is derived from their file, so it sits on their side
-of the line.
+of the line. A model we draw from the published dimensions is not: dimensions
+are facts, and the model is ours. That is why it has its own folder.
+
+---
+
+## Taking in a supplier's files
+
+The full method, step by step, lives in the library itself
+(`docs/adding-components.md` in `stoq`). The checks enforce this much of it.
+
+### One decision per kind of file
+
+A brand's files come in two kinds: `cad` (geometry) and `documentation`
+(datasheets, manuals, drawings). They often come under different terms, so each
+kind gets its own dated decision in the brand's `okh.toml`:
+
+```toml
+[[terms-review]]
+kind     = "cad"             # cad | documentation
+decision = "public"          # public | customers | internal
+basis    = "terms"           # terms | permission | none
+source   = "https://www.hiwin.de/en/agb"
+evidence = "evidence/hiwin/2026-09-21_agb.pdf"   # a path in the private library
+reviewer = "First Last"      # the named person who approved it
+reviewed = 2026-09-21
+```
+
+- `public`: we may publish the files. Only then may a row say `redistributable`.
+- `customers`: we may give copies to our customers, not to the public. The
+  files stay out of git and go to customers through the private library.
+- `internal`: we keep a copy for ourselves only.
+
+An agent may propose an entry. A named person approves it, in the pull request.
+Entries are never edited or deleted: when the terms change, add a new one. The
+newest entry for a kind is the one that counts.
+
+What the checks do:
+
+| Situation | Result |
+| --- | --- |
+| A `redistributable` file, and no review for its kind | error |
+| A `redistributable` file, and the newest review is not `public` | error |
+| A review without a reviewer or a date | error |
+| `basis = "permission"` without `evidence` | error |
+| `decision = "public"` with `basis = "none"` | warning |
+| `redistribute` on `[brand]` disagrees with the newest `cad` review | error |
+
+### Files we may not share never enter git
+
+History is never rewritten, so a file that was committed once can never be
+taken back. The check fails when git tracks a file whose row says `fetch-only`
+or `private`. List those paths in `.gitignore`.
+
+`doqs restore-private --from ../stoq-private` copies them from a checkout of
+the private library into place, after checking each checksum. The private
+library has the same folder layout as the public one. It is never a submodule
+of a public repository, because a public clone could not fetch it.
+
+### Our own models
+
+A row with `terms = "own-model"` points at `cad/own/<pn>.FCStd`. The model is
+built from the datasheet only. Next to it, `<pn>.checks.csv` lists every
+dimension, the datasheet page it came from, and whether it matched the brand's
+own file:
+
+```csv
+dimension,value_mm,source,page,result,checked_utc
+rail width,20,docs/datasheets/hgr-series.pdf,12,pass,2026-09-29T00:00:00Z
+```
+
+The comparison with the brand's file writes only `pass`, `fail` or
+`not-confirmed`, never the brand's value, so no detail can move from their file
+into ours. A `fail` is an error: read the drawing again and fix the value from
+the drawing. A list with no dimensions is an error too. Our models carry no
+logos and no brand text.
 
 ---
 
@@ -236,7 +318,8 @@ subdirectory. The size of the repository you choose is the size you get.
    mass, terms, revision, `status = "active"`.
 2. If someone needs the geometry now: download the STEP to `cad/original/<pn>.step`,
    build `cad/parts/<pn>.FCStd` from it, and fill the `cad` column. If not, leave
-   it empty.
+   it empty. If the brand's `cad` review is not `public`, keep the file out of
+   git, or draw your own model under `cad/own/` instead.
 3. A row in `vendor-index.csv` with the address, the checksum and the date.
 4. `python doqs/doqs.py check`.
 
@@ -250,7 +333,9 @@ subdirectory. The size of the repository you choose is the size you get.
 ### Add a brand
 
 1. `modules/<brand>/okh.toml` with `[brand]`, including `cad-terms`.
-2. Read those terms and set `redistribute`.
+2. Read those terms. Save a dated copy in the private library. Write one
+   `[[terms-review]]` for `cad` and one for `documentation`, and set
+   `redistribute` to match the `cad` one. A named person approves them.
 3. Then add a family.
 
 ### Retire a part

@@ -1,0 +1,13 @@
+# Copy to cad/own/<part number>.checks.csv, next to the model it checks.
+#
+# One row for every dimension of our own model. The value comes from the
+# brand's public datasheet or technical drawing: name the file in `source` and
+# the page in `page`.
+#
+# `result` is what a separate check found when it compared the model with the
+# brand's own file: pass, fail or not-confirmed. The check writes only the
+# result, never the brand's value. On a fail, read the drawing again and fix the
+# value from the drawing. If the drawing does not say, mark it not-confirmed or
+# ask the brand. Never copy a value from the brand's file.
+dimension,value_mm,source,page,result,checked_utc
+rail width,20,docs/datasheets/hgr-series.pdf,12,pass,2026-09-29T00:00:00Z

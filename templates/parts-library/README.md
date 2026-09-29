@@ -11,11 +11,13 @@ design, make and sell. The specification is
 | `brand-okh.toml` | `modules/<brand>/okh.toml` |
 | `family-okh.toml` | `modules/<brand>/modules/<family>/okh.toml` |
 | `bom/parts.csv` | `modules/<brand>/modules/<family>/bom/parts.csv` |
+| `cad/own/checks.csv` | `modules/<brand>/modules/<family>/cad/own/<pn>.checks.csv`, next to a model we drew ourselves |
 | `gitignore.snippet` | append to the root `.gitignore` |
 
 Then run `python doqs/scripts/apply_licenses.py --root .` at the library root.
 It detects the marker and writes the library licence kit: CC BY-SA 4.0 for the
 record you compile, and a carve-out for every `cad/` and `docs/datasheets/`
-directory, because those hold the brand's own work.
+directory, because those hold the brand's own work. A `cad/own/` directory is
+carved back to CC BY-SA: it holds models we drew ourselves from the datasheet.
 
 **Do not** copy a `LICENSE` by hand. `apply_licenses.py` renders them.

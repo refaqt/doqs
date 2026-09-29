@@ -20,7 +20,9 @@ import argparse
 import csv
 import hashlib
 import cad_rules
+import intake_rules
 import naming_rules
+import subprocess
 import tomllib
 from pathlib import Path
 
@@ -40,7 +42,9 @@ import resolve_instance
 CATALOG_NAME = "catalog.toml"
 CATALOG_SCHEMA = "doqs-catalog-v1"
 SKU_STATUS = ("active", "preview", "eol")
-VENDOR_TERMS = ("redistributable", "fetch-only")
+VENDOR_TERMS = intake_rules.VENDOR_TERMS
+PARTS_TERMS = intake_rules.PARTS_TERMS
+NOT_COMMITTED = intake_rules.NOT_COMMITTED
 VENDOR_INDEX = "vendor-index.csv"
 #: A library family's catalogue lives at bom/parts.csv.
 PARTS_TABLE_NAME = "parts.csv"
@@ -216,7 +220,7 @@ def check_sources(root: Path, module_dir: Path) -> list[Finding]:
             if (module_dir / target).exists():
                 continue
             message = f"vendor {part_id!r}: {key} not found: {target}"
-            if terms == "fetch-only":
+            if terms in NOT_COMMITTED:
                 findings.append(Finding(rel, f"{message} (fetch-only — fetch it before CAD work)",
                                         warning=True))
             else:
@@ -256,7 +260,7 @@ def check_vendor_index(root: Path, index_path: Path) -> list[Finding]:
             continue
         target = module_dir / relpath
         if not target.exists():
-            if terms != "fetch-only":
+            if terms not in NOT_COMMITTED:
                 findings.append(Finding(rel, f"{pn}: file not found: {relpath}"))
             continue
         # A brand can revise a file and keep the part number. The checksum
@@ -303,10 +307,13 @@ def check_parts_table(root: Path, table_path: Path) -> list[Finding]:
                 Finding(rel, f"{pn}: status must be one of {PARTS_STATUS}")
             )
         terms = (row.get("terms") or "").strip()
-        if terms not in VENDOR_TERMS:
+        if terms not in PARTS_TERMS:
             findings.append(
-                Finding(rel, f"{pn}: terms must be one of {VENDOR_TERMS}")
+                Finding(rel, f"{pn}: terms must be one of {PARTS_TERMS}")
             )
+        if terms == "own-model":
+            findings.extend(check_own_model(module_dir, rel, pn, row))
+            continue
         for key in ("cad", "datasheet"):
             target = (row.get(key) or "").strip()
             if not target:
@@ -318,10 +325,189 @@ def check_parts_table(root: Path, table_path: Path) -> list[Finding]:
             findings.append(Finding(
                 rel,
                 f"{pn}: {key} not found: {target}"
-                + (" (fetch-only -- fetch it before CAD work)"
-                   if terms == "fetch-only" else ""),
-                warning=(terms == "fetch-only"),
+                + (f" ({terms} -- fetch it before CAD work)"
+                   if terms in NOT_COMMITTED else ""),
+                warning=(terms in NOT_COMMITTED),
             ))
+    return findings
+
+
+def check_own_model(module_dir: Path, rel: str, pn: str, row: dict) -> list[Finding]:
+    """A model we drew from the datasheet, and the record that proves how.
+
+    It must sit under `cad/own/`, which carries our licence instead of the
+    brand's, and it must have a check list: every dimension, the datasheet page
+    it came from, and whether it matched. The list never holds a value read from
+    the brand's own model. See docs/decisions/2026-09-29_component-intake.md.
+    """
+    findings: list[Finding] = []
+    cad = (row.get("cad") or "").strip()
+    own = f"cad/{intake_rules.OWN_MODEL_DIR}/"
+    if not cad.startswith(own):
+        return [Finding(rel, f"{pn}: an own-model row needs its cad file under {own}, got: {cad!r}")]
+    model = module_dir / cad
+    if not model.exists():
+        findings.append(Finding(rel, f"{pn}: cad not found: {cad} (an own model is ours, so it is always committed)"))
+    checks = model.with_name(Path(cad).stem + intake_rules.CHECKS_SUFFIX)
+    checks_rel = checks.relative_to(module_dir).as_posix()
+    if not checks.is_file():
+        findings.append(Finding(rel, f"{pn}: check list not found: {checks_rel}"))
+        return findings
+    return findings + check_checks_list(module_dir, checks)
+
+
+def check_checks_list(module_dir: Path, checks: Path) -> list[Finding]:
+    """One row per dimension, each with its datasheet page and a result."""
+    findings: list[Finding] = []
+    rel = checks.relative_to(module_dir).as_posix()
+    reader = csv_reader_skipping_comments(checks.read_text(encoding="utf-8"))
+    headers = tuple(h.strip() for h in (reader.fieldnames or []))
+    if headers != intake_rules.CHECKS_HEADERS:
+        return [Finding(rel, f"header must be exactly {list(intake_rules.CHECKS_HEADERS)}")]
+    rows = [r for r in reader if (r.get("dimension") or "").strip()]
+    if not rows:
+        # A list that checks nothing proves nothing.
+        return [Finding(rel, "the check list has no dimensions")]
+    for row in rows:
+        dim = row["dimension"].strip()
+        result = (row.get("result") or "").strip()
+        if result not in intake_rules.CHECK_RESULTS:
+            findings.append(Finding(rel, f"{dim}: result must be one of {intake_rules.CHECK_RESULTS}"))
+        elif result == "fail":
+            findings.append(Finding(
+                rel,
+                f"{dim}: the model does not match. Read the drawing again and fix the "
+                "value from the datasheet, never from the brand's model."))
+        elif result == "not-confirmed":
+            findings.append(Finding(rel, f"{dim}: not confirmed yet", warning=True))
+        for key in ("value_mm", "source", "page"):
+            if not (row.get(key) or "").strip():
+                findings.append(Finding(rel, f"{dim}: {key} is empty"))
+        source = (row.get("source") or "").strip()
+        if source and not (module_dir / source).exists():
+            findings.append(Finding(
+                rel, f"{dim}: source not found here: {source} (fine if it is fetch-only)",
+                warning=True))
+    return findings
+
+
+def check_brand_reviews(root: Path, brand_okh: Path) -> list[Finding]:
+    """Warnings from a brand's terms reviews. Shape errors are validate_okh's."""
+    rel = brand_okh.relative_to(root).as_posix()
+    _, warnings = intake_rules.review_errors(load_toml(brand_okh))
+    return [Finding(rel, w, warning=True) for w in warnings]
+
+
+def _shared_files(root: Path) -> list[tuple[Path, str, str, str]]:
+    """Every file a library row names: (table, pn, path from root, terms).
+
+    Rows name files relative to their own module. A path that leaves the
+    repository is skipped: it is not ours to judge.
+    """
+    top = root.resolve()
+    found: list[tuple[Path, str, str, str]] = []
+
+    def add(table: Path, pn: str, target: str, terms: str) -> None:
+        path = (module_root_of(table) / target).resolve()
+        if path.is_relative_to(top):
+            found.append((table, pn, path.relative_to(top).as_posix(), terms))
+
+    for index in sorted(root.rglob(VENDOR_INDEX)):
+        if is_under_tooling_submodule(index, root):
+            continue
+        for row in csv_reader_skipping_comments(index.read_text(encoding="utf-8")):
+            relpath = (row.get("relpath") or "").strip()
+            if relpath:
+                add(index, (row.get("pn") or "").strip(), relpath,
+                    (row.get("terms") or "").strip())
+    for table in sorted(root.rglob(f"bom/{PARTS_TABLE_NAME}")):
+        if is_under_tooling_submodule(table, root):
+            continue
+        for row in csv_reader_skipping_comments(table.read_text(encoding="utf-8")):
+            for key in ("cad", "datasheet"):
+                target = (row.get(key) or "").strip()
+                if target:
+                    add(table, (row.get("pn") or "").strip(), target,
+                        (row.get("terms") or "").strip())
+    return found
+
+
+def check_reviews_cover_shared_files(root: Path) -> list[Finding]:
+    """A file we publish needs a public decision for its kind, from its brand.
+
+    Only inside a parts library: a machine's own cad/vendor/ keeps its old rules.
+    """
+    findings: list[Finding] = []
+    seen: set[str] = set()
+    for table, pn, relpath, terms in _shared_files(root):
+        # One catalogue often names the same datasheet on every row.
+        if terms != "redistributable" or relpath in seen:
+            continue
+        seen.add(relpath)
+        # The kind comes from where the file sits inside its module.
+        inner = (root / relpath).relative_to(module_root_of(root / relpath)).as_posix()
+        kind = intake_rules.kind_of(inner)
+        if kind is None:
+            continue
+        brand_dir = intake_rules.brand_dir_of(root / relpath, root)
+        if brand_dir is None:
+            continue
+        review = intake_rules.latest_review(brand_dir / "okh.toml", kind)
+        rel = table.relative_to(root).as_posix()
+        brand_rel = (brand_dir / "okh.toml").relative_to(root).as_posix()
+        if review is None:
+            findings.append(Finding(
+                rel,
+                f"{pn}: {relpath} is shared, but {brand_rel} has no [[terms-review]] "
+                f"for {kind!r}. Check the terms and record the decision first."))
+        elif review.get("decision") != "public":
+            findings.append(Finding(
+                rel,
+                f"{pn}: {relpath} is shared, but the newest {kind!r} review in "
+                f"{brand_rel} says {review.get('decision')!r}. Mark it fetch-only "
+                "or private instead."))
+    return findings
+
+
+def git_tracked(root: Path) -> set[str] | None:
+    """Paths git tracks under root, or None when root is not a git checkout."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "-z", "--full-name", "."],
+            capture_output=True, check=False,
+        )
+        top = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--show-prefix"],
+            capture_output=True, text=True, check=False,
+        )
+    except OSError:
+        return None
+    if result.returncode != 0 or top.returncode != 0:
+        return None
+    prefix = top.stdout.strip()
+    tracked = set()
+    for name in result.stdout.decode("utf-8").split("\0"):
+        if name.startswith(prefix):
+            tracked.add(name[len(prefix):])
+    return tracked
+
+
+def check_nothing_private_is_tracked(root: Path) -> list[Finding]:
+    """The leak guard: a file we may not share must never enter the history.
+
+    History here is never rewritten, so a leaked file could not be taken back.
+    """
+    tracked = git_tracked(root)
+    if tracked is None:
+        return []
+    findings: list[Finding] = []
+    for table, pn, relpath, terms in _shared_files(root):
+        if terms in NOT_COMMITTED and relpath in tracked:
+            findings.append(Finding(
+                table.relative_to(root).as_posix(),
+                f"{pn}: {relpath} is {terms}, but git tracks it. Remove it from the "
+                "index (git rm --cached), list it in .gitignore, and keep the copy in "
+                "the private library."))
     return findings
 
 
@@ -571,6 +757,13 @@ def check_all(root: Path) -> tuple[list[Finding], list[Finding]]:
         if is_under_tooling_submodule(table, root):
             continue
         add(check_parts_table(root, table))
+
+    if naming_rules.is_parts_library(root):
+        brands = root / "modules"
+        for brand_okh in sorted(brands.glob("*/okh.toml")) if brands.is_dir() else []:
+            add(check_brand_reviews(root, brand_okh))
+        add(check_reviews_cover_shared_files(root))
+        add(check_nothing_private_is_tracked(root))
 
     for bom in sorted(root.rglob("bom/bom.csv")):
         if is_under_tooling_submodule(bom, root):

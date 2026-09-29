@@ -13,9 +13,13 @@ every other licence named in the repository root LICENSE.
 Provenance for each file — brand, part number, source address, checksum and
 redistribution terms — is recorded in `vendor-index.csv`.
 
-Files marked `fetch-only` may not be redistributed and are therefore not
-committed. Only their manifest row is. Fetch them from the brand before CAD
-work.
+Files marked `fetch-only` or `private` may not be redistributed and are
+therefore not committed. Only their manifest row is. Fetch a `fetch-only` file
+from the brand before CAD work. A `private` file has no public address; the
+only copy is in the private library.
+
+One exception: a `cad/own/` directory holds models we drew ourselves from the
+datasheet. Those are ours, and carry the licence stated in their own LICENSE.
 
 Removing or replacing a supplier's file does not change the licence of the
 record this project compiles. See the repository root LICENSE for the full

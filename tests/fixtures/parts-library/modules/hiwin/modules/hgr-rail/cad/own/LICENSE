@@ -1,0 +1,17 @@
+Our own models — licensed under CC BY-SA 4.0.
+
+Files in this directory are models we drew ourselves, from the figures in the
+brand's public datasheet and technical drawings. They are not copied or
+converted from the brand's own CAD files. Dimensions are facts, so the model we
+build from them is our work.
+
+Licensed under Creative Commons Attribution-ShareAlike 4.0 International
+(CC BY-SA 4.0). Full text: LICENSES/CC-BY-SA-4.0.txt at the repository root.
+
+Next to each model, a `.checks.csv` file lists every dimension, the datasheet
+page it came from, and whether it matched. That list is the record of how the
+model was made.
+
+The brand's name, logos and part numbers are their trademarks and are not
+covered by this licence. Our models carry no logos or brand text. See the
+repository root LICENSE and TRADEMARKS.md.

@@ -67,6 +67,7 @@ PASSTHROUGH: dict[str, str] = {
     "export": "export_variant.py",
     "bom": "resolve_bom.py",
     "restore-build": "restore_build.py",
+    "restore-private": "restore_private.py",
 }
 
 #: Scripts that cannot become a subcommand: they run inside a FreeCAD
@@ -161,6 +162,7 @@ def cmd_list() -> int:
         ("export …", "Export geometry for one composition and model"),
         ("bom …", "Resolve one module's BOM for one model"),
         ("restore-build …", "Fetch back the files a machine was built from"),
+        ("restore-private …", "Copy non-shared supplier files from the private library"),
         ("run <script> …", "Any script in doqs/scripts/, by name"),
         ("list", "This list"),
     )
