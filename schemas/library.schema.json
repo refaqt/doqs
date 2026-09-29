@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/refaqt/doqs/schemas/library.schema.json",
   "title": "DOQS parts-library marker",
-  "description": "library.toml at the root of a parts library: a repository recording parts other people design, make and sell. The marker, not the mount path, is what identifies one, so a machine may mount a library anywhere under modules/ and still skip it in its own gates. Inside a library a manifest declares CC-BY-SA-4.0 rather than CERN-OHL-S-2.0, because the record is ours and the parts are not.",
+  "description": "library.toml at the root of a parts library: a repository recording parts other people design, make and sell. The marker, not the mount path, is what identifies one, so a machine may mount a library anywhere under modules/ and still skip it in its own gates. Inside a library a manifest declares CC-BY-SA-4.0 rather than CERN-OHL-S-2.0, because the record is ours and the parts are not. A private library (private = true) stores supplier files that may not be passed on; there each manifest names the supplier's licence instead.",
   "type": "object",
   "required": ["schema", "name"],
   "properties": {
@@ -12,6 +12,11 @@
       "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
       "description": "The library's own name, used as the first part of a part reference: stoq:hiwin/hgr-rail#HGR20R500."
     },
-    "description": { "type": "string" }
+    "description": { "type": "string" },
+    "private": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for a library that stores supplier files under their own licence, for internal use only. Allows terms = \"internal\", lets each okh.toml name the supplier's licence, and makes apply_licenses.py write an internal-use LICENSE with no open licence and no directory stubs. See docs/decisions/2026-09-29_private-parts-library.md."
+    }
   }
 }

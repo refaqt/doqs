@@ -18,6 +18,7 @@ from pathlib import Path
 from naming_rules import (
     TOOLING_SUBMODULE_NAMES,
     is_parts_library,
+    is_private_library,
     is_under_tooling_submodule,
 )
 
@@ -120,6 +121,15 @@ LIBRARY_ROOT_LICENSE_MARKERS = (
     "LICENSES",
 )
 
+#: A private library has no open licence of ours at all: every file keeps its
+#: supplier's licence and nothing may be passed on. The root LICENSE says so.
+#: See docs/decisions/2026-09-29_private-parts-library.md.
+PRIVATE_LIBRARY_ROOT_LICENSE_MARKERS = (
+    "internal use",
+    "supplier",
+    "TRADEMARKS.md",
+)
+
 #: Executable source under a CC BY-SA directory is software in a documentation
 #: tree, so it needs its licence stated per file. CC BY-SA is not a software
 #: licence and Creative Commons recommends against using it for code.
@@ -220,6 +230,17 @@ def expected_library_trademarks(project_name: str, organisation: str) -> str:
     question a parts library actually raises.
     """
     return render(read_template("library/TRADEMARKS.md"), project_name, organisation)
+
+
+def expected_private_library_root_license(project_name: str, organisation: str) -> str:
+    return render(read_template("library/private.LICENSE"), project_name, organisation)
+
+
+def expected_private_library_trademarks(project_name: str, organisation: str) -> str:
+    """The public library template grants CC BY-SA; a private one grants nothing."""
+    return render(
+        read_template("library/private.TRADEMARKS.md"), project_name, organisation
+    )
 
 
 def expected_tools_root_license() -> str:
@@ -740,9 +761,101 @@ def advice_library_messages(root: Path) -> list[str]:
     return notes
 
 
+def check_private_library_generated_files(root: Path) -> list[str]:
+    """Errors for a private library's licence files.
+
+    Only the root LICENSE and TRADEMARKS.md are ours to write. No directory
+    stubs: a `LICENSE` inside a brand or family folder is the supplier's own
+    text, and a generator must never overwrite it.
+    """
+    errors: list[str] = []
+    name, _ = load_identity(root)
+    if not _file_ok(root / "LICENSE", PRIVATE_LIBRARY_ROOT_LICENSE_MARKERS):
+        errors.append(
+            "LICENSE missing or not the private-library text (must say the "
+            "library is for internal use, that each file keeps its supplier's "
+            "licence, and point at TRADEMARKS.md)"
+        )
+    if not _file_ok(root / "TRADEMARKS.md", ("trademark", name)):
+        errors.append(
+            f"TRADEMARKS.md missing or incomplete (must mention {name!r} "
+            "and trademarks)"
+        )
+    return errors
+
+
+def check_private_library_okh_license(root: Path) -> list[str]:
+    path = root / "okh.toml"
+    if not path.is_file():
+        return ["okh.toml missing"]
+    with open(path, "rb") as f:
+        data = tomllib.load(f)
+    value = data.get("license")
+    if value is None or not str(value).strip():
+        return [
+            "okh.toml missing license field (in a private library, name the "
+            "licence that applies, for example LicenseRef-Proprietary)"
+        ]
+    return []
+
+
+def check_private_library_readme(root: Path) -> list[str]:
+    path = root / "README.md"
+    if not path.is_file():
+        return ["README.md missing (needs a Licence section)"]
+    text = path.read_text(encoding="utf-8")
+    if not _README_HEADING.search(text):
+        return ["README.md has no Licence/License heading"]
+    if _README_LICENSE_LINK.search(text):
+        return []
+    return ["README.md Licence section must link to LICENSE"]
+
+
+def check_private_library_repo(root: Path) -> list[str]:
+    return (
+        check_private_library_generated_files(root)
+        + check_private_library_readme(root)
+        + check_private_library_okh_license(root)
+    )
+
+
+def apply_private_library_repo(root: Path) -> list[str]:
+    """Write the private-library LICENSE and TRADEMARKS.md, nothing else."""
+    name, org = load_identity(root)
+    actions: list[str] = []
+    wrote = _write_if_needed(
+        root / "LICENSE",
+        expected_private_library_root_license(name, org),
+        PRIVATE_LIBRARY_ROOT_LICENSE_MARKERS,
+    )
+    if wrote:
+        actions.append(wrote)
+    wrote = _write_if_needed(
+        root / "TRADEMARKS.md",
+        expected_private_library_trademarks(name, org),
+        ("trademark", name),
+    )
+    if wrote:
+        actions.append(wrote)
+    return actions
+
+
+def advice_private_library_messages(root: Path) -> list[str]:
+    notes: list[str] = []
+    if check_private_library_readme(root):
+        notes.append(
+            "Add a Licence section to README.md that links to [LICENSE](LICENSE) "
+            "and says each file keeps its supplier's licence."
+        )
+    notes.extend(f"okh.toml: {e}" for e in check_private_library_okh_license(root))
+    return notes
+
+
 def check_any_repo(root: Path) -> list[str]:
     if is_doqs_tools_repo(root):
         return check_tools_repo(root)
+    if is_private_library(root):
+        return check_private_library_repo(root)
     if is_parts_library(root):
         return check_library_repo(root)
     return check_repo(root)
@@ -751,6 +864,8 @@ def check_any_repo(root: Path) -> list[str]:
 def check_any_generated_files(root: Path) -> list[str]:
     if is_doqs_tools_repo(root):
         return check_tools_generated_files(root)
+    if is_private_library(root):
+        return check_private_library_generated_files(root)
     if is_parts_library(root):
         return check_library_generated_files(root)
     return check_generated_files(root)
@@ -759,6 +874,8 @@ def check_any_generated_files(root: Path) -> list[str]:
 def apply_any_repo(root: Path) -> list[str]:
     if is_doqs_tools_repo(root):
         return apply_tools_repo(root)
+    if is_private_library(root):
+        return apply_private_library_repo(root)
     if is_parts_library(root):
         return apply_library_repo(root)
     return apply_repo(root)
@@ -767,6 +884,8 @@ def apply_any_repo(root: Path) -> list[str]:
 def advice_any_messages(root: Path) -> list[str]:
     if is_doqs_tools_repo(root):
         return advice_tools_messages(root)
+    if is_private_library(root):
+        return advice_private_library_messages(root)
     if is_parts_library(root):
         return advice_library_messages(root)
     return advice_messages(root)

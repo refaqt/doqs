@@ -6,3 +6,10 @@
 # a machine should not re-run hundreds of supplier checks on every commit.
 schema = "doqs-library-v1"
 name = "stoq"
+
+# Uncomment for a PRIVATE library: one that stores supplier files which may
+# not be passed on, for internal use only. Then each okh.toml names the
+# supplier's licence, rows may use terms = "internal", and apply_licenses.py
+# writes an internal-use LICENSE instead of CC BY-SA.
+# See docs/decisions/2026-09-29_private-parts-library.md.
+# private = true

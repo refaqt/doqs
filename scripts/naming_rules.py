@@ -6,6 +6,7 @@ import io
 import re
 from functools import lru_cache
 from pathlib import Path
+import tomllib
 
 MODULE_SLUG = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 ADAPTER_SLUG = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*-to-[a-z0-9]+(-[a-z0-9]+)*$")
@@ -192,6 +193,45 @@ def is_under_parts_library(path: Path, root: Path) -> bool:
             continue
         return True
     return False
+
+
+def is_private_library(root: Path) -> bool:
+    """True when `root` is a parts library whose marker says `private = true`.
+
+    A private library stores supplier files that may not be passed on, under
+    each supplier's own licence. Nothing in it is under an open licence of
+    ours. See docs/decisions/2026-09-29_private-parts-library.md.
+    """
+    marker = root / LIBRARY_MARKER
+    if not marker.is_file():
+        return False
+    try:
+        with open(marker, "rb") as f:
+            data = tomllib.load(f)
+    except (OSError, tomllib.TOMLDecodeError):
+        return False
+    return data.get("private") is True
+
+
+def is_in_private_library(path: Path, root: Path) -> bool:
+    """True when `path` belongs to a private library: `root` itself, or one
+    mounted under it. Compares paths relative to `root`, like
+    `is_under_parts_library`.
+    """
+    try:
+        resolved = path.resolve()
+        root = root.resolve()
+        resolved.relative_to(root)
+    except (ValueError, OSError):
+        return False
+    # The innermost library wins: a public machine may mount a private one.
+    for library in sorted(library_roots(root), key=lambda p: len(p.parts), reverse=True):
+        try:
+            resolved.relative_to(library)
+        except ValueError:
+            continue
+        return is_private_library(library)
+    return is_private_library(root)
 
 
 _DOQS_ROOT = Path(__file__).resolve().parent.parent
