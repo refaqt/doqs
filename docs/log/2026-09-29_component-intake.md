@@ -24,7 +24,7 @@ Work done:
 
 ## Decisions
 
-See [ADR-008](../decisions/2026-09-29_component-intake.md). The command is
+See [ADR-009](../decisions/2026-09-29_component-intake.md). The command is
 called `restore-private`, not `private-sync`, because every script name starts
 with one of a fixed set of verbs, and it does the same kind of work as
 `restore-build`.
@@ -37,5 +37,5 @@ in the pass or fail results of a check list comes later.
 
 ## Related
 
-- [ADR-008](../decisions/2026-09-29_component-intake.md)
+- [ADR-009](../decisions/2026-09-29_component-intake.md)
 - [parts-library.md, Taking in a supplier's files](../parts-library.md#taking-in-a-suppliers-files)

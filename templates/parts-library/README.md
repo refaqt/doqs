@@ -20,4 +20,11 @@ record you compile, and a carve-out for every `cad/` and `docs/datasheets/`
 directory, because those hold the brand's own work. A `cad/own/` directory is
 carved back to CC BY-SA: it holds models we drew ourselves from the datasheet.
 
-**Do not** copy a `LICENSE` by hand. `apply_licenses.py` renders them.
+For a **private** library, uncomment `private = true` in `library.toml` first.
+Then `apply_licenses.py` writes an internal-use `LICENSE` and no CC BY-SA, and
+each `okh.toml` names the supplier's licence. See
+[docs/parts-library.md](../../docs/parts-library.md#a-private-library).
+
+**Do not** copy a `LICENSE` from these templates by hand. `apply_licenses.py`
+renders them. The one exception is a supplier's own licence text in a private
+library: copy that from the supplier into the brand or family folder.

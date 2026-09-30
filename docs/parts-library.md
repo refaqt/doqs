@@ -122,7 +122,7 @@ HGR20R800,HGR20 rail 800 mm,rail width 20 mm; hole pitch 60 mm,3440,,docs/datash
 | `unit_mass_g` | Mass. A physical property, so it belongs here. |
 | `cad` | The FreeCAD document a role links. Empty until someone needs it. |
 | `datasheet` | Where the paper lives, or where to fetch it |
-| `terms` | `redistributable`, `fetch-only`, `private` or `own-model`. See [Taking in a supplier's files](#taking-in-a-suppliers-files). |
+| `terms` | `redistributable`, `fetch-only`, `private` or `own-model`; `internal` in a [private library](#a-private-library) only. See [Taking in a supplier's files](#taking-in-a-suppliers-files). |
 | `revision` | The brand's revision of this part. Never reused. |
 | `status` | `active` or `eol` |
 | `notes` | Free text. On a discontinued row, name the replacement part number. |
@@ -181,17 +181,12 @@ checksums are facts we compile, and they are the bulk of the value.
 - **`terms = "redistributable"`** — only where that brand's terms or a written
   permission allow it, with a `public` decision recorded on the brand.
 - **`terms = "private"`** — like `fetch-only`, but there is no public address.
-  The file came with a quotation or an email, so the only copy is in the private
-  library.
+  The file came with a quotation or an email, so the only copy is in the
+  [private library](#a-private-library), where its row says `internal`.
 - **`terms = "own-model"`** — a model we drew ourselves from the datasheet. It
   is ours, so it is always committed, under our licence.
-
-A private library keeps our own copy of every file we may not share, so a
-machine can still be serviced after the brand removes the download. Keeping
-that copy is normal use. It is **not** a way around terms that forbid
-redistribution: giving a copy to a contractor or a customer is still making a
-copy, and needs the brand's permission. A confidentiality agreement limits what
-they may then do rather than creating permission.
+- **`terms = "internal"`** — only in a [private library](#a-private-library).
+  The file is committed there and may not be passed on to anyone.
 
 Two things to check with a lawyer before committing any brand's files: the
 download terms of your main suppliers, and whether the EU database right affects
@@ -210,7 +205,51 @@ copying a large part of a catalogue. This page is not legal advice.
 One split at one level, instead of a carve-out per module. A FreeCAD document
 built from a supplier STEP is derived from their file, so it sits on their side
 of the line. A model we draw from the published dimensions is not: dimensions
-are facts, and the model is ours. That is why it has its own folder.
+are facts, and the model is ours. That is why it has its own folder. A
+[private library](#a-private-library) has no split: nothing in it is under a
+licence of ours.
+
+---
+
+## A private library
+
+Some files cannot go in `stoq` at all: supplier CAD models, datasheets under a
+confidentiality agreement, catalogues whose terms forbid redistribution. A
+**private library** stores them for internal use. It is a second repository
+with the same layout, and one line in its marker:
+
+```toml
+# library.toml
+schema  = "doqs-library-v1"
+name    = "stoq-private"
+private = true
+```
+
+That line changes four things. The decision is
+[ADR-008](decisions/2026-09-29_private-parts-library.md).
+
+| In a private library | Instead of |
+| --- | --- |
+| The root `LICENSE` says: internal use only, each file keeps its supplier's licence | CC BY-SA 4.0 for the record, with a carve-out |
+| `okh.toml` `license` names the supplier's licence: an SPDX id or `LicenseRef-<name>` | `CC-BY-SA-4.0` |
+| Rows may use `terms = "internal"`: committed, never passed on | Only `redistributable` or `fetch-only` |
+| No `LICENSES/` and no directory stubs: `apply_licenses.py` never writes inside `modules/` | Stubs in every `cad/` and `docs/datasheets/` |
+
+**Record each file's licence** from the most specific to the least. The most
+specific one wins.
+
+1. `<file>.license` next to one file, when that file has its own terms.
+2. `LICENSE` in a brand or family folder, copied from the supplier.
+3. The `license` field of the brand's or family's `okh.toml`, with the address
+   of the terms in `[brand] cad-terms`.
+
+**Keep it private.** Share nothing from it outside the organisation — not with
+the public and not with contractors. A public machine cannot mount it, because
+the people who rebuild the machine could not fetch it. Refer to a part by its
+reference and part number instead.
+
+`internal` is refused anywhere outside a private library, so a file marked that
+way fails the checks of `stoq` or a machine rather than being published.
 
 ---
 
@@ -262,10 +301,16 @@ History is never rewritten, so a file that was committed once can never be
 taken back. The check fails when git tracks a file whose row says `fetch-only`
 or `private`. List those paths in `.gitignore`.
 
-`doqs restore-private --from ../stoq-private` copies them from a checkout of
-the private library into place, after checking each checksum. The private
-library has the same folder layout as the public one. It is never a submodule
-of a public repository, because a public clone could not fetch it.
+The copy we keep lives in the [private library](#a-private-library), at the
+same path, where its row says `internal`. `doqs restore-private --from
+../stoq-private` copies those files from a checkout of the private library into
+place, after checking each checksum. It is never a submodule of a public
+repository, because a public clone could not fetch it.
+
+A `customers` decision is the one case where a file from the private library
+may leave the organisation: to our own customers, for the machines they bought,
+handed over by a named person. Everything else in the private library stays
+inside.
 
 ### Our own models
 
@@ -349,6 +394,7 @@ old part gets a useful warning.
 ## Related
 
 - [Role modules](roles.md) — how a machine uses a part from here
+- [A private parts library](decisions/2026-09-29_private-parts-library.md) — files that may not be passed on
 - [Money leaves the bill of materials](decisions/2026-09-18_money-out-of-the-bom.md) — why there are no prices here
 - [Architecture](architecture.md) — folder layout and licensing
 - [Variants](variants.md) — our own product families, which work differently

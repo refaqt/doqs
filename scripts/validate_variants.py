@@ -10,7 +10,8 @@ Gates, in order:
 * **Length tables** — every declared model resolves to a row in each bound
   supplier table, so a length nobody stocks fails here and not at purchasing.
 * **Vendor geometry** — ``[[vendor]]`` targets exist; committed files must be
-  present, ``fetch-only`` files only warn.
+  present, ``fetch-only`` files only warn. ``internal`` files are allowed only
+  in a private library, and must be present.
 * **Instances** — every ``[instance]`` resolves against its family and its
   generated files are current.
 """
@@ -45,6 +46,24 @@ SKU_STATUS = ("active", "preview", "eol")
 VENDOR_TERMS = intake_rules.VENDOR_TERMS
 PARTS_TERMS = intake_rules.PARTS_TERMS
 NOT_COMMITTED = intake_rules.NOT_COMMITTED
+#: A file stored in a private library that may not be passed on to anyone.
+#: See docs/decisions/2026-09-29_private-parts-library.md.
+INTERNAL_TERMS = "internal"
+
+
+def terms_problem(path: Path, root: Path, terms: str,
+                  allowed: tuple[str, ...] = VENDOR_TERMS) -> str | None:
+    """Why `terms` is not allowed for a file listed at `path`, or None."""
+    if terms in allowed:
+        return None
+    if terms == INTERNAL_TERMS:
+        if naming_rules.is_in_private_library(path, root):
+            return None
+        return (
+            f"terms {INTERNAL_TERMS!r} is allowed only in a private library "
+            "(library.toml: private = true)"
+        )
+    return f"terms must be one of {allowed}, or {INTERNAL_TERMS!r} in a private library"
 VENDOR_INDEX = "vendor-index.csv"
 #: A library family's catalogue lives at bom/parts.csv.
 PARTS_TABLE_NAME = "parts.csv"
@@ -253,8 +272,9 @@ def check_vendor_index(root: Path, index_path: Path) -> list[Finding]:
     for row in reader:
         pn = (row.get("pn") or "").strip()
         terms = (row.get("terms") or "").strip()
-        if terms not in VENDOR_TERMS:
-            findings.append(Finding(rel, f"{pn}: terms must be one of {VENDOR_TERMS}"))
+        problem = terms_problem(index_path, root, terms)
+        if problem:
+            findings.append(Finding(rel, f"{pn}: {problem}"))
         relpath = (row.get("relpath") or "").strip()
         if not relpath:
             continue
@@ -307,10 +327,9 @@ def check_parts_table(root: Path, table_path: Path) -> list[Finding]:
                 Finding(rel, f"{pn}: status must be one of {PARTS_STATUS}")
             )
         terms = (row.get("terms") or "").strip()
-        if terms not in PARTS_TERMS:
-            findings.append(
-                Finding(rel, f"{pn}: terms must be one of {PARTS_TERMS}")
-            )
+        problem = terms_problem(table_path, root, terms, PARTS_TERMS)
+        if problem:
+            findings.append(Finding(rel, f"{pn}: {problem}"))
         if terms == "own-model":
             findings.extend(check_own_model(module_dir, rel, pn, row))
             continue

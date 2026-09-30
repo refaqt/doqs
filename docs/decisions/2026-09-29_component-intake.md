@@ -1,8 +1,9 @@
-# ADR-008 — A fixed method for taking in a supplier's files
+# ADR-009 — A fixed method for taking in a supplier's files
 
 - **Date:** 2026-09-29
 - **Status:** Accepted
 - **Extends:** [ADR-004 a shared library for parts we buy](2026-09-18_parts-library.md)
+- **Works with:** [ADR-008 a private parts library](2026-09-29_private-parts-library.md)
 
 ## Context
 
@@ -43,10 +44,12 @@ That left five gaps.
    never the brand's value, so no detail moves from their file into ours.
 6. **A leak guard.** The check fails if git tracks a `fetch-only` or `private`
    file.
-7. **A private library with the same layout.** It holds our copy of every file
-   we may not share, and the saved evidence. It is never a submodule of a public
-   repository. `doqs restore-private` copies its files into place after checking
-   each checksum.
+7. **The private library of ADR-008 holds our copy.** In the public library the
+   row says `fetch-only` or `private`. In the private library the same file sits
+   at the same path, with `terms = "internal"`, next to the saved evidence.
+   `doqs restore-private` copies those files into place after checking each
+   checksum. A `customers` decision is the only case where such a file may leave
+   the organisation, handed over by a named person.
 
 ## Consequences
 

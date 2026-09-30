@@ -1,0 +1,36 @@
+{{PROJECT_NAME}} — Licence overview
+
+This repository is a **private parts library**. It stores files and records
+about components that other companies design, make and sell. It is for
+internal use by {{ORGANISATION}} only.
+
+## Nothing here is under an open licence
+
+No licence of ours covers anything in this repository. There is no CC BY-SA,
+no GPL and no CERN Open Hardware Licence here. Do not publish, share or pass on
+any file from it — not to the public, and not to contractors.
+
+## Each file keeps its supplier's licence
+
+Every file stays under the licence its supplier gave us, and only that licence.
+The licence is recorded in three places, from the most specific to the least:
+
+1. A `<file>.license` file next to one file, when that file has its own terms.
+2. A `LICENSE` file in a family or brand folder, copied from the supplier.
+3. The `license` field of the brand's or family's `okh.toml`, as an SPDX id or
+   `LicenseRef-<name>`, and the address of the terms in `[brand] cad-terms`.
+
+The most specific one wins.
+
+## Terms in the part tables
+
+A part row or a `vendor-index.csv` row marked `internal` is stored here and may
+not be passed on to anyone. `fetch-only` rows are not stored; each person
+downloads the file from the supplier. `redistributable` rows may be moved to a
+public library.
+
+## Trademarks
+
+The {{ORGANISATION}} name and logo are trademarks. Brand names and part numbers
+recorded in this repository are the trademarks of the companies that own them,
+used here to identify their parts. See [`TRADEMARKS.md`](TRADEMARKS.md).
