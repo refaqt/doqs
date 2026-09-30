@@ -22,3 +22,4 @@ Write entries in B2 English. Follow `.agents/rules/communication.md`.
 | 2026-09-18 | [A build record you can open again](2026-09-18_build-records.md) | software | 0 |
 | 2026-09-21 | [Geometry fingerprints now measure real models](2026-09-21_fingerprints-measure-real-models.md) | software | 0 |
 | 2026-09-22 | [An analysis mesh no longer blocks a document](2026-09-22_fingerprint-skips-a-shape-link.md) | software | 0 |
+| 2026-09-29 | [Taking in a supplier's files now follows fixed rules](2026-09-29_component-intake.md) | software | 0 |

@@ -108,6 +108,7 @@ and every `doqs` command will fail with a missing-file error.
 | `doqs export …` | Exports geometry for one composition and model | Making a STEP file for one variant |
 | `doqs bom …` | Resolves one module's BOM for one model | Checking what one variant is made of |
 | `doqs restore-build …` | Fetches back the files a machine was built from | Supporting a machine in the field, or checking a record can still be opened |
+| `doqs restore-private …` | Copies supplier files we may not share from the private library into place, after checking each checksum | Opening a model whose supplier files are `fetch-only` or `private` |
 | `doqs run <script> …` | Runs any script in `doqs/scripts/` by name | Something the commands above do not cover |
 | `doqs list` | Every command, and the scripts each one runs | When you forget |
 
@@ -124,12 +125,12 @@ When `doqs check` fails, this tells you which part of your repository it is abou
 
 | Gate | Checks |
 | --- | --- |
-| `validate_okh.py` | Required OKH fields, the licence expression, file references, the `version` format |
+| `validate_okh.py` | Required OKH fields, the licence expression, file references, the `version` format, and in a parts library each brand's dated licence decisions |
 | `validate_licenses.py` | Split-licence files, the README licence section, `TRADEMARKS.md` |
 | `validate_names.py` | Module slugs, BOM ids and headers, model slugs, the naming lexicon |
 | `validate_links.py` | SysML imports and OKH relative paths. With `--markdown`, markdown links too |
 | `validate_build.py` | Every `builds/**/build.toml`: does each consumed interface have a provider? |
-| `validate_variants.py` | Families, parts libraries and roles: catalogues, models, compositions, length-table coverage, supplier files and their checksums, instance freshness, and whether a role's chosen part still exists, is still sold and still fits |
+| `validate_variants.py` | Families, parts libraries and roles: catalogues, models, compositions, length-table coverage, supplier files and their checksums, instance freshness, and whether a role's chosen part still exists, is still sold and still fits. In a parts library also: every shared supplier file has a public licence decision, every own model has its check list, and no file we may not share is tracked by git |
 | `validate_cad.py` | FreeCAD documents: the save guard, fingerprint currency, stale exports |
 | `resolve_params.py --check` | Is `cad/params-table.csv` current? |
 | `resolve_instance.py --check` | Are the resolved instance files current? |

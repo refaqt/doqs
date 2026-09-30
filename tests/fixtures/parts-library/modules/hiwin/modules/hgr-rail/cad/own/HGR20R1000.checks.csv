@@ -1,0 +1,6 @@
+# Every dimension of our own model, the datasheet page it came from, and
+# whether the brand's model agrees. Never a value read from the brand's model.
+dimension,value_mm,source,page,result,checked_utc
+rail width,20,docs/datasheets/hgr-series.pdf,12,pass,2026-09-18T00:00:00Z
+rail height,17.5,docs/datasheets/hgr-series.pdf,12,pass,2026-09-18T00:00:00Z
+hole pitch,60,docs/datasheets/hgr-series.pdf,12,pass,2026-09-18T00:00:00Z

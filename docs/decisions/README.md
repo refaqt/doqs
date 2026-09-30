@@ -23,3 +23,4 @@ follows from it. The guide that explains how to use the result lives in `docs/`.
 | 2026-09-18 | [ADR-007 — A build record you can open](2026-09-18_build-records.md) | Accepted |
 | 2026-09-22 | [The session hook finds its own repository](2026-09-22_hook-finds-its-own-root.md) | Accepted |
 | 2026-09-29 | [ADR-008 — A private parts library](2026-09-29_private-parts-library.md) | Accepted |
+| 2026-09-29 | [ADR-009 — A fixed method for taking in a supplier's files](2026-09-29_component-intake.md) | Accepted |

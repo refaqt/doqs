@@ -14,3 +14,23 @@ name = "HIWIN Technologies Corp."
 website = "https://www.hiwin.tw"
 cad-terms = "https://example.com/hiwin-terms"
 redistribute = true
+
+# One dated decision per kind of file, approved by a named person. Never edit
+# or delete one: when the terms change, add a new entry. The newest counts.
+[[terms-review]]
+kind = "cad"
+decision = "public"
+basis = "terms"
+source = "https://example.com/hiwin-terms"
+evidence = "evidence/hiwin/2026-09-18_terms.pdf"
+reviewer = "Test Reviewer"
+reviewed = 2026-09-18
+
+[[terms-review]]
+kind = "documentation"
+decision = "public"
+basis = "terms"
+source = "https://example.com/hiwin-terms"
+evidence = "evidence/hiwin/2026-09-18_terms.pdf"
+reviewer = "Test Reviewer"
+reviewed = 2026-09-18

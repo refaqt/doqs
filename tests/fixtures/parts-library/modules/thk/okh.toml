@@ -11,3 +11,12 @@ name = "THK Co., Ltd."
 website = "https://www.thk.com"
 cad-terms = "https://example.com/thk-terms"
 redistribute = false
+
+[[terms-review]]
+kind = "cad"
+decision = "internal"
+basis = "terms"
+source = "https://example.com/thk-terms"
+evidence = "evidence/thk/2026-09-18_terms.pdf"
+reviewer = "Test Reviewer"
+reviewed = 2026-09-18
