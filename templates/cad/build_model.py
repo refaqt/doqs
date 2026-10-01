@@ -36,7 +36,7 @@ def _doqs_scripts(start):
 
 sys.path.insert(0, str(_doqs_scripts(_HERE)))
 
-from cad_build import run, sheet  # noqa: E402
+from cad_build import body, part, run, sheet  # noqa: E402
 
 
 def build(doc, params):
@@ -50,6 +50,12 @@ def build(doc, params):
 
     Build idempotently: regenerate features rather than mutating them in place,
     so a rerun is a no-op rather than a slow accumulation.
+
+    The top object of a part is a Part container, never a Body.  Get the Body
+    with `body(doc)`: it creates the Part (`part(doc)`) and puts the Body inside
+    it, and reuses both on a rerun.  `run()` stops and undoes the build if a
+    Body is left outside a Part.  See
+    `doqs/docs/decisions/2026-10-01_part-container-on-top.md`.
 
     Assembly-driven parts: master sketches belong in a dedicated `Body_master`
     constrained to that Body's own origin planes, never the `Assembly` object's.

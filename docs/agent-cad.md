@@ -262,6 +262,7 @@ python doqs/scripts/validate_cad.py --check-clean
 | Fingerprint present and current | Geometry changed without a rebuild |
 | `saved: true` | A fingerprint taken from an unsaved GUI document |
 | Recorded digests match | A hand-edited `.FCStd` or a stale `.step`/`.stl` |
+| Part on top | A part whose Body is not inside a Part container |
 | `--check-clean` | An agent session left a `.FCStd` modified on disk |
 
 The guard check applies only once a repository actually contains a `.FCStd` —
@@ -294,6 +295,33 @@ Tools stay in the submodule so a fix reaches every module on the next
 
 Nothing about the `.FCStd`, the fingerprint format or the commands changes;
 `FreeCADCmd cad/build_model.py` is still the headless rebuild.
+
+### The model tree of a part
+
+The top object of a part is a Part container (`App::Part`). The Body sits inside
+it. An Assembly inserts and places a part as one object, and the Part container
+is that object.
+
+Do not create the Body yourself. Use the two helpers that the seed imports:
+
+```python
+def build(doc, params):
+    shape = body(doc)          # a Body inside part(doc), created on the first run
+    ...
+```
+
+`part(doc)` returns the Part container and creates it if it is missing.
+`body(doc)` returns a Body inside that Part. A rerun reuses both. An older
+document with a Body at the top is repaired: `body(doc)` moves that Body into the
+Part.
+
+The rule is checked twice. `run()` stops and undoes the build when a Body is left
+outside a Part, so the mistake never reaches your screen or the file.
+`validate_cad.py` fails a committed part file with a Body at the top. Assembly
+files are not checked: a file under `cad/assemblies/`, or a file that holds an
+Assembly, keeps its master sketches in a Body inside a plain group (see
+[ADR-002](decisions/2026-06-24_freecad-master-sketches-body.md)). The reasons
+are in [the decision](decisions/2026-10-01_part-container-on-top.md).
 
 Prefer driving dimensions through Spreadsheet aliases
 ([Linking CSV Parameters to FreeCAD](architecture.md#linking-csv-parameters-to-freecad))

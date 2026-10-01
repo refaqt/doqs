@@ -24,3 +24,4 @@ follows from it. The guide that explains how to use the result lives in `docs/`.
 | 2026-09-22 | [The session hook finds its own repository](2026-09-22_hook-finds-its-own-root.md) | Accepted |
 | 2026-09-29 | [ADR-008 — A private parts library](2026-09-29_private-parts-library.md) | Accepted |
 | 2026-09-29 | [ADR-009 — A fixed method for taking in a supplier's files](2026-09-29_component-intake.md) | Accepted |
+| 2026-10-01 | [ADR-010 — A part has a Part container on top, not a Body](2026-10-01_part-container-on-top.md) | Accepted |

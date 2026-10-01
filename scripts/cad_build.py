@@ -30,6 +30,12 @@ imports cleanly under plain Python and its path handling stays unit-testable.
 from pathlib import Path
 
 import cad_fingerprint
+from cad_rules import (
+    BODY_TYPE,
+    PART_TYPE,
+    bodies_outside_part,
+    is_assembly_path,
+)
 
 
 def _cad_dir(cad_dir=None):
@@ -84,6 +90,60 @@ def sheet(doc, name="Params"):
     return found[0]
 
 
+def tree(doc):
+    """``(name, type_id, children)`` for every object, as ``cad_rules`` reads it."""
+    return [
+        (o.Name, o.TypeId, [c.Name for c in (getattr(o, "Group", None) or [])])
+        for o in doc.Objects
+    ]
+
+
+def part(doc, label=None):
+    """The Part container at the top of this part's tree. Created if missing.
+
+    A part document keeps its Bodies inside a Part, so an Assembly can insert
+    and place it as one object. `label` defaults to the document name.
+    """
+    label = label or doc.Name
+    for obj in doc.getObjectsByLabel(label):
+        if obj.TypeId == PART_TYPE:
+            return obj
+    container = doc.addObject(PART_TYPE, "Part")
+    container.Label = label
+    return container
+
+
+def body(doc, label="Body", container=None):
+    """A Body inside the Part container. Created if missing.
+
+    An existing Body with this label that no Part holds is moved into the
+    container, so an old document is repaired on the next build.
+    """
+    container = container or part(doc)
+    for obj in doc.getObjectsByLabel(label):
+        if obj.TypeId == BODY_TYPE:
+            if obj.Name in bodies_outside_part(tree(doc)):
+                container.addObject(obj)
+            return obj
+    new = doc.addObject(BODY_TYPE, "Body")
+    new.Label = label
+    container.addObject(new)
+    return new
+
+
+def check_part_container(doc):
+    """Raise when a Body sits outside a Part container in a part document."""
+    if is_assembly_path(Path(doc.FileName or "")):
+        return
+    loose = bodies_outside_part(tree(doc))
+    if loose:
+        raise RuntimeError(
+            f"Body not inside a Part container: {', '.join(loose)}. "
+            "The top object of a part must be a Part. Get the Body with "
+            "body(doc) from cad_build, which puts it inside part(doc)."
+        )
+
+
 def run(build_fn, cad_dir=None, document=None):
     """Rebuild via `build_fn`, then fingerprint.
 
@@ -99,6 +159,7 @@ def run(build_fn, cad_dir=None, document=None):
     try:
         build_fn(doc, params)
         doc.recompute()
+        check_part_container(doc)
     except Exception:
         doc.abortTransaction()
         raise

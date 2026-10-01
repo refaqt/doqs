@@ -172,7 +172,7 @@ class TestSeedTemplate(unittest.TestCase):
         seed = (_REPO / "templates" / "cad" / "build_model.py").read_text(
             encoding="utf-8"
         )
-        self.assertIn("from cad_build import run", seed)
+        self.assertRegex(seed, r"from cad_build import [^\n]*\brun\b")
         for gone in ("def open_document(", "def run(", "openTransaction"):
             self.assertNotIn(gone, seed)
 
@@ -470,6 +470,122 @@ class TestShapedObjects(unittest.TestCase):
         measured = list(cad_fingerprint._shaped_objects(
             _Document([spreadsheet]), cad_fingerprint.cad_rules))
         self.assertEqual(measured, [])
+
+
+class _TreeObject:
+    """A FreeCAD object with a type, a label and, for containers, a Group."""
+
+    def __init__(self, doc, type_id, name):
+        self.TypeId = type_id
+        self.Name = name
+        self.Label = name
+        self.Group = []
+        self._doc = doc
+
+    def addObject(self, obj):
+        # FreeCAD moves the object out of any other group it was in.
+        for other in self._doc.Objects:
+            if obj in other.Group:
+                other.Group.remove(obj)
+        self.Group.append(obj)
+
+
+class _TreeDocument:
+    def __init__(self, file_name="/m/rail/cad/rail.FCStd"):
+        self.Name = "rail"
+        self.FileName = file_name
+        self.Objects = []
+        self.journal = []
+
+    def addObject(self, type_id, name):
+        taken = {o.Name for o in self.Objects}
+        unique, n = name, 0
+        while unique in taken:
+            n += 1
+            unique = f"{name}{n:03d}"
+        obj = _TreeObject(self, type_id, unique)
+        self.Objects.append(obj)
+        return obj
+
+    def getObjectsByLabel(self, label):
+        return [o for o in self.Objects if o.Label == label]
+
+    def openTransaction(self, name):
+        self.journal.append("open")
+
+    def commitTransaction(self):
+        self.journal.append("commit")
+
+    def abortTransaction(self):
+        self.journal.append("abort")
+
+    def recompute(self):
+        pass
+
+    def save(self):
+        self.journal.append("save")
+
+
+class TestPartContainerHelpers(unittest.TestCase):
+    """An agent gets its Body through body(), so the top object is a Part."""
+
+    def test_body_is_created_inside_a_part(self):
+        doc = _TreeDocument()
+        b = cad_build.body(doc)
+        top = cad_build.part(doc)
+        self.assertEqual(top.TypeId, "App::Part")
+        self.assertEqual(top.Label, "rail")
+        self.assertEqual(top.Group, [b])
+        cad_build.check_part_container(doc)  # does not raise
+
+    def test_a_rebuild_adds_nothing(self):
+        doc = _TreeDocument()
+        first = cad_build.body(doc)
+        again = cad_build.body(doc)
+        self.assertIs(first, again)
+        self.assertEqual(len(doc.Objects), 2)
+
+    def test_an_old_body_on_top_is_moved_into_the_part(self):
+        doc = _TreeDocument()
+        old = doc.addObject("PartDesign::Body", "Body")
+        self.assertIs(cad_build.body(doc), old)
+        self.assertEqual(cad_build.part(doc).Group, [old])
+
+    def test_a_body_on_top_stops_the_build(self):
+        doc = _TreeDocument()
+        doc.addObject("PartDesign::Body", "Body")
+        with self.assertRaisesRegex(RuntimeError, "not inside a Part container: Body"):
+            cad_build.check_part_container(doc)
+
+    def test_an_assembly_document_is_not_checked(self):
+        doc = _TreeDocument("/m/x-axis/cad/assemblies/x-axis.FCStd")
+        doc.addObject("PartDesign::Body", "Body_master")
+        cad_build.check_part_container(doc)  # does not raise
+
+
+class TestRunChecksTheTree(unittest.TestCase):
+    """run() undoes a build that leaves a Body on top, and saves nothing."""
+
+    def _run(self, build_fn):
+        doc = _TreeDocument()
+        with mock.patch.object(cad_build, "open_document", return_value=(doc, False)), \
+                mock.patch.object(cad_build.cad_fingerprint, "read_params", return_value={}), \
+                mock.patch.object(cad_build.cad_fingerprint, "write"):
+            try:
+                cad_build.run(build_fn)
+            except RuntimeError as err:
+                return doc, err
+        return doc, None
+
+    def test_body_on_top_aborts_the_transaction(self):
+        doc, err = self._run(lambda d, p: d.addObject("PartDesign::Body", "Body"))
+        self.assertIn("not inside a Part container", str(err))
+        self.assertEqual(doc.journal, ["open", "abort"])
+
+    def test_body_inside_a_part_commits_and_saves(self):
+        doc, err = self._run(lambda d, p: cad_build.body(d))
+        self.assertIsNone(err)
+        self.assertEqual(doc.journal, ["open", "commit", "save"])
 
 
 if __name__ == "__main__":
