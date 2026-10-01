@@ -315,6 +315,13 @@ def build(doc, params):
 document with a Body at the top is repaired: `body(doc)` moves that Body into the
 Part.
 
+New objects open visible. When a build creates a Part, a Body, an Assembly or
+a link to a part, it switches that object on, together with the last feature
+of each new Body. Their coordinate systems (the origin axes, planes and point)
+stay hidden. Objects that existed before the build keep the visibility you gave
+them. Visibility is stored in the document itself, so a headless build gets it
+right too.
+
 The rule is checked twice. `run()` stops and undoes the build when a Body is left
 outside a Part, so the mistake never reaches your screen or the file.
 `validate_cad.py` fails a committed part file with a Body at the top. Assembly

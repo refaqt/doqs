@@ -262,6 +262,28 @@ BODY_TYPE = "PartDesign::Body"
 #: plain Group. See docs/decisions/2026-06-24_freecad-master-sketches-body.md.
 ASSEMBLY_TYPE = "Assembly::AssemblyObject"
 
+#: Objects a person must see when a build creates them: the part, its Body,
+#: the assembly, and the links an assembly uses to hold its parts. A headless
+#: build writes no view data, so without this they open hidden.
+SHOWN_TYPES = (PART_TYPE, BODY_TYPE, ASSEMBLY_TYPE, "App::Link")
+
+#: The coordinate system of a Part, a Body or an Assembly: its axes, planes and
+#: point. FreeCAD keeps them hidden, and so does a build.
+ORIGIN_TYPES = ("App::Origin", "App::Line", "App::Plane", "App::Point")
+
+
+def visibility_for(type_id: str):
+    """True to show a new object, False to hide it, None to leave it as it is.
+
+    None covers sketches and in-between features, which FreeCAD hides on
+    purpose once a later feature uses them.
+    """
+    if type_id in SHOWN_TYPES:
+        return True
+    if type_id in ORIGIN_TYPES:
+        return False
+    return None
+
 
 def bodies_outside_part(objects) -> list[str]:
     """Bodies that no Part container holds, in document order.

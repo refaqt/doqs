@@ -35,6 +35,7 @@ from cad_rules import (
     PART_TYPE,
     bodies_outside_part,
     is_assembly_path,
+    visibility_for,
 )
 
 
@@ -98,6 +99,45 @@ def tree(doc):
     ]
 
 
+def _set_visible(obj, flag):
+    """Show or hide one object, in the file and on screen.
+
+    ``Visibility`` on the object itself is saved in the document, so this also
+    works headless, where there is no screen and no view data.
+    """
+    obj.Visibility = flag
+    view = getattr(obj, "ViewObject", None)
+    if view is not None:
+        view.Visibility = flag
+
+
+def _show(obj):
+    """Show a new container and keep its coordinate system hidden."""
+    _set_visible(obj, True)
+    origin = getattr(obj, "Origin", None)
+    if origin is not None:
+        for item in [origin, *(getattr(origin, "OriginFeatures", None) or [])]:
+            _set_visible(item, False)
+
+
+def show_new_objects(doc, before):
+    """Show the parts, bodies and assemblies a build created; hide their origins.
+
+    ``before`` holds the object names that existed before the build. Only new
+    objects change, so an object the person hid on purpose stays hidden.
+    """
+    for obj in doc.Objects:
+        if obj.Name in before:
+            continue
+        flag = visibility_for(obj.TypeId)
+        if flag is not None:
+            _set_visible(obj, flag)
+        tip = getattr(obj, "Tip", None) if flag else None
+        if tip is not None:
+            # A visible Body shows nothing while its last feature is hidden.
+            _set_visible(tip, True)
+
+
 def part(doc, label=None):
     """The Part container at the top of this part's tree. Created if missing.
 
@@ -110,6 +150,7 @@ def part(doc, label=None):
             return obj
     container = doc.addObject(PART_TYPE, "Part")
     container.Label = label
+    _show(container)
     return container
 
 
@@ -128,6 +169,7 @@ def body(doc, label="Body", container=None):
     new = doc.addObject(BODY_TYPE, "Body")
     new.Label = label
     container.addObject(new)
+    _show(new)
     return new
 
 
@@ -155,11 +197,13 @@ def run(build_fn, cad_dir=None, document=None):
 
     # One transaction means the whole rebuild is a single Ctrl+Z for the human
     # working alongside the agent.
+    before = {o.Name for o in doc.Objects}
     doc.openTransaction("agent: build_model")
     try:
         build_fn(doc, params)
         doc.recompute()
         check_part_container(doc)
+        show_new_objects(doc, before)
     except Exception:
         doc.abortTransaction()
         raise
