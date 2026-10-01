@@ -472,14 +472,24 @@ class TestShapedObjects(unittest.TestCase):
         self.assertEqual(measured, [])
 
 
+class _ViewObject:
+    def __init__(self):
+        self.Visibility = False
+
+
 class _TreeObject:
-    """A FreeCAD object with a type, a label and, for containers, a Group."""
+    """A FreeCAD object with a type, a label and, for containers, a Group.
+
+    It starts hidden, which is how a new part opened after a headless build.
+    """
 
     def __init__(self, doc, type_id, name):
         self.TypeId = type_id
         self.Name = name
         self.Label = name
         self.Group = []
+        self.Visibility = False
+        self.ViewObject = _ViewObject() if doc.gui else None
         self._doc = doc
 
     def addObject(self, obj):
@@ -490,14 +500,36 @@ class _TreeObject:
         self.Group.append(obj)
 
 
+#: FreeCAD gives each of these its own coordinate system when it is created.
+_HAS_ORIGIN = ("App::Part", "PartDesign::Body", "Assembly::AssemblyObject")
+_ORIGIN_FEATURES = (
+    ("App::Line", "X_Axis"), ("App::Line", "Y_Axis"), ("App::Line", "Z_Axis"),
+    ("App::Plane", "XY_Plane"), ("App::Plane", "XZ_Plane"),
+    ("App::Plane", "YZ_Plane"), ("App::Point", "Origin_Point"),
+)
+
+
 class _TreeDocument:
-    def __init__(self, file_name="/m/rail/cad/rail.FCStd"):
+    def __init__(self, file_name="/m/rail/cad/rail.FCStd", gui=False):
         self.Name = "rail"
         self.FileName = file_name
         self.Objects = []
         self.journal = []
+        self.gui = gui
 
     def addObject(self, type_id, name):
+        obj = self._add(type_id, name)
+        if type_id in _HAS_ORIGIN:
+            # The origin starts visible here, so a test proves that the build
+            # hides it and does not only leave it as it was.
+            origin = self._add("App::Origin", "Origin")
+            origin.OriginFeatures = [self._add(t, n) for t, n in _ORIGIN_FEATURES]
+            for item in [origin, *origin.OriginFeatures]:
+                item.Visibility = True
+            obj.Origin = origin
+        return obj
+
+    def _add(self, type_id, name):
         taken = {o.Name for o in self.Objects}
         unique, n = name, 0
         while unique in taken:
@@ -506,6 +538,13 @@ class _TreeDocument:
         obj = _TreeObject(self, type_id, unique)
         self.Objects.append(obj)
         return obj
+
+    def shapes(self):
+        """The objects that are not part of a coordinate system."""
+        return [o for o in self.Objects if o.TypeId not in cad_rules.ORIGIN_TYPES]
+
+    def origins(self):
+        return [o for o in self.Objects if o.TypeId in cad_rules.ORIGIN_TYPES]
 
     def getObjectsByLabel(self, label):
         return [o for o in self.Objects if o.Label == label]
@@ -543,7 +582,7 @@ class TestPartContainerHelpers(unittest.TestCase):
         first = cad_build.body(doc)
         again = cad_build.body(doc)
         self.assertIs(first, again)
-        self.assertEqual(len(doc.Objects), 2)
+        self.assertEqual(len(doc.shapes()), 2)
 
     def test_an_old_body_on_top_is_moved_into_the_part(self):
         doc = _TreeDocument()
@@ -561,6 +600,53 @@ class TestPartContainerHelpers(unittest.TestCase):
         doc = _TreeDocument("/m/x-axis/cad/assemblies/x-axis.FCStd")
         doc.addObject("PartDesign::Body", "Body_master")
         cad_build.check_part_container(doc)  # does not raise
+
+
+class TestNewObjectsAreVisible(unittest.TestCase):
+    """A new part or assembly opens visible; its coordinate system stays hidden."""
+
+    def _run(self, build_fn, doc):
+        with mock.patch.object(cad_build, "open_document", return_value=(doc, False)), \
+                mock.patch.object(cad_build.cad_fingerprint, "read_params", return_value={}), \
+                mock.patch.object(cad_build.cad_fingerprint, "write"):
+            cad_build.run(build_fn)
+
+    def test_body_shows_the_part_and_the_body(self):
+        doc = _TreeDocument()
+        b = cad_build.body(doc)
+        self.assertTrue(cad_build.part(doc).Visibility)
+        self.assertTrue(b.Visibility)
+        self.assertEqual(len(doc.origins()), 16)
+        self.assertFalse(any(o.Visibility for o in doc.origins()))
+
+    def test_gui_view_is_set_too(self):
+        doc = _TreeDocument(gui=True)
+        b = cad_build.body(doc)
+        self.assertTrue(b.ViewObject.Visibility)
+        self.assertFalse(b.Origin.ViewObject.Visibility)
+
+    def test_run_shows_an_assembly_its_links_and_the_body_tip(self):
+        doc = _TreeDocument("/m/x-axis/cad/assemblies/x-axis.FCStd")
+
+        def build(d, params):
+            d.addObject("Assembly::AssemblyObject", "Assembly")
+            d.addObject("App::Link", "Rail")
+            master = d.addObject("PartDesign::Body", "Body_master")
+            master.Tip = d.addObject("PartDesign::Pad", "Pad")
+            d.addObject("Sketcher::SketchObject", "Sketch")
+
+        self._run(build, doc)
+        shown = {o.Name for o in doc.shapes() if o.Visibility}
+        self.assertEqual(shown, {"Assembly", "Rail", "Body_master", "Pad"})
+        self.assertEqual(len(doc.origins()), 16)
+        self.assertFalse(any(o.Visibility for o in doc.origins()))
+
+    def test_an_object_hidden_before_the_build_stays_hidden(self):
+        doc = _TreeDocument()
+        b = cad_build.body(doc)
+        b.Visibility = False
+        self._run(lambda d, p: cad_build.body(d), doc)
+        self.assertFalse(b.Visibility)
 
 
 class TestRunChecksTheTree(unittest.TestCase):

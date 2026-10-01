@@ -28,6 +28,7 @@ from cad_rules import (  # noqa: E402
     missing_guard_rules,
     normalise,
     round_sig,
+    visibility_for,
     write_fingerprint,
 )
 from validate_cad import (  # noqa: E402
@@ -334,6 +335,23 @@ class TestPartContainer(unittest.TestCase):
         fcstd = self._tmp / "m" / "rail" / "cad" / "assemblies" / "rail.FCStd"
         _write_fcstd(fcstd, BODY_ON_TOP)
         self.assertEqual(validate_part_container(fcstd, self._tmp / "m"), [])
+
+
+class TestVisibilityFor(unittest.TestCase):
+    """A build shows what a person must see and hides the coordinate system."""
+
+    def test_containers_and_links_are_shown(self):
+        for type_id in ("App::Part", "PartDesign::Body",
+                        "Assembly::AssemblyObject", "App::Link"):
+            self.assertIs(visibility_for(type_id), True, type_id)
+
+    def test_the_coordinate_system_is_hidden(self):
+        for type_id in ("App::Origin", "App::Line", "App::Plane", "App::Point"):
+            self.assertIs(visibility_for(type_id), False, type_id)
+
+    def test_features_and_sketches_are_left_alone(self):
+        for type_id in ("PartDesign::Pad", "Sketcher::SketchObject"):
+            self.assertIsNone(visibility_for(type_id), type_id)
 
 
 class TestFingerprintPath(unittest.TestCase):

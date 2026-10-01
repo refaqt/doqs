@@ -57,6 +57,9 @@ def build(doc, params):
     Body is left outside a Part.  See
     `doqs/docs/decisions/2026-10-01_part-container-on-top.md`.
 
+    `run()` makes each new Part, Body, Assembly and Link visible, and keeps
+    their coordinate systems (origin axes, planes and point) hidden.
+
     Assembly-driven parts: master sketches belong in a dedicated `Body_master`
     constrained to that Body's own origin planes, never the `Assembly` object's.
     See `doqs/docs/decisions/2026-06-24_freecad-master-sketches-body.md`.
