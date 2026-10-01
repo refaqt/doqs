@@ -6,6 +6,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parent.parent
@@ -17,16 +18,23 @@ from cad_rules import (  # noqa: E402
     DENIED_MCP_TOOLS,
     FINGERPRINT_SCHEMA,
     FingerprintError,
+    bodies_outside_part,
     compare_fingerprints,
+    document_tree,
     file_digest,
     fingerprint_path,
+    is_assembly_path,
     load_fingerprint,
     missing_guard_rules,
     normalise,
     round_sig,
     write_fingerprint,
 )
-from validate_cad import validate_document, validate_guard  # noqa: E402
+from validate_cad import (  # noqa: E402
+    validate_document,
+    validate_guard,
+    validate_part_container,
+)
 
 
 class TestRounding(unittest.TestCase):
@@ -137,6 +145,13 @@ class _FixtureCase(unittest.TestCase):
 
 
 class TestValidateDocument(_FixtureCase):
+    def test_a_body_on_top_fails_the_document(self):
+        _write_fcstd(self.fcstd, BODY_ON_TOP)
+        self.write_fp()
+        errors = validate_document(self.fcstd, self.root)
+        self.assertEqual(len(errors), 1)
+        self.assertIn("not inside a Part container", errors[0])
+
     def test_current_fingerprint_passes(self):
         self.assertEqual(validate_document(self.fcstd, self.root), [])
 
@@ -222,6 +237,103 @@ class TestLoadFingerprint(unittest.TestCase):
         self.assertTrue(text.endswith("\n"))
         self.assertLess(text.index('"a"'), text.index('"b"'))
         self.assertEqual(load_fingerprint(path)["a"], 2.0)
+
+
+def _document_xml(objects):
+    """A minimal Document.xml: ``objects`` is ``[(name, type_id, children)]``."""
+    listed = "".join(f'<Object type="{t}" name="{n}" id="{i}"/>'
+                     for i, (n, t, _) in enumerate(objects))
+    data = ""
+    for name, _, children in objects:
+        links = "".join(f'<Link value="{c}"/>' for c in children)
+        group = (
+            '<Property name="Group" type="App::PropertyLinkList">'
+            f'<LinkList count="{len(children)}">{links}</LinkList></Property>'
+        ) if children else ""
+        data += f'<Object name="{name}"><Properties>{group}</Properties></Object>'
+    return (
+        '<?xml version="1.0" encoding="utf-8"?><Document SchemaVersion="4">'
+        f"<Objects Count=\"{len(objects)}\">{listed}</Objects>"
+        f"<ObjectData Count=\"{len(objects)}\">{data}</ObjectData></Document>"
+    )
+
+
+def _write_fcstd(path, objects):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("Document.xml", _document_xml(objects))
+
+
+BODY_ON_TOP = [
+    ("Body", "PartDesign::Body", ["Pad", "Sketch"]),
+    ("Sketch", "Sketcher::SketchObject", []),
+    ("Pad", "PartDesign::Pad", []),
+]
+BODY_IN_PART = [("Part", "App::Part", ["Body"]), *BODY_ON_TOP]
+
+
+class TestPartContainer(unittest.TestCase):
+    """The top object of a part is a Part, with the Body inside it."""
+
+    def setUp(self):
+        self._tmp = Path(tempfile.mkdtemp(prefix="doqs-cad-"))
+        self.addCleanup(shutil.rmtree, self._tmp, ignore_errors=True)
+
+    def test_a_body_on_top_is_reported(self):
+        self.assertEqual(bodies_outside_part(BODY_ON_TOP), ["Body"])
+
+    def test_a_body_inside_a_part_passes(self):
+        self.assertEqual(bodies_outside_part(BODY_IN_PART), [])
+
+    def test_a_body_in_a_group_inside_a_part_passes(self):
+        objects = [
+            ("Part", "App::Part", ["Group"]),
+            ("Group", "App::DocumentObjectGroup", ["Body"]),
+            *BODY_ON_TOP,
+        ]
+        self.assertEqual(bodies_outside_part(objects), [])
+
+    def test_only_the_loose_body_is_named(self):
+        objects = [*BODY_IN_PART, ("Body001", "PartDesign::Body", [])]
+        self.assertEqual(bodies_outside_part(objects), ["Body001"])
+
+    def test_an_assembly_document_is_exempt(self):
+        objects = [
+            ("Assembly", "Assembly::AssemblyObject", []),
+            ("Master", "App::DocumentObjectGroup", ["Body_master"]),
+            ("Body_master", "PartDesign::Body", []),
+        ]
+        self.assertEqual(bodies_outside_part(objects), [])
+
+    def test_a_document_with_no_body_passes(self):
+        self.assertEqual(bodies_outside_part([("Params", "Spreadsheet::Sheet", [])]), [])
+
+    def test_document_tree_reads_types_and_groups(self):
+        fcstd = self._tmp / "rail.FCStd"
+        _write_fcstd(fcstd, BODY_IN_PART)
+        self.assertEqual(document_tree(fcstd), BODY_IN_PART)
+
+    def test_an_unreadable_file_reads_as_empty(self):
+        stub = self._tmp / "stub.FCStd"
+        stub.write_bytes(b"not a zip")
+        self.assertEqual(document_tree(stub), [])
+
+    def test_assembly_paths(self):
+        self.assertTrue(is_assembly_path(Path("x-axis/cad/assemblies/x-axis.FCStd")))
+        self.assertFalse(is_assembly_path(Path("x-axis/cad/parts/carriage/carriage.FCStd")))
+        self.assertFalse(is_assembly_path(Path("rail/cad/rail.FCStd")))
+
+    def test_validator_reports_a_body_on_top_in_a_part_file(self):
+        fcstd = self._tmp / "m" / "rail" / "cad" / "parts" / "rail.FCStd"
+        _write_fcstd(fcstd, BODY_ON_TOP)
+        errors = validate_part_container(fcstd, self._tmp / "m")
+        self.assertEqual(len(errors), 1)
+        self.assertIn("'Body' is not inside a Part container", errors[0])
+
+    def test_validator_skips_the_assemblies_folder(self):
+        fcstd = self._tmp / "m" / "rail" / "cad" / "assemblies" / "rail.FCStd"
+        _write_fcstd(fcstd, BODY_ON_TOP)
+        self.assertEqual(validate_part_container(fcstd, self._tmp / "m"), [])
 
 
 class TestFingerprintPath(unittest.TestCase):

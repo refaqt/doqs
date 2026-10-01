@@ -27,6 +27,12 @@ Three gates, in order of how much damage they prevent:
    bump makes it stamp a new schema number on an old payload. This is a FAIL
    rather than a warning because a stale copy still runs.
 
+5. **A Part on top.** In a part document every `PartDesign::Body` must sit
+   inside an `App::Part` container, so an Assembly can insert and place the
+   part as one object. Documents under `cad/assemblies/`, and documents that
+   hold an Assembly, are exempt: their master sketches live in a Body inside a
+   plain Group (docs/decisions/2026-06-24_freecad-master-sketches-body.md).
+
 Run from the machine repository root:
 
     python doqs/scripts/validate_cad.py
@@ -42,10 +48,13 @@ from pathlib import Path
 from cad_rules import (
     DENIED_MCP_TOOLS,
     FingerprintError,
+    bodies_outside_part,
     cad_documents,
+    document_tree,
     file_digest,
     fingerprint_path,
     hook_is_registered,
+    is_assembly_path,
     load_fingerprint,
     missing_guard_rules,
 )
@@ -111,18 +120,32 @@ def validate_hook_registration(root: Path) -> list[str]:
     return []
 
 
-def validate_document(fcstd: Path, root: Path) -> list[str]:
-    """Check one .FCStd against its committed fingerprint."""
+def validate_part_container(fcstd: Path, root: Path) -> list[str]:
+    """Every Body in a part document must sit inside a Part container."""
     rel = fcstd.relative_to(root)
+    if is_assembly_path(rel):
+        return []
+    return [
+        f"{rel}: Body {name!r} is not inside a Part container. The top object of "
+        "a part must be a Part: add one with the Create part command (Std_Part) "
+        "and drag the Body into it, or rebuild with body(doc) from cad_build."
+        for name in bodies_outside_part(document_tree(fcstd))
+    ]
+
+
+def validate_document(fcstd: Path, root: Path) -> list[str]:
+    """Check one .FCStd against its committed fingerprint and its model tree."""
+    rel = fcstd.relative_to(root)
+    container_errors = validate_part_container(fcstd, root)
     fp_path = fingerprint_path(fcstd)
     try:
         data = load_fingerprint(fp_path)
     except FingerprintError as err:
         return [
             f"{err}. Rebuild with: FreeCADCmd {fcstd.parent.relative_to(root)}/build_model.py"
-        ]
+        ] + container_errors
 
-    errors: list[str] = []
+    errors: list[str] = list(container_errors)
     if not data.get("saved"):
         errors.append(
             f"{fp_path.relative_to(root)}: measured from an unsaved document, so it "

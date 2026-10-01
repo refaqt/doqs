@@ -20,6 +20,7 @@ from __future__ import annotations
 import hashlib
 import zipfile
 import re
+import xml.etree.ElementTree as ET
 import json
 import math
 from pathlib import Path
@@ -250,6 +251,74 @@ def links_resolve_to(fcstd: Path, target: Path) -> bool:
         except OSError:
             continue
     return False
+
+
+#: The container an Assembly inserts and places. A part document keeps its
+#: Bodies inside one, so the top object of the tree is a Part, not a Body.
+PART_TYPE = "App::Part"
+BODY_TYPE = "PartDesign::Body"
+
+#: An assembly document is exempt: its master sketches live in a Body inside a
+#: plain Group. See docs/decisions/2026-06-24_freecad-master-sketches-body.md.
+ASSEMBLY_TYPE = "Assembly::AssemblyObject"
+
+
+def bodies_outside_part(objects) -> list[str]:
+    """Bodies that no Part container holds, in document order.
+
+    ``objects`` is a list of ``(name, type_id, children)``, where ``children``
+    are the names in that object's ``Group`` property. The walk goes down from
+    every Part through nested groups, so a Body in a Group inside a Part counts
+    as held. An assembly document returns nothing.
+    """
+    objects = list(objects)
+    if any(type_id == ASSEMBLY_TYPE for _, type_id, _ in objects):
+        return []
+    children = {name: list(kids) for name, _, kids in objects}
+    held: set[str] = set()
+    stack = [name for name, type_id, _ in objects if type_id == PART_TYPE]
+    while stack:
+        name = stack.pop()
+        for child in children.get(name, []):
+            if child not in held:
+                held.add(child)
+                stack.append(child)
+    return [
+        name for name, type_id, _ in objects
+        if type_id == BODY_TYPE and name not in held
+    ]
+
+
+def document_tree(fcstd: Path) -> list[tuple[str, str, list[str]]]:
+    """``(name, type_id, children)`` for every object in a saved document.
+
+    Read from Document.xml, so no FreeCAD is needed. Returns an empty list for
+    a file that is not a readable FreeCAD document, like ``document_links``.
+    """
+    try:
+        with zipfile.ZipFile(fcstd) as archive:
+            root = ET.fromstring(archive.read("Document.xml"))
+    except (zipfile.BadZipFile, KeyError, OSError, ET.ParseError):
+        return []
+    groups: dict[str, list[str]] = {}
+    for obj in root.findall("./ObjectData/Object"):
+        for prop in obj.findall("./Properties/Property"):
+            if prop.get("name") == "Group":
+                groups[obj.get("name", "")] = [
+                    link.get("value", "") for link in prop.iter("Link")
+                ]
+    return [
+        (obj.get("name", ""), obj.get("type", ""), groups.get(obj.get("name", ""), []))
+        for obj in root.findall("./Objects/Object")
+    ]
+
+
+def is_assembly_path(fcstd: Path) -> bool:
+    """True when the document lives under a ``cad/assemblies/`` folder."""
+    parts = Path(fcstd).parts
+    return any(
+        a == "cad" and b == "assemblies" for a, b in zip(parts, parts[1:])
+    )
 
 
 def cad_documents(root: Path) -> list[Path]:

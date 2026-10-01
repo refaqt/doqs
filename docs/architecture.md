@@ -112,6 +112,8 @@ Every module — at every nesting depth — uses the same set of first-level fol
 | `measurement/`   | Physical test campaigns: protocols, result summaries, external-data manifests                     |
 | `modules/`       | Sub-modules (each with this same structure). Adapters live under `modules/adapters/` by convention |
 
+In a part file under `cad/`, the top object of the model tree is a Part container (`App::Part`), with the Body inside it. Assembly files are exempt. See [the decision](decisions/2026-10-01_part-container-on-top.md) and [agent-cad.md](agent-cad.md#the-model-tree-of-a-part).
+
 Each first-level content folder that exists carries a short `LICENSE` pointer; see [Licensing](#licensing).
 
 **Special folders at the project root only:**
