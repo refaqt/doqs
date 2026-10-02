@@ -152,7 +152,10 @@ SPDX_SUFFIXES = (".py", ".sh", ".bat")
 #: repo's own licence applies (CERN-OHL-S for `cad/`). Stamping GPL on these
 #: would mislabel the design their author writes into them. Paths are relative
 #: to the tools-repo root.
-SPDX_EXEMPT = frozenset({"templates/cad/build_model.py"})
+SPDX_EXEMPT = frozenset({
+    "templates/cad/build_model.py",
+    "templates/parts-library/cad/own/build.py",
+})
 
 _GITMODULE_PATH = re.compile(r"^\s*path\s*=\s*(.+)$")
 _README_HEADING = re.compile(r"(?im)^#{1,6}\s+licen[cs]e\b")

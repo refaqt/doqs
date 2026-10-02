@@ -245,6 +245,9 @@ across platforms, and without that tolerance every rebuild would emit a diff.
 FreeCADCmd cad/build_model.py
 ```
 
+A good run ends with `Rebuilt and saved <document>`. If you do not see that line,
+nothing was built: read the error above it.
+
 A fingerprint measured from an unsaved document records `"saved": false`, and
 `validate_cad.py` rejects committing one — the numbers would describe geometry
 that cannot be reproduced from the committed `.FCStd`.
@@ -263,6 +266,8 @@ python doqs/scripts/validate_cad.py --check-clean
 | `saved: true` | A fingerprint taken from an unsaved GUI document |
 | Recorded digests match | A hand-edited `.FCStd` or a stale `.step`/`.stl` |
 | Part on top | A part whose Body is not inside a Part container |
+| Build script runs headless | A build script that ends with `if __name__ == "__main__":`, so FreeCADCmd 1.1 builds nothing |
+| Own models in a parts library | A model under `cad/own/` with no build script, no parameters, no current fingerprint, or a Body on top; a tracked `.FCBak` or `__pycache__/` |
 | `--check-clean` | An agent session left a `.FCStd` modified on disk |
 
 The guard check applies only once a repository actually contains a `.FCStd` —
@@ -279,12 +284,49 @@ seed through a short upward walk to the submodule:
 
 | Lives in the module | Lives in `doqs/scripts/` |
 | --- | --- |
-| `cad/build_model.py` — `build()`, the geometry | `cad_build.py` — transactions, save discipline, `run()` |
+| `cad/build_model.py` — `build()`, the geometry | `cad_build.py` — transactions, save discipline, `main()` and `run()` |
 | `cad/params/*.csv`, `cad/*.FCStd` | `cad_fingerprint.py` — measurement |
 | | `cad_sync_params.py` — CSV → Spreadsheet |
 
 Tools stay in the submodule so a fix reaches every module on the next
 `git submodule update --remote`. `validate_cad.py` fails on a per-module copy.
+
+### The last line of a build script
+
+A build script ends with this line, and with nothing around it:
+
+```python
+main(build, globals(), cad_dir=_HERE)
+```
+
+Do not put it under `if __name__ == "__main__":`. FreeCAD 1.1 runs a script with
+`FreeCADCmd cad/build_model.py` and sets `__name__` to the file name without its
+suffix, here `build_model`. The test is then false, and the run builds nothing,
+prints nothing and exits 0. You would commit an old model and believe it is new.
+
+`main()` builds unless the file is being imported. It works the same from
+`FreeCADCmd`, from `python`, and from the FreeCAD console. Two checks catch the
+old ending:
+
+* When a headless FreeCAD run imports `cad_build` and ends without a finished
+  build, it prints `ERROR: this FreeCADCmd run built nothing` and exits 1. That
+  also covers a build that raised an error, because FreeCADCmd does not always
+  exit with a failure code.
+* `validate_cad.py` fails a build script that still holds the old guard.
+
+### Own models in a parts library
+
+A parts library keeps the models we draw ourselves under `cad/own/`, several in
+one folder. Each one has its own build script, `cad/own/<pn>.build.py`, copied
+from [`templates/parts-library/cad/own/build.py`](../templates/parts-library/cad/own/build.py).
+The script's name tells `main()` which `<pn>.FCStd` to open and which
+`<pn>.params.csv` to read. Run it from the library root:
+
+```powershell
+FreeCADCmd modules/hiwin/modules/hgr-rail/cad/own/HGR20R1000.build.py
+```
+
+The rest of the rules are in [parts-library.md, Our own models](parts-library.md#our-own-models).
 
 ### Migrating a module created before this split
 

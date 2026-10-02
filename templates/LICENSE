@@ -19,6 +19,9 @@ repository's to license:
 - [`cad/build_model.py`](cad/build_model.py) — the geometry its author writes
   into `build()` is theirs, licensed by that repository (CERN-OHL-S v2.0 for
   `cad/` content in a DOQS machine repo), not by this file.
+- [`parts-library/cad/own/build.py`](parts-library/cad/own/build.py) — the same,
+  for a model we draw ourselves in a parts library, where `cad/own/` is
+  CC BY-SA 4.0.
 - [`agent-cad/mcp.json`](agent-cad/mcp.json) and
   [`agent-cad/claude-settings.json`](agent-cad/claude-settings.json) —
   declarative configuration that `install_root_tools.py` installs **once** and

@@ -11,7 +11,10 @@ design, make and sell. The specification is
 | `brand-okh.toml` | `modules/<brand>/okh.toml` |
 | `family-okh.toml` | `modules/<brand>/modules/<family>/okh.toml` |
 | `bom/parts.csv` | `modules/<brand>/modules/<family>/bom/parts.csv` |
-| `cad/own/checks.csv` | `modules/<brand>/modules/<family>/cad/own/<pn>.checks.csv`, next to a model we drew ourselves |
+| `cad/own/features.csv` | `modules/<brand>/modules/<family>/cad/own/<pn>.features.csv`, filled in before you model |
+| `cad/own/params.csv` | `.../cad/own/<pn>.params.csv`: every value the build uses, and where it came from |
+| `cad/own/build.py` | `.../cad/own/<pn>.build.py`: the script that builds the model |
+| `cad/own/checks.csv` | `.../cad/own/<pn>.checks.csv`: whether the model matches the brand's |
 | `gitignore.snippet` | append to the root `.gitignore` |
 
 Then run `python doqs/scripts/apply_licenses.py --root .` at the library root.

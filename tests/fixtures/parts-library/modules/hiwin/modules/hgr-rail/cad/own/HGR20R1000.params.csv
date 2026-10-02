@@ -1,0 +1,7 @@
+alias,value,unit,basis,source,page,measured_by,measured_utc,description
+rail_length,1000,mm,catalogue,docs/datasheets/hgr-series.pdf,12,,,Rail length L
+rail_width,20,mm,catalogue,docs/datasheets/hgr-series.pdf,12,,,Rail width WR
+rail_height,17.5,mm,catalogue,docs/datasheets/hgr-series.pdf,12,,,Rail height HR
+hole_pitch,60,mm,catalogue,docs/datasheets/hgr-series.pdf,12,,,Mounting hole pitch P
+ref_groove_depth,1,mm,estimated,docs/datasheets/hgr-series.pdf,12,,,Reference edge groove. Drawn without a size; read off the figure
+top_chamfer,0.5,mm,measured,,,First Last,2026-10-02,Chamfer on the top edges. Measured on a real rail with a caliper

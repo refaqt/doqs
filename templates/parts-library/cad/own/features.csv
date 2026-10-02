@@ -1,0 +1,22 @@
+# Copy to cad/own/<part number>.features.csv and fill it BEFORE you model.
+#
+# One row for every labelled dimension in the catalogue table and for every
+# feature the figure shows, sized or not. Look at the figure for things with no
+# size: reference edges, end caps, end seals, grease nipples, plugs, screw
+# heads, ports, connectors, cables.
+#
+# kind:             sized (the table gives its size) | drawn-unsized (the figure
+#                   shows it with no size) | not-drawn (the text names it, no
+#                   figure shows it)
+# outside_envelope: yes when it sticks out of the main shape. Such a feature can
+#                   collide in an assembly, so it may never be left out. Model it
+#                   from an estimate on the large side if there is no size.
+# status:           modelled (from a catalogue size) | estimated (from a figure)
+#                   | measured (on a real part) | left-out
+# reason:           required for left-out. Say why it does not matter.
+feature,kind,outside_envelope,source,page,status,reason
+rail profile (WR x HR),sized,no,docs/datasheets/hgr-series.pdf,12,modelled,
+mounting holes (d x D x h) at pitch P,sized,no,docs/datasheets/hgr-series.pdf,12,modelled,
+reference edge groove,drawn-unsized,no,docs/datasheets/hgr-series.pdf,12,estimated,
+top edge chamfer,drawn-unsized,no,docs/datasheets/hgr-series.pdf,12,measured,
+end face burr chamfer,not-drawn,no,docs/datasheets/hgr-series.pdf,13,left-out,Smaller than the fit tolerance and changes no outside size

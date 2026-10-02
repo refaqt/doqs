@@ -33,6 +33,16 @@ Three gates, in order of how much damage they prevent:
    hold an Assembly, are exempt: their master sketches live in a Body inside a
    plain Group (docs/decisions/2026-06-24_freecad-master-sketches-body.md).
 
+6. **A build script that runs headless.** FreeCADCmd 1.1 runs a script with
+   `__name__` set to the file name, so a build script that ends with
+   `if __name__ == "__main__":` builds nothing and exits 0. It fails here.
+
+7. **Own models in a parts library.** A model under `cad/own/` is our design,
+   not a supplier file, so it gets the same checks as a machine part: a build
+   script, its parameters, a current fingerprint from a saved build, a Part on
+   top, and no backup or cache files in git. Supplier files in the library are
+   still checked by their checksums in validate_variants.py instead.
+
 Run from the machine repository root:
 
     python doqs/scripts/validate_cad.py
@@ -45,8 +55,11 @@ import json
 import subprocess
 from pathlib import Path
 
+import re
+
 from cad_rules import (
     DENIED_MCP_TOOLS,
+    OWN_BUILD_SUFFIX,
     FingerprintError,
     bodies_outside_part,
     cad_documents,
@@ -58,12 +71,14 @@ from cad_rules import (
     load_fingerprint,
     missing_guard_rules,
 )
+from intake_rules import OWN_MODEL_DIR
 from license_rules import is_doqs_tools_repo
 from naming_rules import (
     is_parts_library,
     is_under_tooling_submodule,
     repo_root_from_script,
 )
+from validate_variants import git_tracked
 
 SETTINGS_PATH = Path(".claude") / "settings.json"
 HOOK_PATH = Path(".claude") / "hooks" / "session-start.sh"
@@ -133,17 +148,17 @@ def validate_part_container(fcstd: Path, root: Path) -> list[str]:
     ]
 
 
-def validate_document(fcstd: Path, root: Path) -> list[str]:
+def validate_document(fcstd: Path, root: Path, build_script: Path | None = None) -> list[str]:
     """Check one .FCStd against its committed fingerprint and its model tree."""
     rel = fcstd.relative_to(root)
+    script = build_script or fcstd.parent / "build_model.py"
+    rebuild = f"Rebuild with: FreeCADCmd {script.relative_to(root).as_posix()}"
     container_errors = validate_part_container(fcstd, root)
     fp_path = fingerprint_path(fcstd)
     try:
         data = load_fingerprint(fp_path)
     except FingerprintError as err:
-        return [
-            f"{err}. Rebuild with: FreeCADCmd {fcstd.parent.relative_to(root)}/build_model.py"
-        ] + container_errors
+        return [f"{err}. {rebuild}"] + container_errors
 
     errors: list[str] = list(container_errors)
     if not data.get("saved"):
@@ -159,7 +174,8 @@ def validate_document(fcstd: Path, root: Path) -> list[str]:
     elif recorded != file_digest(fcstd):
         errors.append(
             f"{rel} changed since its fingerprint was written — the committed "
-            "measurements describe different geometry. Rebuild with build_model.py."
+            f"measurements describe different geometry. It was saved again after "
+            f"its build, by hand or in the GUI. {rebuild}"
         )
 
     for name, digest in sorted(sources.items()):
@@ -215,7 +231,132 @@ def legacy_tool_copies(root: Path) -> list[str]:
                     "Re-seed it from doqs/templates/cad/build_model.py, keeping "
                     "your build() body."
                 )
+            else:
+                errors.extend(main_guard_errors(build, root))
     return errors
+
+
+#: The guard FreeCADCmd 1.1 never enters: it sets `__name__` to the file name.
+MAIN_GUARD = re.compile(r"""^if\s+__name__\s*==\s*["']__main__["']\s*:""", re.MULTILINE)
+
+
+def main_guard_errors(script: Path, root: Path) -> list[str]:
+    """A build script that FreeCADCmd runs without building anything."""
+    try:
+        body = script.read_text(encoding="utf-8")
+    except OSError:
+        return []
+    if not MAIN_GUARD.search(body):
+        return []
+    return [
+        f"{script.relative_to(root).as_posix()} starts its build under "
+        '`if __name__ == "__main__":`. FreeCADCmd 1.1 sets __name__ to the file '
+        "name, so a headless run builds nothing and still exits 0. End the file "
+        "with main(build, globals()) instead, as the template does."
+    ]
+
+
+#: A build script for an own model must say which axes and origin it uses.
+_AXES = re.compile(r"""^AXES\s*=\s*(["'(].*)$""", re.MULTILINE)
+
+
+def own_build_script_errors(script: Path, root: Path) -> list[str]:
+    """The build script of one own model: present, headless-safe, axes stated."""
+    rel = script.relative_to(root).as_posix()
+    if not script.is_file():
+        return [
+            f"{rel} not found. An own model is built by a script, never by hand in "
+            "the GUI. Copy doqs/templates/parts-library/cad/own/build.py there."
+        ]
+    errors = main_guard_errors(script, root)
+    body = script.read_text(encoding="utf-8")
+    axes = _AXES.search(body)
+    if not axes:
+        errors.append(
+            f"{rel} does not state its axes. Add AXES = \"...\": which way X, Y "
+            "and Z point and where the origin is. They must be the same as in the "
+            "brand's model, so ours can replace it in an assembly."
+        )
+    elif "TODO" in axes.group(1):
+        errors.append(f"{rel}: AXES still holds the template text. Describe the real axes.")
+    return errors
+
+
+def own_model_documents(root: Path) -> list[Path]:
+    """Every `cad/own/<pn>.FCStd` in a parts library."""
+    return [
+        p for p in sorted(root.rglob(f"cad/{OWN_MODEL_DIR}/*.FCStd"))
+        if not is_under_tooling_submodule(p, root)
+    ]
+
+
+def validate_own_model(fcstd: Path, root: Path) -> list[str]:
+    """One model we drew ourselves: rebuilt by its script, nothing by hand."""
+    pn = fcstd.stem
+    script = fcstd.with_name(pn + OWN_BUILD_SUFFIX)
+    errors = own_build_script_errors(script, root)
+    params = fcstd.with_name(f"{pn}.params.csv")
+    if not params.is_file():
+        errors.append(
+            f"{params.relative_to(root).as_posix()} not found. Every value the "
+            "build uses goes there, marked catalogue, estimated or measured. "
+            "Copy doqs/templates/parts-library/cad/own/params.csv."
+        )
+    return errors + validate_document(fcstd, root, build_script=script)
+
+
+def builds_without_model(root: Path) -> list[str]:
+    """An own-model build script whose model was never built and committed."""
+    errors = []
+    for script in sorted(root.rglob(f"cad/{OWN_MODEL_DIR}/*{OWN_BUILD_SUFFIX}")):
+        if is_under_tooling_submodule(script, root):
+            continue
+        pn = script.name[: -len(OWN_BUILD_SUFFIX)]
+        if not script.with_name(f"{pn}.FCStd").is_file():
+            errors.append(
+                f"{script.relative_to(root).as_posix()}: {pn}.FCStd not found. "
+                f"Build it: FreeCADCmd {script.relative_to(root).as_posix()}"
+            )
+    return errors
+
+
+def tracked_junk(root: Path) -> list[str]:
+    """FreeCAD backups and Python caches that git tracks. Neither belongs there."""
+    tracked = git_tracked(root)
+    if tracked is None:
+        return []
+    return [
+        f"{path} is tracked by git. Run: git rm --cached \"{path}\", and keep "
+        "*.FCBak and __pycache__/ in .gitignore"
+        for path in sorted(tracked)
+        if path.endswith(".FCBak") or "__pycache__" in path.split("/")
+    ]
+
+
+def validate_parts_library(root: Path) -> bool:
+    """Our own models in a library. Supplier files are checked by checksum."""
+    all_ok = True
+    for fcstd in own_model_documents(root):
+        rel = fcstd.relative_to(root).as_posix()
+        errs = validate_own_model(fcstd, root)
+        if errs:
+            all_ok = False
+            print(f"FAIL  {rel}")
+            for e in errs:
+                print(f"      {e}")
+        else:
+            print(f"ok    {rel}")
+    for label, errs in (
+        ("own-model build scripts", builds_without_model(root)),
+        ("files tracked by git", tracked_junk(root)),
+    ):
+        if errs:
+            all_ok = False
+            print(f"FAIL  {label}")
+            for e in errs:
+                print(f"      {e}")
+    print("ok    parts library: supplier files are checked by their checksums")
+    return all_ok
 
 
 def dirty_documents(root: Path) -> list[str]:
@@ -255,15 +396,15 @@ def main() -> int:
         print("ok    doqs tools repo (no machine CAD to validate)")
         return 0
 
-    # A parts library holds documents built from files brands published, not
-    # parametric designs of ours. There is no build_model.py behind them, so a
-    # fingerprint could not be regenerated, and it would be the weaker check
-    # anyway: every committed file already carries a byte-exact checksum in
-    # vendor-index.csv, which validate_variants.py compares.
-    # See docs/decisions/2026-09-18_parts-library.md.
+    # A parts library mostly holds documents built from files brands published.
+    # There is no build script behind them, and every committed file already
+    # carries a byte-exact checksum in vendor-index.csv, which
+    # validate_variants.py compares (docs/decisions/2026-09-18_parts-library.md).
+    # Our own models under cad/own/ are different: they are our designs, and
+    # skipping them let a re-saved model through unnoticed.
+    # See docs/mistakes/2026-10-02_own-models-were-not-checked.md.
     if is_parts_library(root):
-        print("ok    parts library (supplier files are checked by their checksums)")
-        return 0
+        return 0 if validate_parts_library(root) else 1
 
     legacy = legacy_tool_copies(root)
     if legacy:

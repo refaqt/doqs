@@ -68,6 +68,8 @@ PASSTHROUGH: dict[str, str] = {
     "bom": "resolve_bom.py",
     "restore-build": "restore_build.py",
     "restore-private": "restore_private.py",
+    "unshare": "apply_unshare.py",
+    "compare-own": "compare_own.py",
 }
 
 #: Scripts that cannot become a subcommand: they run inside a FreeCAD
@@ -163,6 +165,8 @@ def cmd_list() -> int:
         ("bom …", "Resolve one module's BOM for one model"),
         ("restore-build …", "Fetch back the files a machine was built from"),
         ("restore-private …", "Copy non-shared supplier files from the private library"),
+        ("unshare …", "Take files we may not share any more out of git, keep them on disk"),
+        ("compare-own …", "Compare an own model with the brand's, writing only results"),
         ("run <script> …", "Any script in doqs/scripts/, by name"),
         ("list", "This list"),
     )
