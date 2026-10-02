@@ -1,13 +1,31 @@
 # Copy to cad/own/<part number>.checks.csv, next to the model it checks.
 #
-# One row for every dimension of our own model. The value comes from the
-# brand's public datasheet or technical drawing: name the file in `source` and
-# the page in `page`.
+# One row for every dimension of our own model.
 #
-# `result` is what a separate check found when it compared the model with the
-# brand's own file: pass, fail or not-confirmed. The check writes only the
-# result, never the brand's value. On a fail, read the drawing again and fix the
-# value from the drawing. If the drawing does not say, mark it not-confirmed or
-# ask the brand. Never copy a value from the brand's file.
-dimension,value_mm,source,page,result,checked_utc
-rail width,20,docs/datasheets/hgr-series.pdf,12,pass,2026-09-29T00:00:00Z
+# basis says where value_mm comes from:
+#   catalogue  a size printed in the brand's table or drawing. Fill source and page.
+#   estimated  read off a figure. Only a placeholder: fill source and page.
+#   measured   measured on a real part. Fill measured_by and measured_utc.
+#
+# Four rows are required:
+#   envelope X, envelope Y, envelope Z   the overall size along each axis, as
+#                                        the catalogue defines it (a block length
+#                                        includes its end seals)
+#   symmetry YZ / XZ / XY                one row for each mirror plane through the
+#                                        origin, or `symmetry none`; value_mm is -
+#
+# method says in words how the dimension is measured on both models, so someone
+# else can repeat it. Never a value. A pass without a method is refused.
+#
+# result is what the comparison with the brand's own file found: pass, fail or
+# not-confirmed. `doqs compare-own <family> <pn>` writes it for the envelope and
+# symmetry rows. It writes only the result and the method, never the brand's
+# value. On a fail, read the drawing again and fix the value from the drawing.
+# If the drawing does not say, mark it not-confirmed or ask the brand. Never
+# copy a value from the brand's file.
+dimension,value_mm,basis,source,page,measured_by,measured_utc,method,result,checked_utc
+envelope X (rail length L),1000,catalogue,docs/datasheets/hgr-series.pdf,12,,,"Extent along X of the bounding box of all solids, measured the same way on both models in a headless FreeCAD run by doqs compare-own",pass,2026-10-02T00:00:00Z
+envelope Y (rail width WR),20,catalogue,docs/datasheets/hgr-series.pdf,12,,,"Extent along Y of the bounding box of all solids, measured the same way on both models in a headless FreeCAD run by doqs compare-own",pass,2026-10-02T00:00:00Z
+envelope Z (rail height HR),17.5,catalogue,docs/datasheets/hgr-series.pdf,12,,,"Extent along Z of the bounding box of all solids, measured the same way on both models in a headless FreeCAD run by doqs compare-own",pass,2026-10-02T00:00:00Z
+symmetry XZ,-,catalogue,docs/datasheets/hgr-series.pdf,12,,,"Bounding box and centre of mass compared with their mirror image in the XZ plane through the origin, on both models, by doqs compare-own",pass,2026-10-02T00:00:00Z
+hole pitch P,60,catalogue,docs/datasheets/hgr-series.pdf,12,,,"Distance between the axes of two neighbouring mounting holes, read from the hole edges on both models",pass,2026-10-02T00:00:00Z

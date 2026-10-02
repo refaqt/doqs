@@ -25,3 +25,4 @@ follows from it. The guide that explains how to use the result lives in `docs/`.
 | 2026-09-29 | [ADR-008 — A private parts library](2026-09-29_private-parts-library.md) | Accepted |
 | 2026-09-29 | [ADR-009 — A fixed method for taking in a supplier's files](2026-09-29_component-intake.md) | Accepted |
 | 2026-10-01 | [ADR-010 — A part has a Part container on top, not a Body](2026-10-01_part-container-on-top.md) | Accepted |
+| 2026-10-02 | [ADR-011 — An own model in a parts library is our design, and is checked like one](2026-10-02_own-models-are-our-designs.md) | Accepted |

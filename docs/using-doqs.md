@@ -109,6 +109,8 @@ and every `doqs` command will fail with a missing-file error.
 | `doqs bom …` | Resolves one module's BOM for one model | Checking what one variant is made of |
 | `doqs restore-build …` | Fetches back the files a machine was built from | Supporting a machine in the field, or checking a record can still be opened |
 | `doqs restore-private …` | Copies supplier files we may not share from the private library into place, after checking each checksum | Opening a model whose supplier files are `fetch-only` or `private` |
+| `doqs unshare …` | Takes files out of git when their terms change to `fetch-only` or `private`, after checking the private library has the same file. The local copy stays on disk | A brand's terms changed, or a file turns out to be private |
+| `doqs compare-own …` | Compares a model we drew with the brand's model in a headless FreeCAD, and writes only pass, fail or not-confirmed and the method | After building or changing an own model in a parts library |
 | `doqs run <script> …` | Runs any script in `doqs/scripts/` by name | Something the commands above do not cover |
 | `doqs list` | Every command, and the scripts each one runs | When you forget |
 
@@ -130,8 +132,8 @@ When `doqs check` fails, this tells you which part of your repository it is abou
 | `validate_names.py` | Module slugs, BOM ids and headers, model slugs, the naming lexicon |
 | `validate_links.py` | SysML imports and OKH relative paths. With `--markdown`, markdown links too |
 | `validate_build.py` | Every `builds/**/build.toml`: does each consumed interface have a provider? |
-| `validate_variants.py` | Families, parts libraries and roles: catalogues, models, compositions, length-table coverage, supplier files and their checksums, instance freshness, and whether a role's chosen part still exists, is still sold and still fits. In a parts library also: every shared supplier file has a public licence decision, every own model has its check list, and no file we may not share is tracked by git |
-| `validate_cad.py` | FreeCAD documents: the save guard, fingerprint currency, stale exports |
+| `validate_variants.py` | Families, parts libraries and roles: catalogues, models, compositions, length-table coverage, supplier files and their checksums, instance freshness, and whether a role's chosen part still exists, is still sold and still fits. In a parts library also: every shared supplier file has a public licence decision, every own model has its feature list, its parameters and its check list, each value says where it came from, and no file we may not share is tracked by git |
+| `validate_cad.py` | FreeCAD documents: the save guard, fingerprint currency, stale exports, build scripts that run headless, and own models in a parts library |
 | `resolve_params.py --check` | Is `cad/params-table.csv` current? |
 | `resolve_instance.py --check` | Are the resolved instance files current? |
 | `apply_licenses.py --check` | Do the licence files match the current templates? |
@@ -263,6 +265,9 @@ sync_active()          # writes cad/params.csv into the Params spreadsheet
 FreeCADCmd modules/<module>/cad/build_model.py
 ```
 
+A good run ends with `Rebuilt and saved <document>`. A run that built nothing prints
+an `ERROR` and exits 1.
+
 `cad_fingerprint.py` runs for you from `build_model.py`; you never call it directly.
 `cad_build.py` is imported by `build_model.py` and holds the transaction and save
 handling, which is why a module must never carry its own copy.
@@ -280,6 +285,7 @@ Read [agent-cad.md](agent-cad.md) before letting an agent touch a model.
 | Something under `modules/` shows as modified after the helper | Your `setup-tooling.sh` is an old copy. Replace it from the template |
 | `.mcp.json` appears as an untracked file | The installer wrote it. Keep it if you use FreeCAD through an agent; otherwise delete it or gitignore it |
 | A `.FCStd` has no fingerprint | Rebuild it: `FreeCADCmd <module>/cad/build_model.py` |
+| `FreeCADCmd` runs a build script, prints nothing and changes nothing | The script ends with `if __name__ == "__main__":`. FreeCAD 1.1 never enters that block. End it with `main(build, globals())`, as the template does |
 
 ## 12. Where to change what
 

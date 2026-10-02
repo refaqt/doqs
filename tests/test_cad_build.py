@@ -172,7 +172,7 @@ class TestSeedTemplate(unittest.TestCase):
         seed = (_REPO / "templates" / "cad" / "build_model.py").read_text(
             encoding="utf-8"
         )
-        self.assertRegex(seed, r"from cad_build import [^\n]*\brun\b")
+        self.assertRegex(seed, r"from cad_build import [^\n]*\bmain\b")
         for gone in ("def open_document(", "def run(", "openTransaction"):
             self.assertNotIn(gone, seed)
 

@@ -21,6 +21,7 @@ docs/decisions/2026-09-29_component-intake.md.
 from __future__ import annotations
 
 import datetime
+import re
 import tomllib
 from pathlib import Path
 
@@ -40,10 +41,184 @@ PARTS_TERMS = VENDOR_TERMS + ("own-model",)
 #: Our own models live here, inside a family's `cad/`. They carry CC BY-SA,
 #: not the brand's terms.
 OWN_MODEL_DIR = "own"
+#: Where a value came from. `catalogue`: a size printed in the brand's table
+#: or drawing. `estimated`: read off a figure, so only a placeholder.
+#: `measured`: measured on a real part, by a named person on a date.
+VALUE_BASES = ("catalogue", "estimated", "measured")
+
 #: The clean-room record next to every own model.
 CHECKS_SUFFIX = ".checks.csv"
-CHECKS_HEADERS = ("dimension", "value_mm", "source", "page", "result", "checked_utc")
+CHECKS_HEADERS = (
+    "dimension", "value_mm", "basis", "source", "page", "measured_by",
+    "measured_utc", "method", "result", "checked_utc",
+)
 CHECK_RESULTS = ("pass", "fail", "not-confirmed")
+
+#: The values an own model's build script reads: `cad/own/<pn>.params.csv`.
+OWN_PARAMS_SUFFIX = ".params.csv"
+OWN_PARAMS_HEADERS = (
+    "alias", "value", "unit", "basis", "source", "page", "measured_by",
+    "measured_utc", "description",
+)
+
+#: Every feature of the part, listed before anything is modelled:
+#: `cad/own/<pn>.features.csv`.
+FEATURES_SUFFIX = ".features.csv"
+FEATURES_HEADERS = (
+    "feature", "kind", "outside_envelope", "source", "page", "status", "reason",
+)
+#: `sized`: the catalogue gives its size. `drawn-unsized`: the figure shows it
+#: without a size. `not-drawn`: the text names it, no figure shows it.
+FEATURE_KINDS = ("sized", "drawn-unsized", "not-drawn")
+FEATURE_STATUS = ("modelled", "estimated", "measured", "left-out")
+YES_NO = ("yes", "no")
+
+#: The checks list must hold the overall size along each axis, named
+#: `envelope X`, `envelope Y` and `envelope Z`, and at least one symmetry row:
+#: `symmetry YZ` (or XZ, XY) for each mirror plane, or `symmetry none`.
+ENVELOPE_ROW = re.compile(r"^envelope\s+([XYZ])\b")
+SYMMETRY_ROW = re.compile(r"^symmetry\s+(XY|XZ|YZ|none)\b")
+
+#: A method says how something was measured, never what it measured. A number
+#: with a unit in it is almost always a value, and maybe the brand's.
+_VALUE_IN_TEXT = re.compile(r"\d+(?:[.,]\d+)?\s*(?:mm\b|deg\b|°)")
+_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}")
+
+
+def _empty(row: dict, key: str) -> bool:
+    return not (row.get(key) or "").strip()
+
+
+def basis_problems(label: str, row: dict) -> tuple[list[str], list[str]]:
+    """Where one value came from, and whether the row proves it."""
+    errors: list[str] = []
+    warnings: list[str] = []
+    basis = (row.get("basis") or "").strip()
+    if basis not in VALUE_BASES:
+        return [f"{label}: basis must be one of {VALUE_BASES}, got: {basis!r}"], warnings
+    if basis in ("catalogue", "estimated"):
+        for key in ("source", "page"):
+            if _empty(row, key):
+                errors.append(f"{label}: {key} is empty. Name the document and page this value is read from.")
+    if basis == "estimated":
+        warnings.append(
+            f"{label}: estimated from a figure, so only a placeholder. Replace it "
+            "with a measurement of a real part or a value from the brand, never "
+            "with a value from the brand's CAD file.")
+    if basis == "measured":
+        if _empty(row, "measured_by"):
+            errors.append(f"{label}: measured_by is empty. Name the person who measured the real part.")
+        if not _DATE.match((row.get("measured_utc") or "").strip()):
+            errors.append(f"{label}: measured_utc must give the date of the measurement, like 2026-10-02.")
+    return errors, warnings
+
+
+def params_problems(rows: list[dict]) -> tuple[list[str], list[str]]:
+    """An own model's parameters: each value with its basis."""
+    errors: list[str] = []
+    warnings: list[str] = []
+    for row in rows:
+        alias = (row.get("alias") or "").strip()
+        if not alias:
+            errors.append("a row has no alias")
+            continue
+        if _empty(row, "value"):
+            errors.append(f"{alias}: value is empty")
+        e, w = basis_problems(alias, row)
+        errors += e
+        warnings += w
+    return errors, warnings
+
+
+def features_problems(rows: list[dict]) -> list[str]:
+    """The feature inventory: every feature, and what happened to it."""
+    if not rows:
+        return ["the feature list is empty. List every feature the catalogue "
+                "table sizes and every feature the figure shows."]
+    errors: list[str] = []
+    for n, row in enumerate(rows, start=1):
+        feature = (row.get("feature") or "").strip()
+        if not any((v or "").strip() for v in row.values() if isinstance(v, str)):
+            errors.append(f"row {n} is empty. Remove it or fill it in.")
+            continue
+        label = feature or f"row {n}"
+        for key in FEATURES_HEADERS[:-1]:
+            if _empty(row, key):
+                errors.append(f"{label}: {key} is empty")
+        kind = (row.get("kind") or "").strip()
+        outside = (row.get("outside_envelope") or "").strip()
+        status = (row.get("status") or "").strip()
+        if kind and kind not in FEATURE_KINDS:
+            errors.append(f"{label}: kind must be one of {FEATURE_KINDS}, got: {kind!r}")
+        if outside and outside not in YES_NO:
+            errors.append(f"{label}: outside_envelope must be yes or no, got: {outside!r}")
+        if status and status not in FEATURE_STATUS:
+            errors.append(f"{label}: status must be one of {FEATURE_STATUS}, got: {status!r}")
+        if status == "left-out" and _empty(row, "reason"):
+            errors.append(f"{label}: left out without a reason. Say why in reason.")
+        if status == "left-out" and outside == "yes":
+            errors.append(
+                f"{label}: sticks out of the main shape, so it may never be left "
+                "out. An assembly would miss the collision. Model it, from an "
+                "estimate on the large side if there is no size.")
+        if kind == "drawn-unsized" and status == "modelled":
+            errors.append(
+                f"{label}: the catalogue gives no size, so the model holds an "
+                "estimate or a measurement. Set status to estimated or measured.")
+    return errors
+
+
+def checks_problems(rows: list[dict]) -> tuple[list[str], list[str]]:
+    """The comparison record of an own model. Never holds a brand value."""
+    errors: list[str] = []
+    warnings: list[str] = []
+    if not rows:
+        # A list that checks nothing proves nothing.
+        return ["the check list has no dimensions"], warnings
+    axes = set()
+    symmetry = False
+    for row in rows:
+        dim = (row.get("dimension") or "").strip()
+        envelope = ENVELOPE_ROW.match(dim)
+        if envelope:
+            axes.add(envelope.group(1))
+        is_symmetry = bool(SYMMETRY_ROW.match(dim))
+        symmetry = symmetry or is_symmetry
+        result = (row.get("result") or "").strip()
+        method = (row.get("method") or "").strip()
+        if result not in CHECK_RESULTS:
+            errors.append(f"{dim}: result must be one of {CHECK_RESULTS}")
+        elif result == "fail":
+            errors.append(
+                f"{dim}: the model does not match. Read the drawing again and fix the "
+                "value from the datasheet, never from the brand's model.")
+        elif result == "not-confirmed":
+            warnings.append(f"{dim}: not confirmed yet")
+        if result == "pass" and not method:
+            errors.append(
+                f"{dim}: pass without a method. Say in words how it was measured on "
+                "both models, so someone else can repeat it.")
+        if _VALUE_IN_TEXT.search(method):
+            errors.append(
+                f"{dim}: the method holds a value. Describe how it was measured, "
+                "never what was measured: a brand value may not enter this file.")
+        value = (row.get("value_mm") or "").strip()
+        if not value or (value == "-" and not is_symmetry):
+            errors.append(f"{dim}: value_mm is empty")
+        e, w = basis_problems(dim, row)
+        errors += e
+        warnings += w
+    missing = [axis for axis in "XYZ" if axis not in axes]
+    if missing:
+        errors.append(
+            "the check list has no " + ", ".join(f"'envelope {a}'" for a in missing)
+            + " row. Check the overall size along each axis as the catalogue "
+            "defines it, for example a block length with its end seals.")
+    if not symmetry:
+        errors.append(
+            "the check list has no symmetry row. Add 'symmetry YZ' (or XZ, XY) for "
+            "each mirror plane of the part, or 'symmetry none'.")
+    return errors, warnings
 
 
 def kind_of(relpath: str) -> str | None:

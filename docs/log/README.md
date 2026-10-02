@@ -24,3 +24,4 @@ Write entries in B2 English. Follow `.agents/rules/communication.md`.
 | 2026-09-22 | [An analysis mesh no longer blocks a document](2026-09-22_fingerprint-skips-a-shape-link.md) | software | 0 |
 | 2026-09-29 | [Taking in a supplier's files now follows fixed rules](2026-09-29_component-intake.md) | software | 0 |
 | 2026-10-01 | [New parts get a Part container on top](2026-10-01_part-container-on-top.md) | software | 0 |
+| 2026-10-02 | [Our own models in a parts library are now checked](2026-10-02_own-models-checked.md) | software | 0 |

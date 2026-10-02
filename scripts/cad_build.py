@@ -17,6 +17,13 @@ and writes the fingerprint.  This is the CI path:
 
     FreeCADCmd cad/build_model.py
 
+A build script ends with `main(build, globals())`, never with an
+`if __name__ == "__main__":` guard.  FreeCADCmd 1.1 runs a script with
+`__name__` set to the file name without its suffix, so that guard is false and
+the run builds nothing, prints nothing and exits 0.  `main()` builds unless the
+file is being imported, and a headless run that ends without a finished build
+prints an error and exits 1.
+
 Never run the headless path against a document you have open in the GUI:
 FreeCAD does not notice that a file changed on disk and the next save from
 either side silently overwrites the other (FreeCAD issue #8924).  That is why
@@ -27,16 +34,24 @@ FreeCAD is imported lazily inside the functions that need it, so this module
 imports cleanly under plain Python and its path handling stays unit-testable.
 """
 
+import atexit
+import os
+import sys
 from pathlib import Path
 
 import cad_fingerprint
 from cad_rules import (
     BODY_TYPE,
+    OWN_BUILD_SUFFIX,
     PART_TYPE,
     bodies_outside_part,
     is_assembly_path,
     visibility_for,
 )
+
+#: Builds that finished in this process: rebuilt, checked, fingerprinted. The
+#: exit check below reads it.
+_builds_done = 0
 
 
 def _cad_dir(cad_dir=None):
@@ -44,17 +59,50 @@ def _cad_dir(cad_dir=None):
     return Path(cad_dir) if cad_dir else Path.cwd() / "cad"
 
 
+def document_of_script(file):
+    """`cad/own/HGR20R1000.build.py` -> `HGR20R1000`; None for `build_model.py`.
+
+    A parts library keeps several own models in one `cad/own/` folder, each
+    with its own build script. The script's name says which model it builds.
+    """
+    name = Path(file).name if file else ""
+    if name.endswith(OWN_BUILD_SUFFIX) and len(name) > len(OWN_BUILD_SUFFIX):
+        return name[: -len(OWN_BUILD_SUFFIX)]
+    return None
+
+
+def params_path(cad_dir=None, document=None, fcstd=None):
+    """The parameter file a build reads.
+
+    An own model in a parts library keeps `<pn>.params.csv` next to its
+    `<pn>.FCStd`. A machine module keeps one `cad/params.csv`.
+    """
+    directory = _cad_dir(cad_dir)
+    candidates = []
+    if fcstd:
+        candidates.append(Path(fcstd).with_name(Path(fcstd).stem + ".params.csv"))
+    if document:
+        candidates.append(directory / f"{document}.params.csv")
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    return directory / "params.csv"
+
+
 def fcstd_path(cad_dir=None, document=None):
     """The .FCStd this build drives: the single one in the module's `cad/`.
 
-    `document` names the stem when a module keeps more than one.
+    `document` names the stem when a folder keeps more than one.
     """
     directory = _cad_dir(cad_dir)
     candidates = sorted(directory.glob("*.FCStd"))
     if not candidates:
         raise RuntimeError(f"No .FCStd found in {directory}")
-    if len(candidates) > 1 and document:
-        return directory / f"{document}.FCStd"
+    if document:
+        named = directory / f"{document}.FCStd"
+        if not named.is_file():
+            raise RuntimeError(f"No {named.name} in {directory}")
+        return named
     if len(candidates) > 1:
         raise RuntimeError(
             f"{len(candidates)} .FCStd files in {directory}; "
@@ -192,8 +240,10 @@ def run(build_fn, cad_dir=None, document=None):
     Saves only when there is no GUI document: an open document is the human's
     to write, and writing it from here is the data-loss path described above.
     """
+    global _builds_done
     doc, interactive = open_document(cad_dir, document)
-    params = cad_fingerprint.read_params(cad_dir)
+    params = cad_fingerprint.read_params(
+        path=params_path(cad_dir, document, getattr(doc, "FileName", "") or None))
 
     # One transaction means the whole rebuild is a single Ctrl+Z for the human
     # working alongside the agent.
@@ -227,4 +277,64 @@ def run(build_fn, cad_dir=None, document=None):
         doc.save()
         cad_fingerprint.write(doc, params=params, cad_dir=cad_dir)
         print(f"Rebuilt and saved {doc.Name}")
+    _builds_done += 1
     return doc
+
+
+def _is_import(namespace):
+    """True when Python is importing the build script, not running it.
+
+    Only an import sets `__spec__` to a spec with the module's own name.
+    `python file.py`, `runpy`, the FreeCAD console and FreeCADCmd all leave it
+    unset or None, whatever they put in `__name__`.
+    """
+    spec = namespace.get("__spec__")
+    return spec is not None and getattr(spec, "name", None) == namespace.get("__name__")
+
+
+def main(build_fn, namespace, cad_dir=None, document=None):
+    """The last line of every build script: `main(build, globals())`.
+
+    It builds unless the script is being imported. It does not look at
+    `__name__ == "__main__"`, because FreeCADCmd 1.1 sets `__name__` to the
+    file name, so that test is false and the run quietly builds nothing.
+    """
+    if _is_import(namespace):
+        return None
+    file = namespace.get("__file__")
+    if cad_dir is None and file:
+        cad_dir = Path(file).resolve().parent
+    return run(build_fn, cad_dir=cad_dir, document=document or document_of_script(file))
+
+
+def _fail_if_nothing_built():
+    """At the end of a headless run: no finished build is an error, not silence."""
+    if _builds_done:
+        return
+    print(
+        "ERROR: this FreeCADCmd run built nothing. Nothing was rebuilt, saved or "
+        "fingerprinted. If an error is printed above, fix it. If not, the build "
+        "script never called main(build, globals()): copy the last lines of "
+        "doqs/templates/cad/build_model.py into it.",
+        file=sys.stderr,
+    )
+    sys.stdout.flush()
+    sys.stderr.flush()
+    # FreeCADCmd does not always pass on a failure as an exit code, so leave
+    # with one ourselves.
+    os._exit(1)
+
+
+def _arm_exit_check():
+    """Watch a headless FreeCAD run that imports this module.
+
+    Only there: a GUI session runs many builds and many other things, and plain
+    Python (the test suite) has no FreeCAD at all.
+    """
+    freecad = sys.modules.get("FreeCAD")
+    if freecad is None or getattr(freecad, "GuiUp", False):
+        return
+    atexit.register(_fail_if_nothing_built)
+
+
+_arm_exit_check()

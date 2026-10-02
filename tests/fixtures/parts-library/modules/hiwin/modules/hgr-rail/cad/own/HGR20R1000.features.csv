@@ -1,0 +1,6 @@
+feature,kind,outside_envelope,source,page,status,reason
+rail profile (WR x HR),sized,no,docs/datasheets/hgr-series.pdf,12,modelled,
+mounting holes (d x D x h) at pitch P,sized,no,docs/datasheets/hgr-series.pdf,12,modelled,
+reference edge groove,drawn-unsized,no,docs/datasheets/hgr-series.pdf,12,estimated,
+top edge chamfer,drawn-unsized,no,docs/datasheets/hgr-series.pdf,12,measured,
+end face burr chamfer,not-drawn,no,docs/datasheets/hgr-series.pdf,13,left-out,Smaller than the fit tolerance and changes no outside size

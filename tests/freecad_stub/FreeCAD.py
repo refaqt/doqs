@@ -30,6 +30,10 @@ Environment knobs, each of which exists for one named test:
                                    exit code is caught believing a failed run.
 ``DOQS_FREECAD_STUB_NO_SHEET``     build a document with no ``Params`` sheet.
 ``DOQS_FREECAD_STUB_EMPTY``        build a document with no solid objects.
+
+A document file that holds JSON with a ``shape`` key opens as one Part
+container with that shape. ``Part.py`` explains the shape format; it exists
+for ``doqs compare-own``.
 """
 import json
 import os
@@ -75,9 +79,22 @@ class _Shape:
 
 
 class _Object:
-    def __init__(self, name, null_shape=False):
+    def __init__(self, name, null_shape=False, type_id="Part::Feature", shape=None):
         self.Name = name
-        self.Shape = _Shape(null_shape)
+        self.Label = name
+        self.TypeId = type_id
+        self.State = []
+        self.Shape = shape if shape is not None else _Shape(null_shape)
+
+
+def _shape_description(path):
+    """The JSON shape a test wrote into a document file, or None."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return None
+    return data if isinstance(data, dict) and "shape" in data else None
 
 
 class _Sheet:
@@ -98,6 +115,14 @@ class Document:
         self.FileName = str(path)
         self.Name = os.path.splitext(os.path.basename(str(path)))[0]
         self.Objects = []
+        described = _shape_description(path)
+        if described is not None:
+            import Part
+
+            self.Objects.append(
+                _Object("Part", type_id="App::Part", shape=Part.Shape(described["shape"])))
+            self._sheets = []
+            return
         if not os.environ.get("DOQS_FREECAD_STUB_EMPTY"):
             self.Objects.append(_Object("Body"))
         # A null-shape object so the macro's filter is genuinely exercised.
@@ -109,6 +134,9 @@ class Document:
 
     def recompute(self):
         _journal("recompute", doc=self.Name)
+
+    def isTouched(self):
+        return False
 
     def save(self):
         _journal("save", doc=self.Name, file=self.FileName)

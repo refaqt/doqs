@@ -56,7 +56,7 @@ class TestNamingRule(unittest.TestCase):
     """Every command script starts with one of the contract verbs."""
 
     VERBS = ("validate_", "resolve_", "apply_", "aggregate_", "export_",
-             "install_", "restore_")
+             "install_", "restore_", "compare_")
 
     def command_scripts(self) -> list[Path]:
         skip = set(RENAMED) | {"cli.py", "syson.py"}

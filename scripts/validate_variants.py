@@ -352,12 +352,14 @@ def check_parts_table(root: Path, table_path: Path) -> list[Finding]:
 
 
 def check_own_model(module_dir: Path, rel: str, pn: str, row: dict) -> list[Finding]:
-    """A model we drew from the datasheet, and the record that proves how.
+    """A model we drew from the datasheet, and the records that prove how.
 
     It must sit under `cad/own/`, which carries our licence instead of the
-    brand's, and it must have a check list: every dimension, the datasheet page
-    it came from, and whether it matched. The list never holds a value read from
-    the brand's own model. See docs/decisions/2026-09-29_component-intake.md.
+    brand's. Next to it: the feature list (every feature, and what happened to
+    it), the parameters (each value with where it came from), and the check list
+    (whether it matched). None of them holds a value read from the brand's
+    model. See docs/decisions/2026-09-29_component-intake.md and
+    docs/parts-library.md, Our own models.
     """
     findings: list[Finding] = []
     cad = (row.get("cad") or "").strip()
@@ -367,7 +369,19 @@ def check_own_model(module_dir: Path, rel: str, pn: str, row: dict) -> list[Find
     model = module_dir / cad
     if not model.exists():
         findings.append(Finding(rel, f"{pn}: cad not found: {cad} (an own model is ours, so it is always committed)"))
-    checks = model.with_name(Path(cad).stem + intake_rules.CHECKS_SUFFIX)
+    stem = Path(cad).stem
+    features = model.with_name(stem + intake_rules.FEATURES_SUFFIX)
+    if features.is_file():
+        findings += check_features_list(module_dir, features)
+    else:
+        findings.append(Finding(
+            rel, f"{pn}: feature list not found: {features.relative_to(module_dir).as_posix()}. "
+            "List every feature before you model. Copy "
+            "doqs/templates/parts-library/cad/own/features.csv."))
+    params = model.with_name(stem + intake_rules.OWN_PARAMS_SUFFIX)
+    if params.is_file():
+        findings += check_own_params(module_dir, params)
+    checks = model.with_name(stem + intake_rules.CHECKS_SUFFIX)
     checks_rel = checks.relative_to(module_dir).as_posix()
     if not checks.is_file():
         findings.append(Finding(rel, f"{pn}: check list not found: {checks_rel}"))
@@ -375,38 +389,51 @@ def check_own_model(module_dir: Path, rel: str, pn: str, row: dict) -> list[Find
     return findings + check_checks_list(module_dir, checks)
 
 
+def _own_rows(module_dir: Path, path: Path, headers: tuple[str, ...]) -> tuple[str, list[dict] | None, list[Finding]]:
+    """Rows of one own-model CSV, or a finding when its header is wrong."""
+    rel = path.relative_to(module_dir).as_posix()
+    reader = csv_reader_skipping_comments(path.read_text(encoding="utf-8"))
+    found = tuple(h.strip() for h in (reader.fieldnames or []))
+    if found != headers:
+        return rel, None, [Finding(rel, f"header must be exactly {list(headers)}")]
+    return rel, list(reader), []
+
+
+def _as_findings(rel: str, errors: list[str], warnings: list[str] = ()) -> list[Finding]:
+    return ([Finding(rel, e) for e in errors]
+            + [Finding(rel, w, warning=True) for w in warnings])
+
+
+def check_features_list(module_dir: Path, features: Path) -> list[Finding]:
+    """Every feature of the part. One that sticks out may never be left out."""
+    rel, rows, findings = _own_rows(module_dir, features, intake_rules.FEATURES_HEADERS)
+    if rows is None:
+        return findings
+    return _as_findings(rel, intake_rules.features_problems(rows))
+
+
+def check_own_params(module_dir: Path, params: Path) -> list[Finding]:
+    """Each value the build reads, marked catalogue, estimated or measured."""
+    rel, rows, findings = _own_rows(module_dir, params, intake_rules.OWN_PARAMS_HEADERS)
+    if rows is None:
+        return findings
+    rows = [r for r in rows if any((v or "").strip() for v in r.values() if isinstance(v, str))]
+    return _as_findings(rel, *intake_rules.params_problems(rows))
+
+
 def check_checks_list(module_dir: Path, checks: Path) -> list[Finding]:
-    """One row per dimension, each with its datasheet page and a result."""
-    findings: list[Finding] = []
-    rel = checks.relative_to(module_dir).as_posix()
-    reader = csv_reader_skipping_comments(checks.read_text(encoding="utf-8"))
-    headers = tuple(h.strip() for h in (reader.fieldnames or []))
-    if headers != intake_rules.CHECKS_HEADERS:
-        return [Finding(rel, f"header must be exactly {list(intake_rules.CHECKS_HEADERS)}")]
-    rows = [r for r in reader if (r.get("dimension") or "").strip()]
-    if not rows:
-        # A list that checks nothing proves nothing.
-        return [Finding(rel, "the check list has no dimensions")]
+    """One row per dimension, each with its basis, its method and a result."""
+    rel, rows, findings = _own_rows(module_dir, checks, intake_rules.CHECKS_HEADERS)
+    if rows is None:
+        return findings
+    rows = [r for r in rows if (r.get("dimension") or "").strip()]
+    findings = _as_findings(rel, *intake_rules.checks_problems(rows))
     for row in rows:
-        dim = row["dimension"].strip()
-        result = (row.get("result") or "").strip()
-        if result not in intake_rules.CHECK_RESULTS:
-            findings.append(Finding(rel, f"{dim}: result must be one of {intake_rules.CHECK_RESULTS}"))
-        elif result == "fail":
-            findings.append(Finding(
-                rel,
-                f"{dim}: the model does not match. Read the drawing again and fix the "
-                "value from the datasheet, never from the brand's model."))
-        elif result == "not-confirmed":
-            findings.append(Finding(rel, f"{dim}: not confirmed yet", warning=True))
-        for key in ("value_mm", "source", "page"):
-            if not (row.get(key) or "").strip():
-                findings.append(Finding(rel, f"{dim}: {key} is empty"))
         source = (row.get("source") or "").strip()
         if source and not (module_dir / source).exists():
             findings.append(Finding(
-                rel, f"{dim}: source not found here: {source} (fine if it is fetch-only)",
-                warning=True))
+                rel, f"{row['dimension'].strip()}: source not found here: {source} "
+                "(fine if it is fetch-only)", warning=True))
     return findings
 
 

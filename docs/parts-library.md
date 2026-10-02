@@ -72,8 +72,9 @@ modules/stoq/modules/hiwin/modules/hgr-rail/
 ├── cad/
 │   ├── parts/HGR20R500.FCStd     the document a role links
 │   ├── original/HGR20R500.step   the untouched download
-│   └── own/HGR20R800.FCStd       a model we drew from the datasheet, and
-│       own/HGR20R800.checks.csv  the record of how we drew it
+│   └── own/HGR20R800.FCStd       a model we drew from the datasheet, with
+│       own/HGR20R800.build.py    the script that builds it, and
+│       own/HGR20R800.*.csv       the record of how we drew it
 └── docs/datasheets/              catalogues and datasheets
 ```
 
@@ -307,6 +308,21 @@ same path, where its row says `internal`. `doqs restore-private --from
 place, after checking each checksum. It is never a submodule of a public
 repository, because a public clone could not fetch it.
 
+**When terms change.** A file that git already tracks can become `fetch-only` or
+`private`: the brand changes its terms, or the file turns out to have come with a
+quotation. Take it out of git with one command:
+
+```bash
+bash doqs.sh unshare --from ../stoq-private modules/hiwin/modules/hgr-rail/cad/original/HGR20R500.step
+```
+
+It first checks that the private library holds the same file, with the same
+checksum. If any path fails, it changes nothing. Then it runs `git rm --cached`
+and adds the exact paths to `.gitignore`. The file stays on your disk, and the
+command prints how to delete it and how to get it back. Set the row's `terms` to
+`fetch-only` or `private` in the same commit. The file is still in earlier
+commits: history is never rewritten.
+
 A `customers` decision is the one case where a file from the private library
 may leave the organisation: to our own customers, for the machines they bought,
 handed over by a named person. Everything else in the private library stays
@@ -315,20 +331,141 @@ inside.
 ### Our own models
 
 A row with `terms = "own-model"` points at `cad/own/<pn>.FCStd`. The model is
-built from the datasheet only. Next to it, `<pn>.checks.csv` lists every
-dimension, the datasheet page it came from, and whether it matched the brand's
-own file:
+ours, and it must be able to replace the brand's model in an assembly. So it is
+checked like a part of a machine, not like a supplier file. The decision is
+[ADR-011](decisions/2026-10-02_own-models-are-our-designs.md).
+
+Several own models share one `cad/own/` folder. Each has six files, all named
+after its part number. Templates are in
+[`templates/parts-library/cad/own/`](../templates/parts-library/cad/own/).
+
+| File | What it holds |
+| --- | --- |
+| `<pn>.features.csv` | Every feature of the part, filled in **before** you model |
+| `<pn>.params.csv` | Every value the build uses, and where it came from |
+| `<pn>.build.py` | The script that builds the model, and its axes |
+| `<pn>.FCStd` and `<pn>.fingerprint.json` | The model, and what it measures |
+| `<pn>.checks.csv` | Whether it matches the brand's model |
+
+#### 1. List every feature first
+
+Before you draw anything, fill `<pn>.features.csv`. Give one row to every
+labelled dimension in the catalogue table, and one to every feature the figure
+shows, with or without a size. Look for the features without a size: reference
+edges, end caps, end seals, grease nipples, plugs, screw heads, ports,
+connectors and cables.
 
 ```csv
-dimension,value_mm,source,page,result,checked_utc
-rail width,20,docs/datasheets/hgr-series.pdf,12,pass,2026-09-29T00:00:00Z
+feature,kind,outside_envelope,source,page,status,reason
+grease nipple,drawn-unsized,yes,docs/datasheets/hg-series.pdf,70,estimated,
 ```
 
-The comparison with the brand's file writes only `pass`, `fail` or
-`not-confirmed`, never the brand's value, so no detail can move from their file
-into ours. A `fail` is an error: read the drawing again and fix the value from
-the drawing. A list with no dimensions is an error too. Our models carry no
-logos and no brand text.
+| Column | Values |
+| --- | --- |
+| `kind` | `sized` (the table gives its size), `drawn-unsized` (the figure shows it with no size), `not-drawn` (only the text names it) |
+| `outside_envelope` | `yes` when it sticks out of the main shape |
+| `status` | `modelled`, `estimated`, `measured` or `left-out` |
+| `reason` | Why it is left out. Required for `left-out` |
+
+A feature that sticks out of the main shape may **never** be left out. An
+assembly would not see the collision. The checks fail on an empty row, on
+`left-out` without a reason, and on a feature with `outside_envelope = yes` that
+is left out.
+
+#### 2. Say where every value comes from
+
+`<pn>.params.csv` and `<pn>.checks.csv` mark each value in the `basis` column:
+
+| `basis` | Meaning | Required |
+| --- | --- | --- |
+| `catalogue` | A size printed in the brand's table or drawing | `source` and `page` |
+| `estimated` | Read off a figure | `source` and `page`. The check warns: it is a placeholder |
+| `measured` | Measured on a real part | `measured_by` (a named person) and `measured_utc` (the date) |
+
+Four rules for values you did not find in a table:
+
+- **A catalogue figure is often drawn for one size and used for all sizes.**
+  Before you read a size off a figure, work out the drawing scale from several
+  sized dimensions in the same view. If they give different scales, the figure
+  is not to scale for this size, and an estimate from it is only a placeholder.
+- **An estimate for a feature that sticks out errs on the large side.** A
+  collision check then stays safe.
+- **Replace an estimate with a measurement of a real part or a value from the
+  brand.** Never with a value from the brand's CAD file.
+- **A part number option is a parameter until the brand confirms it.** For
+  example a lubrication unit on one end: build the plain part, and keep the
+  option as a parameter, until the brand says which option this part number has.
+
+#### 3. Build it with a script, on the brand's axes
+
+`<pn>.build.py` reads `<pn>.params.csv` and nothing else. Never build or change
+an own model by hand in the GUI, and never save it again after a build. Run:
+
+```bash
+FreeCADCmd modules/<brand>/modules/<family>/cad/own/<pn>.build.py
+```
+
+The model uses the **same axes and origin as the brand's model**, so it can take
+its place in an assembly. The script says which in one line:
+
+```python
+AXES = "X along the rail from its start, Z up from the mounting face; origin at the centre of the bottom face"
+```
+
+`doqs check` fails an own model without a build script, without `AXES`, without
+`<pn>.params.csv`, without a fingerprint from a saved build, or with a
+fingerprint that no longer matches the file. That last one catches a model saved
+again after its build. It also fails a Body that is not inside a Part
+container, and a `.FCBak` backup or a `__pycache__/` folder that git tracks.
+
+#### 4. Compare it with the brand's model
+
+`<pn>.checks.csv` lists every dimension, where it came from, how it is measured,
+and whether the brand's model agrees:
+
+```csv
+dimension,value_mm,basis,source,page,measured_by,measured_utc,method,result,checked_utc
+envelope X (block length L),61.4,catalogue,docs/datasheets/hg-series.pdf,70,,,"Extent along X of the bounding box of all solids, measured the same way on both models in a headless FreeCAD run by doqs compare-own",pass,2026-10-02T00:00:00Z
+```
+
+The list must hold:
+
+- `envelope X`, `envelope Y` and `envelope Z`: the overall size along each axis,
+  **as the catalogue defines it**. A block length that the catalogue gives with
+  its end seals is checked with its end seals.
+- `symmetry YZ`, `symmetry XZ` or `symmetry XY` for each mirror plane through
+  the origin, or `symmetry none`. Its `value_mm` is `-`.
+
+`method` says in words how the dimension was measured on both models, so someone
+else can repeat it. It never holds a value. A `pass` without a method fails.
+
+Run the comparison from the library root:
+
+```bash
+bash doqs.sh compare-own hiwin/hgr-rail HGR20R1000 --from ../stoq-private
+```
+
+It needs FreeCAD and a checkout of the private library, which holds the brand's
+STEP file. It copies both models into a temporary folder outside both
+repositories and measures them there, in a separate FreeCAD run. That run turns
+every measurement into words before anything leaves it. So the command never
+prints, logs or saves a brand value. It writes only `pass`, `fail` or
+`not-confirmed` and the method into the envelope and symmetry rows. It also
+says:
+
+- whether both models use the same axes and origin,
+- the mirror planes of each model,
+- every brand feature that sticks out of our model and has no counterpart in
+  ours, and on which side.
+
+An envelope that is smaller than the brand's is a `fail`: something is missing.
+One that is larger is `not-confirmed`: an estimate on the large side is safe, but
+it is still an estimate. The command never saves either model. It checks our
+model against its fingerprint and the brand's file against its recorded checksum
+before it starts and again afterwards, and writes nothing if anything changed.
+
+A `fail` is an error: read the drawing again and fix the value from the drawing.
+Our models carry no logos and no brand text.
 
 ---
 

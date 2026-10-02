@@ -10,6 +10,9 @@ here.  Run headless with:
 
     FreeCADCmd cad/build_model.py
 
+A good run ends with "Rebuilt and saved <document>".  A run that built nothing
+prints an ERROR and exits 1.
+
 See `doqs/docs/agent-cad.md` for why the interactive path never saves.
 """
 
@@ -36,7 +39,7 @@ def _doqs_scripts(start):
 
 sys.path.insert(0, str(_doqs_scripts(_HERE)))
 
-from cad_build import body, part, run, sheet  # noqa: E402
+from cad_build import body, main, part, sheet  # noqa: E402
 
 
 def build(doc, params):
@@ -71,5 +74,8 @@ def build(doc, params):
     )
 
 
-if __name__ == "__main__":
-    run(build, cad_dir=_HERE)
+# Keep this line exactly as it is.  Do not put it under
+# `if __name__ == "__main__":` -- FreeCADCmd 1.1 sets __name__ to "build_model",
+# so that test is false and the build is skipped without a word.  main() builds
+# unless this file is being imported.
+main(build, globals(), cad_dir=_HERE)

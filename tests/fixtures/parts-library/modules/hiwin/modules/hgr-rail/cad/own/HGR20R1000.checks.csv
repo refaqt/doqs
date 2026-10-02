@@ -1,6 +1,8 @@
-# Every dimension of our own model, the datasheet page it came from, and
-# whether the brand's model agrees. Never a value read from the brand's model.
-dimension,value_mm,source,page,result,checked_utc
-rail width,20,docs/datasheets/hgr-series.pdf,12,pass,2026-09-18T00:00:00Z
-rail height,17.5,docs/datasheets/hgr-series.pdf,12,pass,2026-09-18T00:00:00Z
-hole pitch,60,docs/datasheets/hgr-series.pdf,12,pass,2026-09-18T00:00:00Z
+# Every dimension of our own model, where it came from, and whether the brand's
+# model agrees. Never a value read from the brand's model.
+dimension,value_mm,basis,source,page,measured_by,measured_utc,method,result,checked_utc
+envelope X (rail length L),1000,catalogue,docs/datasheets/hgr-series.pdf,12,,,"Extent along X of the bounding box of all solids, measured the same way on both models in a headless FreeCAD run by doqs compare-own",pass,2026-10-02T00:00:00Z
+envelope Y (rail width WR),20,catalogue,docs/datasheets/hgr-series.pdf,12,,,"Extent along Y of the bounding box of all solids, measured the same way on both models in a headless FreeCAD run by doqs compare-own",pass,2026-10-02T00:00:00Z
+envelope Z (rail height HR),17.5,catalogue,docs/datasheets/hgr-series.pdf,12,,,"Extent along Z of the bounding box of all solids, measured the same way on both models in a headless FreeCAD run by doqs compare-own",pass,2026-10-02T00:00:00Z
+symmetry XZ,-,catalogue,docs/datasheets/hgr-series.pdf,12,,,"Bounding box and centre of mass compared with their mirror image in the XZ plane through the origin, on both models, by doqs compare-own",pass,2026-10-02T00:00:00Z
+hole pitch P,60,catalogue,docs/datasheets/hgr-series.pdf,12,,,"Distance between the axes of two neighbouring mounting holes, read from the hole edges on both models",pass,2026-10-02T00:00:00Z

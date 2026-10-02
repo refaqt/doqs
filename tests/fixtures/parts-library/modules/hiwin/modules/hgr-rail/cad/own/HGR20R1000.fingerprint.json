@@ -1,0 +1,18 @@
+{
+  "document": "HGR20R1000",
+  "errors": [],
+  "objects": {},
+  "params": {
+    "hole_pitch": 60.0,
+    "rail_height": 17.5,
+    "rail_length": 1000.0,
+    "rail_width": 20.0,
+    "ref_groove_depth": 1.0,
+    "top_chamfer": 0.5
+  },
+  "saved": true,
+  "schema": 1,
+  "sources": {
+    "HGR20R1000.FCStd": "0722354b135530245ac9fa8471f94cc7fec86286ee15d7e64a04b28f37b9652a"
+  }
+}

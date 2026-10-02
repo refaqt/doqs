@@ -30,6 +30,11 @@ FINGERPRINT_SCHEMA = 1
 
 FINGERPRINT_SUFFIX = ".fingerprint.json"
 
+#: The build script of one own model in a parts library:
+#: `cad/own/<pn>.build.py` builds `cad/own/<pn>.FCStd`. Several own models
+#: share one folder, so each script carries the part number in its name.
+OWN_BUILD_SUFFIX = ".build.py"
+
 #: Significant figures kept for every float. OCCT recomputes are not bit-stable
 #: across platforms; six figures is far tighter than any real design change and
 #: loose enough to absorb that noise.

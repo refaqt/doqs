@@ -1,0 +1,24 @@
+# Copy to cad/own/<part number>.params.csv. The build script reads every value
+# from here, never from a number typed into the script.
+#
+# basis says where each value comes from:
+#   catalogue  a size printed in the brand's table or drawing. Fill source and page.
+#   estimated  read off a figure. Only a placeholder until someone measures a
+#              real part or the brand gives the value. Never replace it with a
+#              value from the brand's CAD file. Before you read a size off a
+#              figure, work out the drawing scale from several sized dimensions
+#              in the same view. If they disagree, the figure is not to scale
+#              for this size. For a feature that sticks out of the part, err on
+#              the large side, so a collision check stays safe.
+#   measured   measured on a real part. Fill measured_by and measured_utc.
+#
+# A part number option (for example a lubrication unit on one end) is a
+# parameter, with the plain part as its value, until the brand confirms which
+# option this part number has.
+alias,value,unit,basis,source,page,measured_by,measured_utc,description
+rail_length,1000,mm,catalogue,docs/datasheets/hgr-series.pdf,12,,,Rail length L
+rail_width,20,mm,catalogue,docs/datasheets/hgr-series.pdf,12,,,Rail width WR
+rail_height,17.5,mm,catalogue,docs/datasheets/hgr-series.pdf,12,,,Rail height HR
+hole_pitch,60,mm,catalogue,docs/datasheets/hgr-series.pdf,12,,,Mounting hole pitch P
+ref_groove_depth,1,mm,estimated,docs/datasheets/hgr-series.pdf,12,,,Reference edge groove. Drawn without a size; read off the figure
+top_chamfer,0.5,mm,measured,,,First Last,2026-10-02,Chamfer on the top edges. Measured on a real rail with a caliper
