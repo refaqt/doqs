@@ -12,6 +12,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -490,7 +491,12 @@ class _TreeObject:
         self.Group = []
         self.Visibility = False
         self.ViewObject = _ViewObject() if doc.gui else None
+        self.Placement = types.SimpleNamespace(Rotation=None)
+        self.expressions = {}
         self._doc = doc
+
+    def setExpression(self, path, expr):
+        self.expressions[path] = expr
 
     def addObject(self, obj):
         # FreeCAD moves the object out of any other group it was in.
@@ -600,6 +606,41 @@ class TestPartContainerHelpers(unittest.TestCase):
         doc = _TreeDocument("/m/x-axis/cad/assemblies/x-axis.FCStd")
         doc.addObject("PartDesign::Body", "Body_master")
         cad_build.check_part_container(doc)  # does not raise
+
+
+class TestFrameHelper(unittest.TestCase):
+    """A mounting frame sits in the Part and is placed by expressions."""
+
+    def test_frame_is_created_in_the_part_with_expressions(self):
+        doc = _TreeDocument()
+        f = cad_build.frame(doc, "IF_mount_bottom", x="Params.rail_l / 2", z="Params.rail_h")
+        self.assertEqual(f.TypeId, "Part::LocalCoordinateSystem")
+        self.assertEqual(f.Label, "IF_mount_bottom")
+        self.assertIn(f, cad_build.part(doc).Group)
+        self.assertEqual(f.expressions, {"Placement.Base.x": "Params.rail_l / 2",
+                                         "Placement.Base.z": "Params.rail_h"})
+
+    def test_a_rebuild_reuses_the_frame(self):
+        doc = _TreeDocument()
+        first = cad_build.frame(doc, "IF_mount_bottom", x="Params.a")
+        again = cad_build.frame(doc, "IF_mount_bottom", x="Params.b")
+        self.assertIs(first, again)
+        self.assertEqual(again.expressions["Placement.Base.x"], "Params.b")
+        frames = [o for o in doc.Objects if o.TypeId == "Part::LocalCoordinateSystem"]
+        self.assertEqual(len(frames), 1)
+
+    def test_an_angle_sets_the_axis_and_drives_the_angle(self):
+        doc = _TreeDocument()
+        fake = types.SimpleNamespace(
+            Vector=lambda *v: v, Rotation=lambda axis, angle: ("rot", axis, angle))
+        with mock.patch.dict(sys.modules, {"FreeCAD": fake}):
+            f = cad_build.frame(doc, "IF_motor", angle="Params.motor_a", axis=(1, 0, 0))
+        self.assertEqual(f.Placement.Rotation, ("rot", (1, 0, 0), 0))
+        self.assertEqual(f.expressions, {"Placement.Rotation.Angle": "Params.motor_a"})
+
+    def test_a_label_without_the_prefix_is_refused(self):
+        with self.assertRaisesRegex(ValueError, "must start with 'IF_'"):
+            cad_build.frame(_TreeDocument(), "mount_bottom")
 
 
 class TestNewObjectsAreVisible(unittest.TestCase):

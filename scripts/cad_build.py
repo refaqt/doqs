@@ -42,6 +42,8 @@ from pathlib import Path
 import cad_fingerprint
 from cad_rules import (
     BODY_TYPE,
+    FRAME_PREFIX,
+    FRAME_TYPE,
     OWN_BUILD_SUFFIX,
     PART_TYPE,
     bodies_outside_part,
@@ -245,6 +247,43 @@ def body(doc, label="Body", container=None):
     container.addObject(new)
     _show(new)
     return new
+
+
+def frame(doc, label, x=None, y=None, z=None, angle=None, axis=(0, 0, 1), container=None):
+    """A mounting frame in the Part container, placed by expressions. Created if missing.
+
+    Assembly joints attach to these frames, never to a face, an edge or a
+    point of the solid. ``label`` starts with ``IF_``, like ``IF_mount_bottom``.
+    ``x``, ``y``, ``z`` and ``angle`` are expressions over the parameter sheet,
+    like ``"Params.rail_l / 2"``, so the frame moves with the feature it
+    belongs to. ``axis`` is the direction the frame turns around. A rerun
+    reuses the frame and sets its expressions again.
+    See docs/decisions/2026-10-06_joints-attach-to-frames.md.
+    """
+    if not label.startswith(FRAME_PREFIX):
+        raise ValueError(
+            f"Mounting frame {label!r} must start with {FRAME_PREFIX!r}, "
+            f"like {FRAME_PREFIX}mount_bottom."
+        )
+    container = container or part(doc)
+    found = [o for o in doc.getObjectsByLabel(label) if o.TypeId == FRAME_TYPE]
+    if found:
+        obj = found[0]
+    else:
+        obj = doc.addObject(FRAME_TYPE, "Frame")
+        obj.Label = label
+        container.addObject(obj)
+    for name, expr in (("x", x), ("y", y), ("z", z)):
+        if expr is not None:
+            obj.setExpression(f"Placement.Base.{name}", expr)
+    if angle is not None:
+        import FreeCAD
+
+        placement = obj.Placement
+        placement.Rotation = FreeCAD.Rotation(FreeCAD.Vector(*axis), 0)
+        obj.Placement = placement
+        obj.setExpression("Placement.Rotation.Angle", angle)
+    return obj
 
 
 def check_part_container(doc):

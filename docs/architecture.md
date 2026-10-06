@@ -114,6 +114,8 @@ Every module — at every nesting depth — uses the same set of first-level fol
 
 In a part file under `cad/`, the top object of the model tree is a Part container (`App::Part`), with the Body inside it. Assembly files are exempt. See [the decision](decisions/2026-10-01_part-container-on-top.md) and [agent-cad.md](agent-cad.md#the-model-tree-of-a-part).
 
+A part offers named mounting frames (`IF_...`) inside that Part container, placed by expressions over `Params`. Assembly joints attach to these frames, never to a face, an edge or a point of a solid. A frame name is part of the module's interface. See [the decision](decisions/2026-10-06_joints-attach-to-frames.md) and [agent-cad.md](agent-cad.md#joints-attach-to-mounting-frames).
+
 Each first-level content folder that exists carries a short `LICENSE` pointer; see [Licensing](#licensing).
 
 **Special folders at the project root only:**

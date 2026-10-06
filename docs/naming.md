@@ -158,6 +158,14 @@ plus `brand_pn`. See [ADR-006](decisions/2026-09-18_money-out-of-the-bom.md).
 
 Interface **version** lives in `okh.toml` (`version = "1.0"`), not in folder or file names.
 
+### Mounting frame names
+
+A mounting frame in a FreeCAD part is the place where an assembly attaches a
+joint. Its label starts with `IF_`, then says where it is, in lowercase with
+underscores: `IF_mount_bottom`, `IF_rail_A`, `IF_motor`. Renaming or removing a
+frame is a breaking change for the module. See
+[ADR-013](decisions/2026-10-06_joints-attach-to-frames.md).
+
 ## Display names and lexicon
 
 BOM `name` and `[[part]].name` should use words from the [naming lexicon](naming-lexicon.md). The validator reports unknown tokens as **warnings** (or **errors** with `--strict-lexicon`).

@@ -49,6 +49,14 @@ Three gates, in order of how much damage they prevent:
    keeps passing when it updates doqs. `--strict-parametric` makes them
    failures. See docs/decisions/2026-10-06_every-dimension-has-a-source.md.
 
+9. **Joints attach to mounting frames.** An Assembly joint that uses a face,
+   an edge or a point of a solid breaks when that solid changes: FreeCAD
+   numbers its faces again, and the part jumps or the joint fails. A joint
+   must use a named mounting frame (``IF_...``) instead. Read from the saved
+   file, so no FreeCAD is needed. A warning, and a failure with
+   ``--strict-parametric``. See
+   docs/decisions/2026-10-06_joints-attach-to-frames.md.
+
 Run from the machine repository root:
 
     python doqs/scripts/validate_cad.py
@@ -74,6 +82,8 @@ from cad_rules import (
     fingerprint_path,
     hook_is_registered,
     is_assembly_path,
+    joint_references,
+    joints_on_topology,
     load_fingerprint,
     missing_guard_rules,
 )
@@ -228,6 +238,23 @@ def report_parametric(documents: list[tuple[Path, Path | None]], root: Path, str
     print(f"{'FAIL' if strict else 'WARN'}  linked dimensions: {len(findings)} findings. "
           "Drive every size from the Params sheet and fully constrain every sketch; "
           "see doqs/docs/agent-cad.md#every-dimension-has-a-reason")
+    for line in findings:
+        print(f"      {line}")
+    return not strict
+
+
+def report_joints(documents: list[Path], root: Path, strict: bool) -> bool:
+    """Print the joints that use a face, an edge or a point. False only when strict."""
+    findings = [
+        f"{fcstd.relative_to(root).as_posix()}: {line}"
+        for fcstd in documents
+        for line in joints_on_topology(joint_references(fcstd))
+    ]
+    if not findings:
+        return True
+    print(f"{'FAIL' if strict else 'WARN'}  joints: {len(findings)} use a face, an edge or "
+          "a point, so they break when that part changes. Attach them to a mounting "
+          "frame (IF_...) in the part; see doqs/docs/agent-cad.md#joints-attach-to-mounting-frames")
     for line in findings:
         print(f"      {line}")
     return not strict
@@ -434,7 +461,8 @@ def main() -> int:
     parser.add_argument(
         "--strict-parametric",
         action="store_true",
-        help="Fail, not warn, on a free sketch or a size typed in as a number.",
+        help="Fail, not warn, on a free sketch, a size typed in as a number, "
+        "or a joint on a face, an edge or a point.",
     )
     args = parser.parse_args()
     root = args.root.resolve() if args.root else repo_root_from_script()
@@ -497,6 +525,8 @@ def main() -> int:
         else:
             print(f"ok    {rel}")
     if not report_parametric([(f, None) for f in documents], root, args.strict_parametric):
+        all_ok = False
+    if not report_joints(documents, root, args.strict_parametric):
         all_ok = False
     if not documents:
         print("No .FCStd files found (agent-CAD guard not required yet)")

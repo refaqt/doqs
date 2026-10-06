@@ -65,6 +65,12 @@ SKIPPED_TYPE_PREFIXES = (
     "PartDesign::Line",
     "PartDesign::Plane",
     "PartDesign::Point",
+    # The same datums made in a Part container instead of a Body. A mounting
+    # frame is one of these.
+    "Part::LocalCoordinateSystem",
+    "Part::DatumLine",
+    "Part::DatumPlane",
+    "Part::DatumPoint",
 )
 
 
@@ -364,3 +370,79 @@ def cad_documents(root: Path) -> list[Path]:
         if not is_under_tooling_submodule(p, root)
         and not is_under_parts_library(p, root)
     ]
+
+
+#: A mounting frame: a named coordinate system inside a part's Part container.
+#: Assembly joints attach to these, never to a face, an edge or a point.
+#: See docs/decisions/2026-10-06_joints-attach-to-frames.md.
+FRAME_TYPE = "Part::LocalCoordinateSystem"
+
+#: Every mounting frame label starts with this, like ``IF_mount_bottom``.
+FRAME_PREFIX = "IF_"
+
+#: The two references of an Assembly joint (FreeCAD 1.1, JointObject.py).
+JOINT_REFERENCES = ("Reference1", "Reference2")
+
+#: The last part of a reference that names one face, edge or point of a solid.
+#: FreeCAD numbers these again when a feature changes, so the joint can move to
+#: the wrong face, or lose its face, without any error.
+_TOPOLOGY_ELEMENT = re.compile(r"^(Face|Edge|Vertex)\d+$")
+
+
+def _property_value(obj, name: str) -> str:
+    for prop in obj.findall("./Properties/Property"):
+        if prop.get("name") == name:
+            for child in prop:
+                return child.get("value", "")
+    return ""
+
+
+def joint_references(fcstd: Path) -> list[tuple[str, str, str]]:
+    """``(joint label, reference property, sub-name)`` for every joint reference.
+
+    Read from Document.xml, so no FreeCAD is needed. A joint is any object
+    with a ``JointType`` and a ``Reference1`` or ``Reference2``. A sub-name
+    reads like ``Body.Pad.Face6``, ``IF_mount.`` or ``IF_mount.X_Axis``.
+    Returns an empty list for a file that is not a readable FreeCAD document.
+    """
+    try:
+        with zipfile.ZipFile(fcstd) as archive:
+            root = ET.fromstring(archive.read("Document.xml"))
+    except (zipfile.BadZipFile, KeyError, OSError, ET.ParseError):
+        return []
+    found: list[tuple[str, str, str]] = []
+    for obj in root.findall("./ObjectData/Object"):
+        props = {p.get("name"): p for p in obj.findall("./Properties/Property")}
+        if "JointType" not in props:
+            continue
+        label = _property_value(obj, "Label") or obj.get("name", "")
+        for ref in JOINT_REFERENCES:
+            prop = props.get(ref)
+            if prop is None:
+                continue
+            for link in prop.iter("XLink"):
+                subs = [link.get("sub")] if link.get("sub") is not None else []
+                subs += [sub.get("value", "") for sub in link.iter("Sub")]
+                found.extend((label, ref, sub) for sub in subs)
+    return found
+
+
+def is_topology_reference(sub: str) -> bool:
+    """True when a joint sub-name ends on a face, an edge or a point."""
+    return bool(_TOPOLOGY_ELEMENT.match(sub.rsplit(".", 1)[-1]))
+
+
+def joints_on_topology(references) -> list[str]:
+    """One line per joint reference that uses a face, an edge or a point.
+
+    ``references`` is what ``joint_references`` returns. Each joint is named
+    once per reference, even when FreeCAD stores a face and one of its points.
+    """
+    out: list[str] = []
+    for label, ref, sub in references:
+        if not is_topology_reference(sub):
+            continue
+        line = f"joint {label!r} {ref} uses {sub}"
+        if not any(o.startswith(f"joint {label!r} {ref} ") for o in out):
+            out.append(line)
+    return out
