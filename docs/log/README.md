@@ -25,3 +25,4 @@ Write entries in B2 English. Follow `.agents/rules/communication.md`.
 | 2026-09-29 | [Taking in a supplier's files now follows fixed rules](2026-09-29_component-intake.md) | software | 0 |
 | 2026-10-01 | [New parts get a Part container on top](2026-10-01_part-container-on-top.md) | software | 0 |
 | 2026-10-02 | [Our own models in a parts library are now checked](2026-10-02_own-models-checked.md) | software | 0 |
+| 2026-10-06 | [Every dimension now has a reason](2026-10-06_every-dimension-has-a-source.md) | software | 0 |

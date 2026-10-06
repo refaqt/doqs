@@ -43,6 +43,12 @@ Three gates, in order of how much damage they prevent:
    top, and no backup or cache files in git. Supplier files in the library are
    still checked by their checksums in validate_variants.py instead.
 
+8. **Every dimension is linked.** The fingerprint records each sketch that can
+   still move and each size typed in as a number instead of an expression
+   over the `Params` sheet. They are warnings, so an older machine repository
+   keeps passing when it updates doqs. `--strict-parametric` makes them
+   failures. See docs/decisions/2026-10-06_every-dimension-has-a-source.md.
+
 Run from the machine repository root:
 
     python doqs/scripts/validate_cad.py
@@ -72,6 +78,7 @@ from cad_rules import (
     missing_guard_rules,
 )
 from intake_rules import OWN_MODEL_DIR
+import parametric_rules
 from license_rules import is_doqs_tools_repo
 from naming_rules import (
     is_parts_library,
@@ -191,6 +198,39 @@ def validate_document(fcstd: Path, root: Path, build_script: Path | None = None)
         errors.append(f"{rel}: recorded at build time — {recorded_error}")
 
     return errors
+
+
+def parametric_findings(fcstd: Path, root: Path, build_script: Path | None = None) -> list[str]:
+    """Free sketches and typed sizes, as the committed fingerprint records them."""
+    rel = fcstd.relative_to(root).as_posix()
+    try:
+        data = load_fingerprint(fingerprint_path(fcstd))
+    except FingerprintError:
+        return []  # validate_document already says the fingerprint is missing
+    if "parametric" not in data:
+        script = build_script or fcstd.parent / "build_model.py"
+        return [
+            f"{rel}: its fingerprint does not record whether every dimension is "
+            "linked. It was built with an older doqs. Rebuild with: "
+            f"FreeCADCmd {script.relative_to(root).as_posix()}"
+        ]
+    return [f"{rel}: {line}" for line in parametric_rules.problems(data["parametric"])]
+
+
+def report_parametric(documents: list[tuple[Path, Path | None]], root: Path, strict: bool) -> bool:
+    """Print the linked-dimension findings. False only when strict and any exist."""
+    findings = [f for fcstd, script in documents for f in parametric_findings(fcstd, root, script)]
+    if not documents:
+        return True
+    if not findings:
+        print("ok    every dimension is linked and every sketch is fully constrained")
+        return True
+    print(f"{'FAIL' if strict else 'WARN'}  linked dimensions: {len(findings)} findings. "
+          "Drive every size from the Params sheet and fully constrain every sketch; "
+          "see doqs/docs/agent-cad.md#every-dimension-has-a-reason")
+    for line in findings:
+        print(f"      {line}")
+    return not strict
 
 
 #: Tools that used to be copied into a module's `cad/`, and where they live now.
@@ -333,7 +373,7 @@ def tracked_junk(root: Path) -> list[str]:
     ]
 
 
-def validate_parts_library(root: Path) -> bool:
+def validate_parts_library(root: Path, strict_parametric: bool = False) -> bool:
     """Our own models in a library. Supplier files are checked by checksum."""
     all_ok = True
     for fcstd in own_model_documents(root):
@@ -355,6 +395,9 @@ def validate_parts_library(root: Path) -> bool:
             print(f"FAIL  {label}")
             for e in errs:
                 print(f"      {e}")
+    own = [(f, f.with_name(f.stem + OWN_BUILD_SUFFIX)) for f in own_model_documents(root)]
+    if not report_parametric(own, root, strict_parametric):
+        all_ok = False
     print("ok    parts library: supplier files are checked by their checksums")
     return all_ok
 
@@ -388,6 +431,11 @@ def main() -> int:
         action="store_true",
         help="Also fail if any .FCStd has uncommitted changes (run after an agent session).",
     )
+    parser.add_argument(
+        "--strict-parametric",
+        action="store_true",
+        help="Fail, not warn, on a free sketch or a size typed in as a number.",
+    )
     args = parser.parse_args()
     root = args.root.resolve() if args.root else repo_root_from_script()
     all_ok = True
@@ -404,7 +452,7 @@ def main() -> int:
     # skipping them let a re-saved model through unnoticed.
     # See docs/mistakes/2026-10-02_own-models-were-not-checked.md.
     if is_parts_library(root):
-        return 0 if validate_parts_library(root) else 1
+        return 0 if validate_parts_library(root, args.strict_parametric) else 1
 
     legacy = legacy_tool_copies(root)
     if legacy:
@@ -448,6 +496,8 @@ def main() -> int:
                 print(f"      {e}")
         else:
             print(f"ok    {rel}")
+    if not report_parametric([(f, None) for f in documents], root, args.strict_parametric):
+        all_ok = False
     if not documents:
         print("No .FCStd files found (agent-CAD guard not required yet)")
 

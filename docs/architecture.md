@@ -454,15 +454,15 @@ Override files contain only deltas, and a `value` starting with `=` is **derived
 
 ```csv
 # cad/params/default.csv (extract)
-alias,value,unit,description
-rail_length,300,mm,Total length of the X-axis linear rail — INDEPENDENT
-motor_offset,=rail_length / 10 + 5,mm,Clearance that follows travel — DERIVED
+alias,value,unit,basis,source,description
+rail_length,300,mm,requirement,XAxis::TravelRequirement.rail_length_mm,Total length of the X-axis linear rail — INDEPENDENT
+motor_offset,=rail_length / 10 + 5,mm,,,Clearance that follows travel — DERIVED
 ```
 
 ```csv
 # cad/params/500mm.csv — the whole file
-alias,value,unit,description
-rail_length,500,mm,Total length of the X-axis linear rail
+alias,value,unit,basis,source,description
+rail_length,500,mm,,,Total length of the X-axis linear rail
 ```
 
 Without derived values every override restates every number that follows from length, and changing one rule means editing every model file. See [variants.md](variants.md#sparse-overrides) for the expression rules, per-model BOMs, and supplier length tables.
@@ -1024,20 +1024,38 @@ Model geometry (rail_length, carriage_thickness, motor_offset, …)
 
 If a module has only one model, `cad/params/default.csv` is the only file in `cad/params/` and `cad/params.csv` is just a copy of it. The resolver step is still run for consistency.
 
-SysML `attribute` values document the design intent. The `default.csv` parameter file contains the authoritative numeric values for the canonical model. Both should be kept consistent; a validation script can check that every attribute mentioned in `architecture/*.sysml` has a corresponding row in `default.csv`.
+SysML requirements state what the machine must do. The `default.csv` parameter file holds the numbers for the canonical model. A parameter that a requirement sets names that requirement in its `source` column, and `validate_variants.py` checks that the requirement exists in `architecture/*.sysml`. See [ADR-012](decisions/2026-10-06_every-dimension-has-a-source.md).
 
 ### Parameter File Format
 
 The format is the same for `default.csv` and any model override file:
 
 ```
-alias,value,unit,description
-rail_length,400,mm,Total length of X-axis linear rail
-carriage_thickness,8,mm,Carriage plate thickness
-motor_offset,35,mm,Distance from rail end to motor shaft centre
-belt_pitch,2,mm,GT2 belt tooth pitch
-pulley_teeth,20,,Number of teeth on motor pulley
+alias,value,unit,basis,source,description
+rail_length,400,mm,requirement,XAxis::TravelRequirement.rail_length_mm,Total length of X-axis linear rail
+carriage_thickness,8,mm,simulation,simulation/carriage-stiffness/result.md,Carriage plate thickness
+motor_offset,=rail_length / 10 + 5,mm,,,Distance from rail end to motor shaft centre
+belt_pitch,2,mm,catalogue,docs/datasheets/gt2-belt.pdf p3,GT2 belt tooth pitch
+pulley_teeth,20,,design,docs/decisions/2026-05-01_belt-drive.md,Number of teeth on motor pulley
 ```
+
+Every dimension has a reason ([ADR-012](decisions/2026-10-06_every-dimension-has-a-source.md)).
+A row is either **independent** (a number someone chose) or **derived** (a `=` formula over
+other rows). Keep the independent rows few. Each one fills `basis` and `source`:
+
+| `basis` | Where the value comes from | `source` holds |
+| --- | --- | --- |
+| `requirement` | A SysML requirement | Its name, like `XAxis::TravelRequirement.rail_length_mm`. It must exist in `architecture/*.sysml` |
+| `catalogue` | A supplier table or drawing | The document and page |
+| `estimated` | Read off a supplier figure; a placeholder | The figure. Always a warning until replaced |
+| `measured` | Measured on a real part | Who measured it, and when |
+| `standard` | A standard | The standard and size, like `ISO 4762 M6` |
+| `simulation` | A calculation or simulation | The file under `simulation/`. It must exist |
+| `design` | A choice the designer made | A file in `docs/decisions/`, or a short reason |
+
+A derived row leaves `basis` and `source` empty: its formula is the reason. In an override
+file an empty `basis` keeps the one from `default.csv`; fill it when the reason changes too.
+`validate_variants.py` warns about a row without a reason. With `--strict-parametric` it fails.
 
 - `default.csv` must include **every** alias used by the FreeCAD Spreadsheet.
 - A model override file (e.g. `500mm.csv`) includes **only the rows that differ** from `default.csv`. Aliases not present in the override inherit from `default.csv`.
@@ -1082,14 +1100,21 @@ Before the sync script can work, each cell in the Spreadsheet must have its alia
 1. Open the `.FCStd` file in FreeCAD.
 2. Open the Spreadsheet workbench, add a row for each parameter.
 3. Right-click each value cell → *Properties* → *Alias* → enter the alias (matching the `alias` column in `params.csv`).
-4. In each sketch constraint, click the expression icon and enter `Params.alias_name`.
+4. In **every** dimension of every sketch, and in every feature size (Pad length, hole
+   diameter, pattern count and length), click the expression icon and enter
+   `Params.alias_name`, or a formula of aliases. Never leave a typed number.
+5. Fully constrain every sketch. Repeated features are one feature plus a pattern, driven by a
+   count and a pitch.
+
+The build records every sketch that can still move and every typed size in the fingerprint,
+and `validate_cad.py` reports them. See [agent-cad.md](agent-cad.md#every-dimension-has-a-reason).
 
 This setup is one-time. After that, all parameter updates go through `params.csv` + `cad_sync_params.py`.
 
 ### Export Params to CSV (Reverse Direction)
 
 `export_params()` in the same script pulls current Spreadsheet values back into
-`cad/params.csv`, preserving the `unit` and `description` columns of rows that
+`cad/params.csv`, preserving the `unit`, `basis`, `source` and `description` columns of rows that
 already exist. Use it when parameters were changed interactively in FreeCAD and
 the CSV needs to catch up.
 
@@ -1382,10 +1407,10 @@ A cell may also carry `{alias}` placeholders resolved from the module's paramete
 **Parameter table convention** (`cad/params/default.csv` plus optional `cad/params/<model>.csv` overrides):
 
 ```
-alias,value,unit,description
+alias,value,unit,basis,source,description
 ```
 
-The `alias` must match the FreeCAD Spreadsheet cell alias exactly. See the *Linking CSV Parameters to FreeCAD* section for the model-override workflow.
+The `alias` must match the FreeCAD Spreadsheet cell alias exactly. `basis` and `source` say where an independent value comes from; see [Parameter File Format](#parameter-file-format). See the *Linking CSV Parameters to FreeCAD* section for the model-override workflow.
 
 **Working with a BOM.** Two doqs scripts do this; a module never carries its own copy.
 

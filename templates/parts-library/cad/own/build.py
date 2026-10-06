@@ -47,7 +47,7 @@ def _doqs_scripts(start):
 
 sys.path.insert(0, str(_doqs_scripts(_HERE)))
 
-from cad_build import body, main, part, sheet  # noqa: E402
+from cad_build import bind, body, dim, main, part, sheet  # noqa: E402
 
 
 def build(doc, params):
@@ -56,6 +56,11 @@ def build(doc, params):
     Use only values from `params`.  Each one is marked catalogue, estimated or
     measured there.  Get the Body with `body(doc)`: it sits inside a Part
     container, so an assembly can place the model as one object.
+
+    Drive every size by an expression over the `Params` sheet, as in a
+    machine part: `dim(sketch, constraint, "Params.rail_width")` and
+    `bind(pad, "Length", "Params.rail_length")`.  Fully constrain each sketch.
+    Pattern repeated holes from a count and a pitch, never typed one by one.
     """
     raise NotImplementedError(
         "Replace build() with this model's geometry, and AXES with its axes."

@@ -111,6 +111,9 @@ def cmd_check(args: argparse.Namespace) -> int:
         extra["validate_okh.py"] = ["--expected-version", args.expected_version]
     if args.strict_lexicon:
         extra["validate_names.py"] = ["--strict-lexicon"]
+    if args.strict_parametric:
+        extra["validate_variants.py"] = ["--strict-parametric"]
+        extra["validate_cad.py"] = ["--strict-parametric"]
 
     steps = GATES + STALENESS
     if args.only:
@@ -200,6 +203,8 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument("--only", default=None, help="Run one gate, by name (see 'doqs list')")
     check.add_argument("--expected-version", default=None, help="Passed to validate_okh.py")
     check.add_argument("--strict-lexicon", action="store_true", help="Passed to validate_names.py")
+    check.add_argument("--strict-parametric", action="store_true",
+                       help="Fail on a parameter with no source, a free sketch or a typed size")
 
     generate = subs.add_parser("generate", help="Write every generated file")
     generate.add_argument("--root", type=Path, default=None, help="Machine repo root")

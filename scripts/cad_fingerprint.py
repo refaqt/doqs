@@ -26,6 +26,7 @@ import csv
 from pathlib import Path
 
 import cad_rules
+import parametric_rules
 
 #: Exports hashed alongside the .FCStd so a hand-edited STEP is caught too.
 EXPORT_SUFFIXES = (".step", ".stp", ".stl", ".dxf")
@@ -142,6 +143,101 @@ def _shaped_objects(doc, rules):
         yield obj, shape
 
 
+def _number(value):
+    """A FreeCAD Quantity, int, float or bool as a plain number or string."""
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, (int, float)):
+        return value
+    inner = getattr(value, "Value", None)
+    if isinstance(inner, (int, float)):
+        return float(inner)
+    return str(value)
+
+
+def _sketch_entry(obj, keys):
+    rules = parametric_rules
+    constraints = [
+        {
+            "type": getattr(c, "Type", ""),
+            "name": getattr(c, "Name", ""),
+            "value": getattr(c, "Value", 0.0),
+            "driving": getattr(c, "Driving", True),
+            "active": getattr(c, "IsActive", True),
+        }
+        for c in getattr(obj, "Constraints", None) or []
+    ]
+    dof = getattr(obj, "DoF", None)  # FreeCAD 1.1 and later
+    fully = getattr(obj, "FullyConstrained", None)
+    return rules.sketch_findings(
+        constraints, keys,
+        dof=dof if isinstance(dof, int) else None,
+        fully_constrained=fully if isinstance(fully, bool) else None,
+    ), dof
+
+
+def _placement_entry(obj, keys):
+    """A typed offset that moves a sketch or a datum off its support."""
+    attached = str(getattr(obj, "MapMode", "Deactivated")) != "Deactivated"
+    prop = "AttachmentOffset" if attached else "Placement"
+    placement = getattr(obj, prop, None)
+    if placement is None:
+        return []
+    base = getattr(placement, "Base", None)
+    rotation = getattr(placement, "Rotation", None)
+    xyz = (getattr(base, "x", 0.0), getattr(base, "y", 0.0), getattr(base, "z", 0.0))
+    return parametric_rules.placement_findings(prop, xyz, getattr(rotation, "Angle", 0.0), keys)
+
+
+def audit(doc=None):
+    """Find typed numbers and free sketches: the ``parametric`` section.
+
+    Returns ``{"audited": n, "objects": {name: {...}}}``. Only objects with
+    something to report are listed, so a clean model costs a few tokens.
+    """
+    import FreeCAD
+
+    rules = parametric_rules
+    doc = doc or FreeCAD.ActiveDocument
+    audited = 0
+    objects = {}
+    for obj in doc.Objects:
+        type_id = getattr(obj, "TypeId", "")
+        is_sketch = type_id == rules.SKETCH_TYPE
+        is_datum = type_id.startswith(("PartDesign::Plane", "PartDesign::Line", "PartDesign::Point",
+                                       "PartDesign::CoordinateSystem"))
+        if not (is_sketch or is_datum or type_id in rules.DRIVEN_PROPERTIES):
+            continue
+        audited += 1
+        keys = rules.expression_keys(getattr(obj, "ExpressionEngine", None))
+        entry = {"type": type_id, "label": getattr(obj, "Label", obj.Name)}
+        try:
+            unlinked = []
+            if is_sketch:
+                unlinked, dof = _sketch_entry(obj, keys)
+                if isinstance(dof, int):
+                    entry["dof"] = dof
+            if is_sketch or is_datum:
+                unlinked += _placement_entry(obj, keys)
+            if type_id in rules.DRIVEN_PROPERTIES:
+                wanted = set()
+                for prop, condition in rules.DRIVEN_PROPERTIES[type_id]:
+                    wanted.add(prop)
+                    if condition:
+                        wanted.add(condition[0])
+                props = {
+                    name: _number(getattr(obj, name))
+                    for name in sorted(wanted) if hasattr(obj, name)
+                }
+                unlinked += rules.feature_findings(type_id, props, keys)
+        except Exception as err:  # one odd object must not hide the rest
+            unlinked = [f"could not be checked: {err}"]
+        if unlinked:
+            entry["unlinked"] = unlinked
+            objects[obj.Name] = entry
+    return {"audited": audited, "objects": objects}
+
+
 def measure(doc=None, params=None):
     """Measure every shaped object in `doc` into a fingerprint payload."""
     import FreeCAD
@@ -189,6 +285,9 @@ def measure(doc=None, params=None):
         "sources": sources,
         "params": params if params is not None else read_params(),
         "objects": objects,
+        # Typed numbers and free sketches. validate_cad.py reports them; see
+        # docs/decisions/2026-10-06_every-dimension-has-a-source.md.
+        "parametric": audit(doc),
         "errors": errors,
     }
 
@@ -212,6 +311,13 @@ def write(doc=None, path=None, params=None, cad_dir=None):
     print(f"Fingerprinted {len(payload['objects'])} objects -> {target}")
     for err in payload["errors"]:
         print(f"  warning: {err}")
+    unlinked = parametric_rules.problems(payload.get("parametric"))
+    if unlinked:
+        # Said here, in the same run, so the agent fixes it before anyone
+        # commits. validate_cad.py reports the same lines from the file.
+        print(f"  {len(unlinked)} dimensions are not linked to a parameter:")
+        for line in unlinked:
+            print(f"    {line}")
     if rules.measured_nothing(payload):
         # Catching one broken feature is right; writing a file that measured
         # none of them and calling it done is not. This is the line that was

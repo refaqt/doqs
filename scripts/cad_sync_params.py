@@ -48,6 +48,9 @@ SHEET_NAME = "Params"
 ACTIVE_CSV = "params.csv"
 TABLE_CSV = "params-table.csv"
 TABLE_KEY = "configuration"
+#: Same columns as ``param_rules.PARAM_HEADERS``.  Repeated, not imported: this
+#: file is exec()'d from the FreeCAD console, where ``scripts/`` is not on the path.
+EXPORT_HEADERS = ("alias", "value", "unit", "basis", "source", "description")
 
 
 def _rows(path):
@@ -183,11 +186,11 @@ def export_params(doc=None, csv_path=None, cad_dir=None):
         if not isinstance(value, (int, float)):
             continue
         prior = existing.get(alias, {})
-        out.append([alias, value, prior.get("unit", ""), prior.get("description", "")])
+        out.append([alias, value, *(prior.get(k, "") for k in EXPORT_HEADERS[2:])])
 
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["alias", "value", "unit", "description"])
+        writer.writerow(EXPORT_HEADERS)
         writer.writerows(out)
     print(f"Exported {len(out)} parameters to {path}")
     return out

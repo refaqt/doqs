@@ -63,8 +63,8 @@ python scripts/validate_okh.py --root tests/fixtures/minimal-machine
 python scripts/validate_licenses.py --root tests/fixtures/minimal-machine
 python scripts/validate_licenses.py --root .
 python scripts/apply_licenses.py --check --root .
-python scripts/validate_all.py --root tests/fixtures/variant-family
-python scripts/validate_all.py --root tests/fixtures/variant-machine
+python scripts/validate_all.py --root tests/fixtures/variant-family --strict-parametric
+python scripts/validate_all.py --root tests/fixtures/variant-machine --strict-parametric
 python scripts/validate_all.py --root tests/fixtures/parts-library
 python scripts/validate_links.py --root . --markdown
 python doqs.py check --root tests/fixtures/variant-family

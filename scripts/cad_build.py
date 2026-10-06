@@ -139,6 +139,32 @@ def sheet(doc, name="Params"):
     return found[0]
 
 
+def bind(obj, prop, expr):
+    """Drive ``obj.<prop>`` by an expression, like ``bind(pad, "Length", "Params.plate_t")``.
+
+    Every size in a model is an expression over the parameter sheet, never a
+    typed number. ``validate_cad.py`` reports a typed one. See
+    docs/decisions/2026-10-06_every-dimension-has-a-source.md.
+    """
+    obj.setExpression(prop, expr)
+    return obj
+
+
+def dim(sketch, constraint, expr, name=None):
+    """Add a dimension to ``sketch`` and drive it by ``expr``. Returns its index.
+
+    ``constraint`` is a ``Sketcher.Constraint`` such as
+    ``Sketcher.Constraint("DistanceX", 0, 1, 0, 2, 1.0)``. Its number only
+    seeds the solver: the expression sets the real value. Give a ``name`` when
+    another dimension or feature reads this one.
+    """
+    index = sketch.addConstraint(constraint)
+    if name:
+        sketch.renameConstraint(index, name)
+    sketch.setExpression(f"Constraints[{index}]", expr)
+    return index
+
+
 def tree(doc):
     """``(name, type_id, children)`` for every object, as ``cad_rules`` reads it."""
     return [

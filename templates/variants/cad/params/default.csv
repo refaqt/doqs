@@ -2,9 +2,20 @@
 # A value starting with `=` is DERIVED — an expression over other aliases.
 # Keep derivations here and nowhere else: a model override then only needs the
 # INDEPENDENT rows, and changing a rule is one edit rather than one per model.
-alias,value,unit,description
-rail_length,300,mm,Guide rail length — INDEPENDENT; must exist in bom/tables/rail.csv
-end_plate_thickness,12,mm,End plate thickness — INDEPENDENT
-carriage_travel,=rail_length - 180,mm,Usable carriage travel — DERIVED
-extrusion_length,=rail_length + 40,mm,Base extrusion cut length — DERIVED
-cover_length,=extrusion_length - 10,mm,Dust cover strip length — DERIVED
+#
+# Every INDEPENDENT row says where its value comes from. basis is one of:
+#   requirement  source names the SysML requirement, like Stage::TravelRequirement.rail_length_mm
+#   catalogue    source names the supplier document and page
+#   estimated    read off a supplier figure; a placeholder until checked
+#   measured     source says who measured the real part, and when
+#   standard     source names the standard and size, like ISO 4762 M6
+#   simulation   source is the file under simulation/ that gives the value
+#   design       source is a file in docs/decisions/, or a short reason
+# A DERIVED row leaves basis and source empty: its expression is the reason.
+# See doqs/docs/decisions/2026-10-06_every-dimension-has-a-source.md.
+alias,value,unit,basis,source,description
+rail_length,300,mm,requirement,Stage::TravelRequirement.rail_length_mm,Guide rail length — INDEPENDENT; must exist in bom/tables/rail.csv
+end_plate_thickness,12,mm,design,Thick enough to tap M6 into the end face,End plate thickness — INDEPENDENT
+carriage_travel,=rail_length - 180,mm,,,Usable carriage travel — DERIVED
+extrusion_length,=rail_length + 40,mm,,,Base extrusion cut length — DERIVED
+cover_length,=extrusion_length - 10,mm,,,Dust cover strip length — DERIVED

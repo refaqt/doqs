@@ -7,6 +7,10 @@ Gates, in order:
 * **Compositions** — ``[composition] core`` and ``options`` resolve.
 * **Parameters** — ``[[model]]`` entries match the files in ``cad/params/``, and
   every model resolves (no cycles, no unknown aliases).
+* **Parameter sources** — every independent value in ``cad/params/`` says
+  where it comes from (``basis`` and ``source``); a derived value is an
+  expression.  Warnings by default, errors with ``--strict-parametric``.
+  See ``docs/decisions/2026-10-06_every-dimension-has-a-source.md``.
 * **Length tables** — every declared model resolves to a row in each bound
   supplier table, so a length nobody stocks fails here and not at purchasing.
 * **Vendor geometry** — ``[[vendor]]`` targets exist; committed files must be
@@ -36,7 +40,15 @@ from naming_rules import (
     is_under_tooling_submodule,
     repo_root_from_script,
 )
-from param_rules import ParamError, declared_models, params_dir, resolve_model
+from param_rules import (
+    ParamError,
+    declared_models,
+    load_param_csv,
+    param_source_problems,
+    params_dir,
+    resolve_model,
+    sysml_names,
+)
 from resolve_bom import BomError, _lookup_table, load_bom, load_sources
 import resolve_instance
 
@@ -189,6 +201,29 @@ def check_models(root: Path, okh_path: Path) -> list[Finding]:
             resolve_model(module_dir, name)
         except ParamError as exc:
             findings.append(Finding(rel, f"model {name!r}: {exc}"))
+    return findings
+
+
+def check_param_sources(root: Path, okh_path: Path, *, strict: bool = False,
+                        names: tuple[set[str], set[str]] | None = None) -> list[Finding]:
+    """Every independent parameter says where its value comes from.
+
+    Warnings unless ``strict``: machine repositories that predate the rule get
+    told, not broken, when they update doqs.  Estimates stay warnings even then.
+    """
+    module_dir = okh_path.parent
+    directory = params_dir(module_dir)
+    findings: list[Finding] = []
+    for path in sorted(directory.glob("*.csv")) if directory.is_dir() else []:
+        rel = path.relative_to(root).as_posix()
+        try:
+            rows = load_param_csv(path)
+        except ParamError:
+            continue  # check_models already reports a file that does not load
+        problems, notes = param_source_problems(
+            rows, module_dir, root, names, override=path.stem != "default")
+        findings += [Finding(rel, m, warning=not strict) for m in problems]
+        findings += [Finding(rel, m, warning=True) for m in notes]
     return findings
 
 
@@ -773,7 +808,7 @@ def check_bom_part_refs(root: Path, bom_path: Path) -> list[Finding]:
     return findings
 
 
-def check_all(root: Path) -> tuple[list[Finding], list[Finding]]:
+def check_all(root: Path, *, strict_parametric: bool = False) -> tuple[list[Finding], list[Finding]]:
     errors: list[Finding] = []
     warnings: list[Finding] = []
 
@@ -786,11 +821,15 @@ def check_all(root: Path) -> tuple[list[Finding], list[Finding]]:
             continue
         add(check_catalog(root, catalog))
 
+    names = None
     for okh in sorted(root.rglob("okh.toml")):
         if is_under_tooling_submodule(okh, root):
             continue
         add(check_composition(root, okh))
         add(check_models(root, okh))
+        if params_dir(okh.parent).is_dir():
+            names = names or sysml_names(root)
+            add(check_param_sources(root, okh, strict=strict_parametric, names=names))
         add(check_sources(root, okh.parent))
         add(check_role(root, okh))
 
@@ -842,10 +881,12 @@ def main() -> int:
                         help="Machine repo root (default: parent of doqs/ submodule)")
     parser.add_argument("--strict", action="store_true",
                         help="Treat warnings as errors")
+    parser.add_argument("--strict-parametric", action="store_true",
+                        help="Fail on a parameter that does not say where its value comes from")
     args = parser.parse_args()
     root = args.root.resolve() if args.root else repo_root_from_script()
 
-    errors, warnings = check_all(root)
+    errors, warnings = check_all(root, strict_parametric=args.strict_parametric)
     if args.strict:
         errors, warnings = errors + warnings, []
 
