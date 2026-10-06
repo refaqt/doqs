@@ -269,6 +269,7 @@ python doqs/scripts/validate_cad.py --check-clean
 | Build script runs headless | A build script that ends with `if __name__ == "__main__":`, so FreeCADCmd 1.1 builds nothing |
 | Own models in a parts library | A model under `cad/own/` with no build script, no parameters, no current fingerprint, or a Body on top; a tracked `.FCBak` or `__pycache__/` |
 | Every dimension is linked | A sketch that can still move, or a size typed in as a number. A warning; a failure with `--strict-parametric` |
+| Joints attach to mounting frames | An Assembly joint that uses a face, an edge or a point of a solid. A warning; a failure with `--strict-parametric` |
 | `--check-clean` | An agent session left a `.FCStd` modified on disk |
 
 The guard check applies only once a repository actually contains a `.FCStd` —
@@ -454,6 +455,45 @@ The check reads FreeCAD properties by name. It knows sketches, datums and the
 usual PartDesign features (pad, pocket, hole, fillet, chamfer, revolution,
 patterns, primitives); the list is in
 [`scripts/parametric_rules.py`](../scripts/parametric_rules.py).
+
+### Joints attach to mounting frames
+
+A joint that holds a face, an edge or a point of a solid breaks when that solid
+changes: FreeCAD numbers the faces again, and the part jumps or the joint fails.
+So a part offers named mounting frames, and every joint attaches to those
+([ADR-013](decisions/2026-10-06_joints-attach-to-frames.md)).
+
+**In the part.** Add one frame for each place where another part attaches.
+Place it with the same parameters as the holes or the face it stands for, so it
+moves when they move:
+
+```python
+def build(doc, params):
+    shape = body(doc)
+    ...
+    frame(doc, "IF_mount_bottom", x="Params.rail_l / 2")
+    frame(doc, "IF_carriage", x="Params.carriage_x", z="Params.rail_h")
+    frame(doc, "IF_motor", y="Params.motor_y", angle="Params.motor_a", axis=(1, 0, 0))
+```
+
+`frame()` creates a coordinate system (`Part::LocalCoordinateSystem`) inside the
+Part container, and reuses it on a rerun. The label must start with `IF_`. A
+supplier part gets its frames in our part file around the supplier geometry,
+placed from catalogue values.
+
+**In the assembly.** Select the frame, or one of its axes or planes, for each
+side of a joint. Never a face, an edge or a point. If a joint needs an offset,
+drive it by an expression over `Params`. For a part that never moves, a
+placement driven by an expression is allowed, but it reads the placement of a
+frame and the part has no joints.
+
+**Frame names are an interface.** Adding a frame is safe. Renaming or removing
+one breaks every assembly that uses it, so it needs a new major version of the
+module.
+
+`validate_cad.py` reads the joints from the saved file and names each one that
+uses a face, an edge or a point. It warns by default and fails with
+`--strict-parametric`.
 
 ## A note on topological naming
 

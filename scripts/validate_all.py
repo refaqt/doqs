@@ -41,7 +41,8 @@ def main(argv: list[str] | None = None) -> int:
         "--strict-parametric",
         action="store_true",
         help="Passed to validate_variants.py and validate_cad.py: fail on a "
-             "parameter with no source, a free sketch or a typed size",
+             "parameter with no source, a free sketch, a typed size, or a "
+             "joint on a face, an edge or a point",
     )
     args = parser.parse_args(argv)
 

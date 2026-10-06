@@ -47,7 +47,7 @@ def _doqs_scripts(start):
 
 sys.path.insert(0, str(_doqs_scripts(_HERE)))
 
-from cad_build import bind, body, dim, main, part, sheet  # noqa: E402
+from cad_build import bind, body, dim, frame, main, part, sheet  # noqa: E402
 
 
 def build(doc, params):
@@ -61,6 +61,10 @@ def build(doc, params):
     machine part: `dim(sketch, constraint, "Params.rail_width")` and
     `bind(pad, "Length", "Params.rail_length")`.  Fully constrain each sketch.
     Pattern repeated holes from a count and a pitch, never typed one by one.
+
+    Add a mounting frame for each place where the part is fastened, like
+    `frame(doc, "IF_mount_bottom", z="Params.rail_height")`, placed from the
+    catalogue values.  Assemblies attach their joints to these frames.
     """
     raise NotImplementedError(
         "Replace build() with this model's geometry, and AXES with its axes."

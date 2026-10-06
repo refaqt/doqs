@@ -27,3 +27,4 @@ follows from it. The guide that explains how to use the result lives in `docs/`.
 | 2026-10-01 | [ADR-010 — A part has a Part container on top, not a Body](2026-10-01_part-container-on-top.md) | Accepted |
 | 2026-10-02 | [ADR-011 — An own model in a parts library is our design, and is checked like one](2026-10-02_own-models-are-our-designs.md) | Accepted |
 | 2026-10-06 | [ADR-012 — Every dimension has a reason, and the model links to it](2026-10-06_every-dimension-has-a-source.md) | Accepted |
+| 2026-10-06 | [ADR-013 — Assembly joints attach to named mounting frames](2026-10-06_joints-attach-to-frames.md) | Accepted |

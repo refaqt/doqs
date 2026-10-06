@@ -1,6 +1,8 @@
 """Tests for geometric fingerprints and the agent-CAD guard (no FreeCAD needed)."""
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import shutil
 import sys
@@ -24,6 +26,9 @@ from cad_rules import (  # noqa: E402
     file_digest,
     fingerprint_path,
     is_assembly_path,
+    is_topology_reference,
+    joint_references,
+    joints_on_topology,
     load_fingerprint,
     missing_guard_rules,
     normalise,
@@ -32,6 +37,7 @@ from cad_rules import (  # noqa: E402
     write_fingerprint,
 )
 from validate_cad import (  # noqa: E402
+    report_joints,
     validate_document,
     validate_guard,
     validate_part_container,
@@ -335,6 +341,106 @@ class TestPartContainer(unittest.TestCase):
         fcstd = self._tmp / "m" / "rail" / "cad" / "assemblies" / "rail.FCStd"
         _write_fcstd(fcstd, BODY_ON_TOP)
         self.assertEqual(validate_part_container(fcstd, self._tmp / "m"), [])
+
+
+def _joint_xml(name, label, references):
+    """One joint as FreeCAD 1.1 saves it. ``references`` maps a property to its subs."""
+    props = (f'<Property name="Label" type="App::PropertyString"><String value="{label}"/></Property>'
+             '<Property name="JointType" type="App::PropertyEnumeration">'
+             '<Integer value="0"/></Property>')
+    for ref, subs in references.items():
+        if len(subs) == 1:
+            link = f'<XLink file="" stamp="" name="Link" sub="{subs[0]}"/>'
+        else:
+            items = "".join(f'<Sub value="{sub}"/>' for sub in subs)
+            link = f'<XLink file="" stamp="" name="Link" count="{len(subs)}">{items}</XLink>'
+        props += f'<Property name="{ref}" type="App::PropertyXLinkSub">{link}</Property>'
+    return f'<Object name="{name}"><Properties>{props}</Properties></Object>'
+
+
+def _write_assembly(path, joints):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    listed = "".join(f'<Object type="App::FeaturePython" name="{j[0]}" id="{i}"/>'
+                     for i, j in enumerate(joints))
+    data = "".join(_joint_xml(*j) for j in joints)
+    xml = ('<?xml version="1.0" encoding="utf-8"?><Document SchemaVersion="4">'
+           f'<Objects Count="{len(joints)}">{listed}</Objects>'
+           f'<ObjectData Count="{len(joints)}">{data}</ObjectData></Document>')
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("Document.xml", xml)
+
+
+ON_FACE = ("Joint", "Fixed rail", {
+    "Reference1": ["Body.Pad.Face6", "Body.Pad.Vertex3"],
+    "Reference2": ["IF_mount_bottom.", "IF_mount_bottom."],
+})
+ON_FRAMES = ("Joint001", "Slider", {
+    "Reference1": ["IF_rail_A.X_Axis"],
+    "Reference2": ["IF_carriage."],
+})
+
+
+class TestJointsOnTopology(unittest.TestCase):
+    """A joint uses a mounting frame, not a face, an edge or a point."""
+
+    def setUp(self):
+        self._tmp = Path(tempfile.mkdtemp(prefix="doqs-joints-"))
+        self.addCleanup(shutil.rmtree, self._tmp, ignore_errors=True)
+
+    def test_topology_names(self):
+        for sub in ("Body.Pad.Face6", "Edge12", "Box.Vertex1", "Body.;#7:1;:H1d4,F.Face6"):
+            self.assertTrue(is_topology_reference(sub), sub)
+        for sub in ("IF_mount.", "IF_mount.X_Axis", "IF_mount.XY_Plane", "", "Body.",
+                    "Body.Facet"):
+            self.assertFalse(is_topology_reference(sub), sub)
+
+    def test_references_are_read_from_the_saved_file(self):
+        fcstd = self._tmp / "x-axis.FCStd"
+        _write_assembly(fcstd, [ON_FACE, ON_FRAMES])
+        self.assertEqual(joint_references(fcstd), [
+            ("Fixed rail", "Reference1", "Body.Pad.Face6"),
+            ("Fixed rail", "Reference1", "Body.Pad.Vertex3"),
+            ("Fixed rail", "Reference2", "IF_mount_bottom."),
+            ("Fixed rail", "Reference2", "IF_mount_bottom."),
+            ("Slider", "Reference1", "IF_rail_A.X_Axis"),
+            ("Slider", "Reference2", "IF_carriage."),
+        ])
+
+    def test_each_reference_is_named_once(self):
+        fcstd = self._tmp / "x-axis.FCStd"
+        _write_assembly(fcstd, [ON_FACE, ON_FRAMES])
+        self.assertEqual(joints_on_topology(joint_references(fcstd)),
+                         ["joint 'Fixed rail' Reference1 uses Body.Pad.Face6"])
+
+    def test_a_grounded_joint_and_a_part_file_have_no_references(self):
+        fcstd = self._tmp / "x-axis.FCStd"
+        _write_assembly(fcstd, [("GroundedJoint", "Grounded", {})])
+        self.assertEqual(joint_references(fcstd), [])
+        part = self._tmp / "rail.FCStd"
+        _write_fcstd(part, BODY_IN_PART)
+        self.assertEqual(joint_references(part), [])
+        stub = self._tmp / "stub.FCStd"
+        stub.write_bytes(b"not a zip")
+        self.assertEqual(joint_references(stub), [])
+
+    def test_validator_warns_and_fails_only_when_strict(self):
+        fcstd = self._tmp / "m" / "cad" / "assemblies" / "x-axis.FCStd"
+        _write_assembly(fcstd, [ON_FACE])
+        root = self._tmp / "m"
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            self.assertTrue(report_joints([fcstd], root, strict=False))
+        self.assertIn("WARN  joints: 1", out.getvalue())
+        self.assertIn("cad/assemblies/x-axis.FCStd: joint 'Fixed rail'", out.getvalue())
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            self.assertFalse(report_joints([fcstd], root, strict=True))
+        self.assertIn("FAIL  joints", out.getvalue())
+
+    def test_validator_is_quiet_when_every_joint_uses_a_frame(self):
+        fcstd = self._tmp / "m" / "cad" / "assemblies" / "x-axis.FCStd"
+        _write_assembly(fcstd, [ON_FRAMES])
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            self.assertTrue(report_joints([fcstd], self._tmp / "m", strict=True))
+        self.assertEqual(out.getvalue(), "")
 
 
 class TestVisibilityFor(unittest.TestCase):

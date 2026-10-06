@@ -205,7 +205,8 @@ def audit(doc=None):
         type_id = getattr(obj, "TypeId", "")
         is_sketch = type_id == rules.SKETCH_TYPE
         is_datum = type_id.startswith(("PartDesign::Plane", "PartDesign::Line", "PartDesign::Point",
-                                       "PartDesign::CoordinateSystem"))
+                                       "PartDesign::CoordinateSystem", cad_rules.FRAME_TYPE,
+                                       "Part::Datum"))
         if not (is_sketch or is_datum or type_id in rules.DRIVEN_PROPERTIES):
             continue
         audited += 1

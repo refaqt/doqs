@@ -39,7 +39,7 @@ def _doqs_scripts(start):
 
 sys.path.insert(0, str(_doqs_scripts(_HERE)))
 
-from cad_build import bind, body, dim, main, part, sheet  # noqa: E402
+from cad_build import bind, body, dim, frame, main, part, sheet  # noqa: E402
 
 
 def build(doc, params):
@@ -80,6 +80,15 @@ def build(doc, params):
 
     `run()` makes each new Part, Body, Assembly and Link visible, and keeps
     their coordinate systems (origin axes, planes and point) hidden.
+
+    Mounting frames: give the part one named frame for each place where
+    another part attaches, like `frame(doc, "IF_mount_bottom",
+    x="Params.rail_l / 2", z="Params.rail_h")`.  Place it with the same
+    parameters as the holes or the face it stands for, so it moves with them.
+    Assembly joints attach to these frames, never to a face, an edge or a
+    point.  A frame name is part of the module's interface: renaming or
+    removing one breaks every assembly that uses it.  See
+    `doqs/docs/decisions/2026-10-06_joints-attach-to-frames.md`.
 
     Assembly-driven parts: master sketches belong in a dedicated `Body_master`
     constrained to that Body's own origin planes, never the `Assembly` object's.
