@@ -27,3 +27,4 @@ Write entries in B2 English. Follow `.agents/rules/communication.md`.
 | 2026-10-02 | [Our own models in a parts library are now checked](2026-10-02_own-models-checked.md) | software | 0 |
 | 2026-10-06 | [Every dimension now has a reason](2026-10-06_every-dimension-has-a-source.md) | software | 0 |
 | 2026-10-06 | [Assembly joints now attach to named mounting frames](2026-10-06_joints-attach-to-frames.md) | software | 0 |
+| 2026-10-06 | [The shared agent kit moves to its newest version](2026-10-06_agent-kit-update.md) | software | 0 |
