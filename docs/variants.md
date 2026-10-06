@@ -75,25 +75,27 @@ unless the holes hurt stiffness, sealing, or the machining setup.
 
 `cad/params/default.csv` is the **dense** base: every alias appears exactly
 once. `cad/params/<model>.csv` is a **sparse override**: only the rows that
-differ. Merging replaces matching aliases and inherits `unit` and `description`,
-so an override row can be just `alias,value`.
+differ. Merging replaces matching aliases and inherits `unit`, `basis`,
+`source` and `description`, so an override row can be just `alias,value`.
+`basis` and `source` say where each independent value comes from; see
+[architecture.md](architecture.md#parameter-file-format).
 
 The thing that makes them genuinely sparse is **derived values**. A `value` that
 starts with `=` is an arithmetic expression over other aliases:
 
 ```csv
 # cad/params/default.csv
-alias,value,unit,description
-rail_length,300,mm,Guide rail length — INDEPENDENT
-carriage_travel,=rail_length - 180,mm,Usable carriage travel — DERIVED
-extrusion_length,=rail_length + 40,mm,Base extrusion cut length — DERIVED
-cover_length,=extrusion_length - 10,mm,Dust cover strip length — DERIVED
+alias,value,unit,basis,source,description
+rail_length,300,mm,requirement,Stage::TravelRequirement.rail_length_mm,Guide rail length — INDEPENDENT
+carriage_travel,=rail_length - 180,mm,,,Usable carriage travel — DERIVED
+extrusion_length,=rail_length + 40,mm,,,Base extrusion cut length — DERIVED
+cover_length,=extrusion_length - 10,mm,,,Dust cover strip length — DERIVED
 ```
 
 ```csv
 # cad/params/500mm.csv — the whole file
-alias,value,unit,description
-rail_length,500,mm,Guide rail length
+alias,value,unit,basis,source,description
+rail_length,500,mm,,,Guide rail length
 ```
 
 Without derivations every override would have to restate every number that

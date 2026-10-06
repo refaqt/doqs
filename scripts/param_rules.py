@@ -8,6 +8,12 @@ A module's parameter set lives in ``cad/params/``:
 A ``value`` may start with ``=`` to make it a *derived* parameter, an arithmetic
 expression over other aliases.  Derived rows live once, in ``default.csv``, so a
 length override usually shrinks to a single row.  See ``docs/variants.md``.
+
+Every other row is *independent*: a number someone chose.  ``basis`` and
+``source`` say why it has that value — a requirement, a supplier part, a
+standard, a simulation, or a recorded design choice.  A derived row needs
+neither, because its expression is the reason.  See
+``docs/decisions/2026-10-06_every-dimension-has-a-source.md``.
 """
 from __future__ import annotations
 
@@ -15,12 +21,26 @@ import ast
 import csv
 import math
 import operator
+import re
 import tomllib
 from pathlib import Path
 
-from naming_rules import family_root
+from naming_rules import family_root, is_under_tooling_submodule
 
-PARAM_HEADERS = ("alias", "value", "unit", "description")
+PARAM_HEADERS = ("alias", "value", "unit", "basis", "source", "description")
+
+#: Where an independent value comes from, and what ``source`` must then hold.
+#: ``catalogue``, ``estimated`` and ``measured`` mean the same as for our own
+#: models in a parts library (``intake_rules.VALUE_BASES``).
+PARAM_BASES = {
+    "requirement": "the SysML requirement it comes from, like XAxis::TravelRequirement.travel_mm",
+    "catalogue": "the supplier document and page, like docs/datasheets/hgr.pdf p12",
+    "estimated": "the figure it was read from",
+    "measured": "who measured the real part, and when",
+    "standard": "the standard and size, like ISO 4762 M6",
+    "simulation": "the file under simulation/ that gives the value",
+    "design": "a file in docs/decisions/, or a short reason",
+}
 
 #: Cap on ``**`` exponents so a stray formula cannot hang the resolver.
 MAX_EXPONENT = 64
@@ -156,9 +176,10 @@ def merge_params(
 ) -> dict[str, dict[str, str]]:
     """Apply sparse overrides onto a dense base set.
 
-    An override row replaces the base ``value``.  ``unit`` and ``description``
-    are inherited from the base when the override leaves them empty, so an
-    override file can be a single ``alias,value`` pair.
+    An override row replaces the base ``value``.  ``unit``, ``basis``,
+    ``source`` and ``description`` are inherited from the base when the
+    override leaves them empty, so an override file can be a single
+    ``alias,value`` pair.
     """
     merged = {alias: dict(row) for alias, row in base.items()}
     for override in overrides:
@@ -166,7 +187,7 @@ def merge_params(
             if alias in merged:
                 target = merged[alias]
                 target["value"] = row.get("value", "")
-                for key in ("unit", "description"):
+                for key in ("unit", "basis", "source", "description"):
                     if row.get(key):
                         target[key] = row[key]
             else:
@@ -317,3 +338,106 @@ def write_param_csv(path: Path, rows: dict[str, dict[str, str]], *, header: str 
         for alias in sorted(rows):
             row = rows[alias]
             writer.writerow({k: row.get(k, "") for k in PARAM_HEADERS})
+
+
+#: ``requirement Name``, ``requirement def Name`` and ``attribute name`` in a
+#: SysML v2 text file.  Quoted names (``'Travel requirement'``) count too.
+_SYSML_NAME = re.compile(
+    r"\b(requirement|attribute)\s+(?:def\s+)?(?:'([^']+)'|([A-Za-z_]\w*))")
+
+
+def sysml_names(root: Path) -> tuple[set[str], set[str]]:
+    """Requirement names and attribute names declared in ``*.sysml`` under root.
+
+    The tooling submodules are skipped: their example models are not this
+    machine's requirements.
+    """
+    requirements: set[str] = set()
+    attributes: set[str] = set()
+    for path in sorted(root.rglob("*.sysml")):
+        if is_under_tooling_submodule(path, root):
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for kind, quoted, plain in _SYSML_NAME.findall(text):
+            (requirements if kind == "requirement" else attributes).add(quoted or plain)
+    return requirements, attributes
+
+
+def _requirement_problem(source: str, names: tuple[set[str], set[str]]) -> str | None:
+    """Why ``Package::Requirement.attribute`` names nothing in the SysML model."""
+    requirements, attributes = names
+    last = source.split("::")[-1].strip()
+    requirement, _, attribute = last.partition(".")
+    requirement = requirement.strip().strip("'")
+    attribute = attribute.strip().strip("'")
+    if requirement not in requirements:
+        return (f"no requirement called {requirement!r} in any architecture/*.sysml. "
+                "Add it to the model, or fix the name")
+    if attribute and attribute not in attributes:
+        return f"requirement {requirement!r} has no attribute called {attribute!r}"
+    return None
+
+
+def param_source_problems(
+    rows: dict[str, dict[str, str]],
+    base_dir: Path,
+    root: Path,
+    names: tuple[set[str], set[str]] | None = None,
+    *,
+    override: bool = False,
+) -> tuple[list[str], list[str]]:
+    """Why a parameter file does not say where each independent value comes from.
+
+    Returns ``(problems, notes)``.  A note is never an error: an estimate is a
+    known placeholder, not a missing reason.
+
+    ``base_dir`` is the module directory: ``simulation`` and ``design`` paths
+    are read relative to it first, then relative to ``root``.  In an override
+    file (``override=True``) an empty ``basis`` is inherited from
+    ``default.csv``, so only a filled one is checked.
+    """
+    problems: list[str] = []
+    notes: list[str] = []
+    for alias, row in rows.items():
+        value = row.get("value", "")
+        basis = (row.get("basis") or "").strip()
+        source = (row.get("source") or "").strip()
+        if is_expression(value):
+            if basis or source:
+                problems.append(
+                    f"{alias}: derived from {value.strip()!r}, so the expression is its "
+                    "reason. Leave basis and source empty, or make it an independent value")
+            continue
+        if not basis:
+            if not override:
+                problems.append(
+                    f"{alias}: independent value {value!r} has no basis. Say where it comes "
+                    f"from ({', '.join(PARAM_BASES)}), or derive it with '=' from other values")
+            continue
+        if basis not in PARAM_BASES:
+            problems.append(f"{alias}: basis must be one of {tuple(PARAM_BASES)}, got {basis!r}")
+            continue
+        if not source:
+            problems.append(f"{alias}: basis is {basis!r}, so source must give {PARAM_BASES[basis]}")
+            continue
+        if basis == "requirement":
+            if names is None:
+                names = sysml_names(root)
+            problem = _requirement_problem(source, names)
+            if problem:
+                problems.append(f"{alias}: {problem}")
+        elif basis in ("simulation", "design"):
+            target = source.split("#", 1)[0].strip()
+            looks_like_path = basis == "simulation" or target.endswith(".md")
+            if looks_like_path and not (
+                (base_dir / target).exists() or (root / target).exists()
+            ):
+                problems.append(f"{alias}: source {target!r} does not exist")
+        elif basis == "estimated":
+            notes.append(
+                f"{alias}: estimated from a figure, so only a placeholder. Replace it with "
+                "a catalogue value or a measurement of a real part")
+    return problems, notes

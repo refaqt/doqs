@@ -39,17 +39,35 @@ def _doqs_scripts(start):
 
 sys.path.insert(0, str(_doqs_scripts(_HERE)))
 
-from cad_build import body, main, part, sheet  # noqa: E402
+from cad_build import bind, body, dim, main, part, sheet  # noqa: E402
 
 
 def build(doc, params):
     """Rebuild this part's geometry from `params`.
 
-    `params` is `{alias: value}` read from `cad/params.csv`.  Prefer driving
-    sketch constraints through Spreadsheet expressions (`Params.rail_length`)
-    over hard-coding numbers here — see
-    `doqs/docs/architecture.md#linking-csv-parameters-to-freecad`.  `sheet(doc)`
-    returns that Spreadsheet.
+    `params` is `{alias: value}` read from `cad/params.csv`.  `sheet(doc)`
+    returns the `Params` Spreadsheet that holds the same values.
+
+    Every dimension has a reason.  An independent value is a row in
+    `cad/params/default.csv` with a `basis` and a `source` (a requirement, a
+    supplier part, a standard, a simulation or a design choice).  Everything
+    else follows from those rows by a formula.  So in this file:
+
+    * Fully constrain every sketch: nothing may move.  Use relations first
+      (coincident, equal, symmetric, horizontal), then dimensions.
+    * Never type a number into a dimension.  Add it with
+      `dim(sketch, constraint, "Params.<alias>")`, and drive feature sizes
+      with `bind(feature, "Length", "Params.<alias>")`.  A formula is fine:
+      `"Params.plate_w - 2 * Params.edge_margin"`.
+    * Repeated features: draw one, then pattern it.  For 8 holes at one pitch,
+      `bind(pattern, "Occurrences", "Params.hole_count")` and
+      `bind(pattern, "Length", "(Params.hole_count - 1) * Params.hole_pitch")`.
+      Never 7 typed spacings.  In a sketch, tie copies with `Equal` and give
+      one of them the dimension.
+
+    The build prints every typed number and every free sketch, and
+    `validate_cad.py` reports them from the fingerprint.  See
+    `doqs/docs/decisions/2026-10-06_every-dimension-has-a-source.md`.
 
     Build idempotently: regenerate features rather than mutating them in place,
     so a rerun is a no-op rather than a slow accumulation.

@@ -27,9 +27,9 @@ jobs:
       - name: Licence kit is current
         run: python scripts/apply_licenses.py --check --root .
       - name: All gates on the variant family fixture
-        run: python scripts/validate_all.py --root tests/fixtures/variant-family
+        run: python scripts/validate_all.py --root tests/fixtures/variant-family --strict-parametric
       - name: All gates on the variant machine fixture
-        run: python scripts/validate_all.py --root tests/fixtures/variant-machine
+        run: python scripts/validate_all.py --root tests/fixtures/variant-machine --strict-parametric
       - name: Validate the parts-library fixture
         run: python scripts/validate_all.py --root tests/fixtures/parts-library
       - name: Markdown links resolve

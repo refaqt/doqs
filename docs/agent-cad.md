@@ -268,6 +268,7 @@ python doqs/scripts/validate_cad.py --check-clean
 | Part on top | A part whose Body is not inside a Part container |
 | Build script runs headless | A build script that ends with `if __name__ == "__main__":`, so FreeCADCmd 1.1 builds nothing |
 | Own models in a parts library | A model under `cad/own/` with no build script, no parameters, no current fingerprint, or a Body on top; a tracked `.FCBak` or `__pycache__/` |
+| Every dimension is linked | A sketch that can still move, or a size typed in as a number. A warning; a failure with `--strict-parametric` |
 | `--check-clean` | An agent session left a `.FCStd` modified on disk |
 
 The guard check applies only once a repository actually contains a `.FCStd` —
@@ -372,11 +373,87 @@ Assembly, keeps its master sketches in a Body inside a plain group (see
 [ADR-002](decisions/2026-06-24_freecad-master-sketches-body.md)). The reasons
 are in [the decision](decisions/2026-10-01_part-container-on-top.md).
 
-Prefer driving dimensions through Spreadsheet aliases
-([Linking CSV Parameters to FreeCAD](architecture.md#linking-csv-parameters-to-freecad))
-over hard-coding them. For assembly-driven parts, master sketches belong in a
+For assembly-driven parts, master sketches belong in a
 dedicated `Body_master` constrained to that Body's own origin planes — see
 [ADR-002](decisions/2026-06-24_freecad-master-sketches-body.md).
+
+### Every dimension has a reason
+
+A number typed into a sketch links to nothing. When the reason behind it
+changes, nobody knows that this number must change too. So every size in a model
+is linked, and every link ends at a reason
+([ADR-012](decisions/2026-10-06_every-dimension-has-a-source.md)).
+
+**1. Write the parameter table first.** Before you draw, list the sizes the part
+needs in `cad/params/default.csv`. Sort them into two kinds:
+
+* **Independent** — a number someone chose. Fill `basis` and `source`: a SysML
+  requirement, a supplier document, a standard, a simulation file, or a design
+  choice with a reason. If no reason exists yet, ask the user. Do not invent one.
+* **Derived** — everything else, written as a formula: `=plate_w - 2 * edge_margin`.
+
+Keep the independent rows few. Eight holes at one pitch are two rows
+(`hole_count`, `hole_pitch`), not eight positions.
+
+**2. Fully constrain every sketch.** Nothing may move. Use relations first
+(coincident, horizontal, vertical, equal, symmetric, tangent), then dimensions.
+A relation needs no number; that is one less number to link.
+
+**3. Never type a number into a dimension.** Every driving dimension and every
+feature size is an expression: `Params.<alias>`, a formula of aliases, or a
+named dimension in another sketch. Use the two helpers from `cad_build`:
+
+```python
+def build(doc, params):
+    shape = body(doc)
+    sk = shape.newObject("Sketcher::SketchObject", "HoleSketch")
+    ...                                           # one circle
+    dim(sk, Sketcher.Constraint("Diameter", 0, 1.0), "Params.hole_d")
+    dim(sk, Sketcher.Constraint("DistanceX", -1, 1, 0, 3, 1.0), "Params.hole_edge")
+    ...
+    pattern = shape.newObject("PartDesign::LinearPattern", "Holes")
+    bind(pattern, "Occurrences", "Params.hole_count")
+    bind(pattern, "Length", "(Params.hole_count - 1) * Params.hole_pitch")
+```
+
+Only zero, a full turn (360°) and a single copy need no parameter.
+
+**4. Know which dimension drives.** A driven value is a formula or a reference
+dimension (a dimension that shows a value and drives nothing). It is never a
+second typed number that happens to agree.
+
+**5. Repeated features are patterns.** Draw one hole and pattern it. Or, in one
+sketch, tie the copies with `Equal` and dimension one of them. Never give each
+spacing its own number.
+
+**6. Check it.** Every build prints the sketches that can still move and the
+sizes that are typed numbers. The fingerprint records them under `parametric`:
+
+```json
+"parametric": {
+  "audited": 6,
+  "objects": {
+    "Sketch001": {
+      "type": "Sketcher::SketchObject", "label": "HoleSketch", "dof": 0,
+      "unlinked": ["Constraint4 (DistanceX) is a typed number: 20 mm"]
+    }
+  }
+}
+```
+
+A clean model has an empty `objects`. `validate_cad.py` reports what is left, and
+`validate_variants.py` reports a parameter without a reason. Both warn by default.
+A repository that has cleaned up adds `--strict-parametric` to its CI, so the
+warnings become failures:
+
+```powershell
+python doqs/scripts/validate_all.py --strict-parametric
+```
+
+The check reads FreeCAD properties by name. It knows sketches, datums and the
+usual PartDesign features (pad, pocket, hole, fillet, chamfer, revolution,
+patterns, primitives); the list is in
+[`scripts/parametric_rules.py`](../scripts/parametric_rules.py).
 
 ## A note on topological naming
 

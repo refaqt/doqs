@@ -37,6 +37,12 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Passed to validate_names.py",
     )
+    parser.add_argument(
+        "--strict-parametric",
+        action="store_true",
+        help="Passed to validate_variants.py and validate_cad.py: fail on a "
+             "parameter with no source, a free sketch or a typed size",
+    )
     args = parser.parse_args(argv)
 
     extra: dict[str, list[str]] = {}
@@ -44,6 +50,9 @@ def main(argv: list[str] | None = None) -> int:
         extra["validate_okh.py"] = ["--expected-version", args.expected_version]
     if args.strict_lexicon:
         extra["validate_names.py"] = ["--strict-lexicon"]
+    if args.strict_parametric:
+        extra["validate_variants.py"] = ["--strict-parametric"]
+        extra["validate_cad.py"] = ["--strict-parametric"]
 
     return report(run_steps(GATES, args.root, extra), "all validators passed")
 
