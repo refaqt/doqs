@@ -256,7 +256,9 @@ def intake(*, private: Path | None, public: Path | None, brand: str, family: str
         if validate and not dry_run:
             _validate(report, root, brand)
 
-    report.facts.update({"brand": brand, "family": family, "pn": pn, "decision": decision})
+    report.facts.update({"brand": brand, "family": family, "pn": pn, "decision": decision,
+                         # Every repository this report wrote in; `root` names only the first.
+                         "roots": [str(root) for root, _ in libraries]})
     report.then(f"Build the FreeCAD wrapper: doqs wrap --library {private or public} "
                 f"--part {brand}/{family}#{pn} --frames IF_...")
     report.then("Open the pull requests, private library first. The reviewer named in the "
