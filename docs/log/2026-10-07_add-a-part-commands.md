@@ -36,15 +36,18 @@ repository turns them on.
 - [ADR-017 — A STEP file is imported in the FreeCAD window, never headless](../decisions/2026-10-07_step-import-in-the-gui.md)
 - [ADR-018 — A new check warns first](../decisions/2026-10-07_new-checks-warn-first.md)
 
-## Open Questions
+## Checked on a real FreeCAD
 
-- The wrapper job has run only against the fake FreeCAD in the test suite. The first real
-  run with the HIWIN block on a Windows machine is the next check.
+`doqs wrap` ran once on this Windows machine against a copy of the private library, with
+FreeCAD 1.1 starting a window for the job because the open window had no RPC server. It
+took 13 seconds. The saved document has one Part container on top labelled with the part
+number, the HIWIN block visible with its 22 colour entries kept, two frames visible with
+their axes, the container's own coordinate system hidden, and the window closed itself.
 
 ## Next Steps
 
-- Run the chain by hand once: add the HIWIN block, wrap it, use it in the compact stage,
-  add the block-to-carriage interface, open the pull requests.
+- Run the rest of the chain by hand once: use the block in the compact stage, add the
+  block-to-carriage interface, open the pull requests.
 - Rename the two frames in the aqtuator base to the names their ports give them.
 - Build fabriq on top of these commands.
 
