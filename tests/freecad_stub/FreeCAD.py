@@ -79,12 +79,31 @@ class _Shape:
 
 
 class _Object:
-    def __init__(self, name, null_shape=False, type_id="Part::Feature", shape=None):
+    def __init__(self, name, null_shape=False, type_id="Part::Feature", shape=None,
+                 shaped=True):
         self.Name = name
         self.Label = name
         self.TypeId = type_id
         self.State = []
-        self.Shape = shape if shape is not None else _Shape(null_shape)
+        self.Group = []
+        self.Visibility = False
+        self.ViewObject = None
+        self.expressions = {}
+        if shaped:
+            self.Shape = shape if shape is not None else _Shape(null_shape)
+
+    def addObject(self, obj):
+        if obj not in self.Group:
+            self.Group.append(obj)
+        _journal("group", container=self.Name, member=obj.Name)
+
+    def setExpression(self, path, expr):
+        self.expressions[path] = expr
+        _journal("setExpression", obj=self.Name, path=path, expr=expr)
+
+
+#: Types that FreeCAD gives no Shape of their own in this stub.
+_UNSHAPED = ("App::Part", "App::Link", "Spreadsheet::Sheet", "Part::LocalCoordinateSystem")
 
 
 def _shape_description(path):
@@ -101,20 +120,33 @@ class _Sheet:
     """Stands in for a Spreadsheet: records every aliased cell written to it."""
 
     Label = "Params"
+    TypeId = "Spreadsheet::Sheet"
+    Name = "Params"
 
     def __init__(self):
         self.cells = {}
+        self.aliases = {}
+        self.Visibility = False
+        self.ViewObject = None
+        self.Group = []
 
     def set(self, alias, value):
         self.cells[alias] = value
         _journal("set", alias=alias, value=value)
 
+    def setAlias(self, cell, alias):
+        self.aliases[cell] = alias
+        _journal("setAlias", cell=cell, alias=alias)
+
 
 class Document:
-    def __init__(self, path):
-        self.FileName = str(path)
-        self.Name = os.path.splitext(os.path.basename(str(path)))[0]
+    def __init__(self, path, blank=False):
+        self.FileName = "" if blank else str(path)
+        self.Name = str(path) if blank else os.path.splitext(os.path.basename(str(path)))[0]
         self.Objects = []
+        self._sheets = []
+        if blank:
+            return
         described = _shape_description(path)
         if described is not None:
             import Part
@@ -130,7 +162,26 @@ class Document:
         self._sheets = [] if os.environ.get("DOQS_FREECAD_STUB_NO_SHEET") else [_Sheet()]
 
     def getObjectsByLabel(self, label):
-        return [s for s in self._sheets if s.Label == label]
+        return [o for o in [*self._sheets, *self.Objects] if getattr(o, "Label", None) == label]
+
+    def addObject(self, type_id, name):
+        # FreeCAD keeps internal names unique: Frame, Frame001, Frame002.
+        taken = {o.Name for o in [*self.Objects, *self._sheets]}
+        unique, n = name, 0
+        while unique in taken:
+            n += 1
+            unique = f"{name}{n:03d}"
+        if type_id == "Spreadsheet::Sheet":
+            obj = _Sheet()
+            obj.Name = unique
+            obj.Label = name
+            self._sheets.append(obj)
+        else:
+            obj = _Object(unique, type_id=type_id, shaped=type_id not in _UNSHAPED)
+            obj.Label = name
+            self.Objects.append(obj)
+        _journal("addObject", type=type_id, name=name)
+        return obj
 
     def recompute(self):
         _journal("recompute", doc=self.Name)
@@ -144,6 +195,17 @@ class Document:
         # the journal alone.
         with open(self.FileName, "a", encoding="utf-8") as f:
             f.write("saved-by-stub\n")
+
+    def saveAs(self, path):
+        self.FileName = str(path)
+        self.Name = os.path.splitext(os.path.basename(str(path)))[0]
+        _journal("saveAs", doc=self.Name, file=self.FileName)
+        with open(self.FileName, "w", encoding="utf-8") as f:
+            json.dump({"stub": "saved", "objects": [
+                {"name": o.Name, "type": o.TypeId, "label": o.Label,
+                 "visible": bool(getattr(o, "Visibility", False)),
+                 "group": [m.Name for m in getattr(o, "Group", [])]}
+                for o in [*self.Objects, *self._sheets]]}, f, indent=1)
 
     def openTransaction(self, name):
         _journal("openTransaction", name=name)
@@ -160,6 +222,13 @@ def openDocument(path):
     doc = Document(path)
     _DOCUMENTS[doc.Name] = doc
     _journal("openDocument", path=str(path))
+    return doc
+
+
+def newDocument(name="Unnamed"):
+    doc = Document(name, blank=True)
+    _DOCUMENTS[doc.Name] = doc
+    _journal("newDocument", name=name)
     return doc
 
 

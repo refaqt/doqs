@@ -61,6 +61,13 @@ GENERATE: tuple[Step, ...] = (
     ("resolve_graph.py", ()),
 )
 
+#: Checks that only warn until a repository opts in with a strict flag, so a
+#: machine's CI stays green when its doqs pin moves. `doqs check` runs them
+#: after the staleness checks; `validate_all.py` does not.
+ADVISORY: tuple[Step, ...] = (
+    ("validate_interfaces.py", ()),
+)
+
 #: Commands that pass every remaining argument straight to one script.
 PASSTHROUGH: dict[str, str] = {
     "syson": "syson.py",
@@ -70,6 +77,12 @@ PASSTHROUGH: dict[str, str] = {
     "restore-private": "restore_private.py",
     "unshare": "apply_unshare.py",
     "compare-own": "compare_own.py",
+    "scaffold": "install_module.py",
+    "add-part": "add_part.py",
+    "wrap": "export_wrapper.py",
+    "use-part": "use_part.py",
+    "add-interface": "add_interface.py",
+    "mirror": "validate_mirror.py",
 }
 
 #: Scripts that cannot become a subcommand: they run inside a FreeCAD
@@ -114,8 +127,10 @@ def cmd_check(args: argparse.Namespace) -> int:
     if args.strict_parametric:
         extra["validate_variants.py"] = ["--strict-parametric"]
         extra["validate_cad.py"] = ["--strict-parametric"]
+    if args.strict_interfaces:
+        extra["validate_interfaces.py"] = ["--strict-interfaces"]
 
-    steps = GATES + STALENESS
+    steps = GATES + STALENESS + ADVISORY
     if args.only:
         wanted = args.only if args.only.endswith(".py") else f"{args.only}.py"
         matched = tuple(
@@ -170,6 +185,12 @@ def cmd_list() -> int:
         ("restore-private …", "Copy non-shared supplier files from the private library"),
         ("unshare …", "Take files we may not share any more out of git, keep them on disk"),
         ("compare-own …", "Compare an own model with the brand's, writing only results"),
+        ("scaffold …", "Create a module, an own part, a library brand or a family"),
+        ("add-part …", "Take a supplier's part into the private and public libraries"),
+        ("wrap …", "Build a library part's FreeCAD wrapper from its STEP, with colours and frames"),
+        ("use-part …", "Put a library part into a machine module: BOM row, manifest, SysML"),
+        ("add-interface …", "Add one interface: SysML port def and ports, okh entry, frames"),
+        ("mirror …", "Compare the public and private libraries file by file"),
         ("run <script> …", "Any script in doqs/scripts/, by name"),
         ("list", "This list"),
     )
@@ -177,7 +198,7 @@ def cmd_list() -> int:
         print(f"  {name:<16} {purpose}")
 
     print("\n'check' runs, in order:")
-    for name, fixed in GATES + STALENESS:
+    for name, fixed in GATES + STALENESS + ADVISORY:
         print(f"  {name} {' '.join(fixed)}".rstrip())
 
     print("\n'generate' runs, in order:")
@@ -205,6 +226,8 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument("--strict-lexicon", action="store_true", help="Passed to validate_names.py")
     check.add_argument("--strict-parametric", action="store_true",
                        help="Fail on a parameter with no source, a free sketch or a typed size")
+    check.add_argument("--strict-interfaces", action="store_true",
+                       help="Fail when SysML ports, okh.toml entries and FreeCAD frames disagree")
 
     generate = subs.add_parser("generate", help="Write every generated file")
     generate.add_argument("--root", type=Path, default=None, help="Machine repo root")

@@ -653,6 +653,18 @@ version = "1.0"
 
 Versions follow semver: `1.0` and `1.1` are compatible (minor change adds optional features), `1.0` and `2.0` are not. The validator treats them accordingly.
 
+### One name for a port, a frame and an OKH entry
+
+An interface between two parts exists three times: as a `port def` with a port on each part in SysML, as a mounting frame (`IF_...`) in each part's FreeCAD file, and, when it faces outside the module, as an entry in `okh.toml`. One rule gives all three their names, so a tool can create them together and a validator can check that they agree ([ADR-015](decisions/2026-10-07_port-and-frame-share-a-name.md)):
+
+| In SysML | In FreeCAD | In `okh.toml` |
+| --- | --- | --- |
+| `port def RailMountInterface_v1` | | `name = "RailMountInterface"`, `version = "1.0"` |
+| `port referenceRailMount : RailMountInterface_v1;` on `part def Base` | frame `IF_reference_rail_mount` in `base.FCStd` | |
+| `port baseMount : ~RailMountInterface_v1;` on `part def GuideRail` | frame `IF_base_mount` in the rail's file | |
+
+The frame label is the port name in lowercase with underscores, after `IF_`. The OKH name is the port def without its version suffix; the OKH version is that suffix followed by `.0`. Only the major version must match. The helpers in `doqs/scripts/interface_rules.py` apply the rule, `doqs/scripts/sysml_rules.py` adds the SysML statements without touching the rest of the file, and `doqs/scripts/okh_rules.py` adds the manifest entry the same way.
+
 ### Adapter Modules
 
 When a breaking interface change occurs, the bridge between old and new is itself a module. Adapter modules live under `modules/adapters/` and have the same internal structure as any other module — `bom/`, `cad/`, `architecture/`, `simulation/`, etc. — but their function is explicitly to translate between interface versions.
@@ -975,6 +987,24 @@ material = "6061-T6 aluminium"
 mass = 85.0
 tsdc = "MEC"
 ```
+
+Two keys tie the manifest to the architecture, so a check can follow a part from its SysML definition to its file ([ADR-015](decisions/2026-10-07_port-and-frame-share-a-name.md)):
+
+```toml
+# A part we make: `sysml` names its part def in architecture/<module>.sysml.
+[[part]]
+name   = "Base"
+source = ["cad/parts/base/base.FCStd"]
+sysml  = "Base"
+
+# A part we buy: the BOM row that buys it, the library reference, and its part def.
+[[bought-part]]
+bom   = "MEC-001"
+part  = "stoq:hiwin/hgl-block#HGL15CAZBC+E2"
+sysml = "GuideBlock"
+```
+
+`doqs scaffold part` and `doqs use-part` write them. `validate_interfaces.py` checks that each `sysml` name exists and that every port of that part def has its frame in the file.
 
 When a module is extracted to its own repo, update its `repo` field and the `[[hasComponent]]` URL in the parent manifest.
 

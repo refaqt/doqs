@@ -488,6 +488,20 @@ A part may keep its build script beside its model, in
 `cad/parts/<part>/build_model.py`. The script still reads the module's
 `cad/params.csv`, and `validate_cad.py` checks it like the one in `cad/`.
 
+`doqs add-interface` adds the frames for you: a port `referenceRailMount` on
+a part means the frame `IF_reference_rail_mount` in that part's file
+([ADR-015](decisions/2026-10-07_port-and-frame-share-a-name.md)). It puts a
+`frame()` call into the build script and the frame into the saved document,
+at the origin. You then place it. `doqs wrap` gives a supplier part its
+frames the same way, in the FreeCAD window so the brand's colours survive
+([ADR-017](decisions/2026-10-07_step-import-in-the-gui.md)).
+
+`validate_cad.py` also reports a coordinate system whose label does not
+start with `IF_`, and a joint that ends on anything but a frame, following
+the joint into the linked file. `validate_interfaces.py` reports a port
+without its frame and a frame without its port. Both warn until the
+repository turns them on with `--strict-parametric` and `--strict-interfaces`.
+
 **In the assembly.** Select the frame, or one of its axes or planes, for each
 side of a joint. Never a face, an edge or a point. If a joint needs an offset,
 drive it by an expression over `Params`. For a part that never moves, a
