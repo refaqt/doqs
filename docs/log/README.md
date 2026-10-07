@@ -31,3 +31,4 @@ Write entries in B2 English. Follow `.agents/rules/communication.md`.
 | 2026-10-07 | [Frames can be read from a saved file, and open visible](2026-10-07_frames-readable-and-visible.md) | software | 0 |
 | 2026-10-07 | [Tools can now edit SysML files, manifests and library tables](2026-10-07_sysml-and-manifest-editors.md) | software | 0 |
 | 2026-10-07 | [Six commands add a part to a design without hand work](2026-10-07_add-a-part-commands.md) | software | 0 |
+| 2026-10-07 | [After a merge, reopen the files that FreeCAD has open](2026-10-07_freecad-open-after-merge.md) | cad, software | 0 |
