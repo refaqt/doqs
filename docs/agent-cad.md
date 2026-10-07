@@ -359,12 +359,15 @@ def build(doc, params):
 document with a Body at the top is repaired: `body(doc)` moves that Body into the
 Part.
 
-New objects open visible. When a build creates a Part, a Body, an Assembly or
-a link to a part, it switches that object on, together with the last feature
-of each new Body. Their coordinate systems (the origin axes, planes and point)
-stay hidden. Objects that existed before the build keep the visibility you gave
-them. Visibility is stored in the document itself, so a headless build gets it
-right too.
+New objects open visible. When a build creates a Part, a Body, an Assembly, a
+link to a part, a solid imported from a STEP file, or a mounting frame, it
+switches that object on, together with the last feature of each new Body. The
+coordinate system of a Part, a Body or an Assembly (the origin axes, planes
+and point) stays hidden. A mounting frame shows its axes and planes, because
+they are the frame. Objects that existed before the build keep the visibility
+you gave them. Visibility is stored in the document itself, so a headless
+build gets it right too. See
+[ADR-014](decisions/2026-10-07_imported-solids-and-frames-visible.md).
 
 The rule is checked twice. `run()` stops and undoes the build when a Body is left
 outside a Part, so the mistake never reaches your screen or the file.
@@ -477,9 +480,13 @@ def build(doc, params):
 ```
 
 `frame()` creates a coordinate system (`Part::LocalCoordinateSystem`) inside the
-Part container, and reuses it on a rerun. The label must start with `IF_`. A
-supplier part gets its frames in our part file around the supplier geometry,
-placed from catalogue values.
+Part container, shows it with its axes, and reuses it on a rerun. The label
+must start with `IF_`. A supplier part gets its frames in our part file around
+the supplier geometry, placed from catalogue values.
+
+A part may keep its build script beside its model, in
+`cad/parts/<part>/build_model.py`. The script still reads the module's
+`cad/params.csv`, and `validate_cad.py` checks it like the one in `cad/`.
 
 **In the assembly.** Select the frame, or one of its axes or planes, for each
 side of a joint. Never a face, an edge or a point. If a joint needs an offset,

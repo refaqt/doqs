@@ -116,6 +116,35 @@ class TestFcstdPath(unittest.TestCase):
         )
 
 
+class TestParamsPath(unittest.TestCase):
+    """A part built from cad/parts/<part>/ still reads the module's cad/params.csv."""
+
+    def setUp(self):
+        self._tmp = Path(tempfile.mkdtemp(prefix="doqs-cad-"))
+        self.cad = self._tmp / "cad"
+        self.part = self.cad / "parts" / "base"
+        self.part.mkdir(parents=True)
+
+    def test_module_cad_dir_walks_up_to_cad(self):
+        self.assertEqual(cad_build.module_cad_dir(self.part), self.cad)
+        self.assertEqual(cad_build.module_cad_dir(self.cad), self.cad)
+        self.assertEqual(cad_build.module_cad_dir(self._tmp), self._tmp)
+
+    def test_a_part_folder_reads_the_module_params(self):
+        self.assertEqual(cad_build.params_path(self.part), self.cad / "params.csv")
+
+    def test_a_params_file_beside_the_script_wins(self):
+        (self.part / "params.csv").write_text("alias,value\n", encoding="utf-8")
+        self.assertEqual(cad_build.params_path(self.part), self.part / "params.csv")
+
+    def test_an_own_model_keeps_its_named_params(self):
+        (self.part / "HGR20.params.csv").write_text("alias,value\n", encoding="utf-8")
+        self.assertEqual(
+            cad_build.params_path(self.part, document="HGR20"),
+            self.part / "HGR20.params.csv",
+        )
+
+
 class TestLegacyToolCopyGate(unittest.TestCase):
     """validate_cad.py must reject the per-module copies this refactor removed."""
 
@@ -166,6 +195,17 @@ class TestLegacyToolCopyGate(unittest.TestCase):
         (self.cad / "build_model.py").write_text(seed, encoding="utf-8")
         result = self._run(self.root)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_a_per_part_build_script_is_checked_too(self):
+        part = self.cad / "parts" / "base"
+        part.mkdir(parents=True)
+        (part / "build_model.py").write_text(
+            'if __name__ == "__main__":\n    pass\n', encoding="utf-8"
+        )
+        result = self._run(self.root)
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertIn("cad/parts/base/build_model.py", result.stdout)
+        self.assertIn("main(build, globals())", result.stdout)
 
 
 class TestSeedTemplate(unittest.TestCase):
@@ -525,6 +565,10 @@ class _TreeDocument:
 
     def addObject(self, type_id, name):
         obj = self._add(type_id, name)
+        if type_id == cad_rules.FRAME_TYPE:
+            # A frame owns its axes and planes directly. They start hidden
+            # here, so a test proves that the build shows them.
+            obj.OriginFeatures = [self._add(t, n) for t, n in _ORIGIN_FEATURES]
         if type_id in _HAS_ORIGIN:
             # The origin starts visible here, so a test proves that the build
             # hides it and does not only leave it as it was.
@@ -688,6 +732,38 @@ class TestNewObjectsAreVisible(unittest.TestCase):
         b.Visibility = False
         self._run(lambda d, p: cad_build.body(d), doc)
         self.assertFalse(b.Visibility)
+
+    def test_a_new_frame_shows_with_its_axes(self):
+        doc = _TreeDocument()
+        f = cad_build.frame(doc, "IF_mount")
+        self.assertTrue(f.Visibility)
+        self.assertEqual(len(f.OriginFeatures), 7)
+        self.assertTrue(all(o.Visibility for o in f.OriginFeatures))
+        # The Part container's own coordinate system stays hidden.
+        self.assertFalse(cad_build.part(doc).Origin.Visibility)
+
+    def test_run_shows_an_imported_solid_and_a_frame_but_not_the_origin(self):
+        doc = _TreeDocument()
+
+        def build(d, params):
+            container = cad_build.part(d)
+            container.addObject(d.addObject("Part::Feature", "Part__Feature"))
+            cad_build.frame(d, "IF_rail", container=container)
+
+        self._run(build, doc)
+        by_name = {o.Name: o for o in doc.Objects}
+        self.assertTrue(by_name["Part__Feature"].Visibility)
+        self.assertTrue(by_name["Frame"].Visibility)
+        self.assertTrue(all(o.Visibility for o in by_name["Frame"].OriginFeatures))
+        self.assertFalse(by_name["Origin"].Visibility)
+        self.assertFalse(any(o.Visibility for o in by_name["Origin"].OriginFeatures))
+
+    def test_a_frame_a_person_hid_stays_hidden_on_a_rerun(self):
+        doc = _TreeDocument()
+        f = cad_build.frame(doc, "IF_mount")
+        f.Visibility = False
+        self._run(lambda d, p: cad_build.frame(d, "IF_mount"), doc)
+        self.assertFalse(f.Visibility)
 
 
 class TestRunChecksTheTree(unittest.TestCase):

@@ -78,8 +78,9 @@ def build(doc, params):
     Body is left outside a Part.  See
     `doqs/docs/decisions/2026-10-01_part-container-on-top.md`.
 
-    `run()` makes each new Part, Body, Assembly and Link visible, and keeps
-    their coordinate systems (origin axes, planes and point) hidden.
+    `run()` makes each new Part, Body, Assembly, Link, imported solid and
+    mounting frame visible, and keeps the coordinate systems of the
+    containers (origin axes, planes and point) hidden.
 
     Mounting frames: give the part one named frame for each place where
     another part attaches, like `frame(doc, "IF_mount_bottom",

@@ -73,11 +73,26 @@ def document_of_script(file):
     return None
 
 
+def module_cad_dir(start):
+    """The module's `cad/` folder at or above `start`.
+
+    A part keeps its build script in `cad/parts/<part>/`, beside its
+    `.FCStd`. The parameters it reads still belong to the whole module, in
+    `cad/params.csv`. When no ancestor is called `cad`, `start` is returned.
+    """
+    start = Path(start)
+    for base in [start, *start.parents]:
+        if base.name == "cad":
+            return base
+    return start
+
+
 def params_path(cad_dir=None, document=None, fcstd=None):
     """The parameter file a build reads.
 
     An own model in a parts library keeps `<pn>.params.csv` next to its
-    `<pn>.FCStd`. A machine module keeps one `cad/params.csv`.
+    `<pn>.FCStd`. A machine module keeps one `cad/params.csv`, also for a
+    part built from `cad/parts/<part>/build_model.py`.
     """
     directory = _cad_dir(cad_dir)
     candidates = []
@@ -85,10 +100,11 @@ def params_path(cad_dir=None, document=None, fcstd=None):
         candidates.append(Path(fcstd).with_name(Path(fcstd).stem + ".params.csv"))
     if document:
         candidates.append(directory / f"{document}.params.csv")
+    candidates.append(directory / "params.csv")
     for candidate in candidates:
         if candidate.is_file():
             return candidate
-    return directory / "params.csv"
+    return module_cad_dir(directory) / "params.csv"
 
 
 def fcstd_path(cad_dir=None, document=None):
@@ -196,14 +212,41 @@ def _show(obj):
             _set_visible(item, False)
 
 
-def show_new_objects(doc, before):
-    """Show the parts, bodies and assemblies a build created; hide their origins.
+def _show_frame(obj):
+    """Show a mounting frame with its axes and planes.
 
-    ``before`` holds the object names that existed before the build. Only new
-    objects change, so an object the person hid on purpose stays hidden.
+    A frame is a coordinate system, so its axes and planes are what you see
+    of it. FreeCAD saves them visible when a person adds a frame in the GUI,
+    and a build does the same.
     """
+    _set_visible(obj, True)
+    for item in getattr(obj, "OriginFeatures", None) or []:
+        _set_visible(item, True)
+
+
+def show_new_objects(doc, before):
+    """Show what a build created and a person must see; hide origins.
+
+    Parts, bodies, assemblies, links, imported solids and mounting frames are
+    shown. The coordinate system of a container stays hidden; the axes of a
+    frame are shown, because they are the frame. ``before`` holds the object
+    names that existed before the build. Only new objects change, so an
+    object the person hid on purpose stays hidden.
+    """
+    frame_axes = set()
+    for obj in doc.Objects:
+        if obj.Name in before or obj.TypeId != FRAME_TYPE:
+            continue
+        frame_axes.update(
+            item.Name for item in (getattr(obj, "OriginFeatures", None) or [])
+        )
     for obj in doc.Objects:
         if obj.Name in before:
+            continue
+        if obj.TypeId == FRAME_TYPE:
+            _show_frame(obj)
+            continue
+        if obj.Name in frame_axes:
             continue
         flag = visibility_for(obj.TypeId)
         if flag is not None:
@@ -273,6 +316,7 @@ def frame(doc, label, x=None, y=None, z=None, angle=None, axis=(0, 0, 1), contai
         obj = doc.addObject(FRAME_TYPE, "Frame")
         obj.Label = label
         container.addObject(obj)
+        _show_frame(obj)
     for name, expr in (("x", x), ("y", y), ("z", z)):
         if expr is not None:
             obj.setExpression(f"Placement.Base.{name}", expr)

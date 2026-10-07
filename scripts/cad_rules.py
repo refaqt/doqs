@@ -273,10 +273,19 @@ BODY_TYPE = "PartDesign::Body"
 #: plain Group. See docs/decisions/2026-06-24_freecad-master-sketches-body.md.
 ASSEMBLY_TYPE = "Assembly::AssemblyObject"
 
+#: A mounting frame: a named coordinate system inside a part's Part container.
+#: Assembly joints attach to these, never to a face, an edge or a point.
+#: See docs/decisions/2026-10-06_joints-attach-to-frames.md.
+FRAME_TYPE = "Part::LocalCoordinateSystem"
+
+#: A solid that came from a supplier's STEP file, as the GUI importer makes it.
+IMPORTED_SOLID_TYPE = "Part::Feature"
+
 #: Objects a person must see when a build creates them: the part, its Body,
-#: the assembly, and the links an assembly uses to hold its parts. A headless
-#: build writes no view data, so without this they open hidden.
-SHOWN_TYPES = (PART_TYPE, BODY_TYPE, ASSEMBLY_TYPE, "App::Link")
+#: the assembly, the links an assembly uses to hold its parts, an imported
+#: solid, and a mounting frame. A headless build writes no view data, so
+#: without this they open hidden.
+SHOWN_TYPES = (PART_TYPE, BODY_TYPE, ASSEMBLY_TYPE, "App::Link", IMPORTED_SOLID_TYPE, FRAME_TYPE)
 
 #: The coordinate system of a Part, a Body or an Assembly: its axes, planes and
 #: point. FreeCAD keeps them hidden, and so does a build.
@@ -346,6 +355,112 @@ def document_tree(fcstd: Path) -> list[tuple[str, str, list[str]]]:
     ]
 
 
+def _object_data(fcstd: Path):
+    """``(types by name, ObjectData elements)`` of a saved document, or ``None``."""
+    try:
+        with zipfile.ZipFile(fcstd) as archive:
+            root = ET.fromstring(archive.read("Document.xml"))
+    except (zipfile.BadZipFile, KeyError, OSError, ET.ParseError):
+        return None
+    types = {obj.get("name", ""): obj.get("type", "") for obj in root.findall("./Objects/Object")}
+    return types, root.findall("./ObjectData/Object")
+
+
+def object_labels(fcstd: Path) -> dict[str, str]:
+    """``{object name: label}`` for every object in a saved document.
+
+    A joint stores the internal name of the frame it uses (``Frame001``), and
+    the rule names its label (``IF_rail_reference``). This is the bridge.
+    An object with no saved label keeps its name. Empty for an unreadable file.
+    """
+    data = _object_data(fcstd)
+    if data is None:
+        return {}
+    _, objects = data
+    return {
+        obj.get("name", ""): _property_value(obj, "Label") or obj.get("name", "")
+        for obj in objects
+    }
+
+
+def frames(fcstd: Path) -> list[tuple[str, str]]:
+    """``(name, label)`` of every mounting frame in a saved document, in order."""
+    data = _object_data(fcstd)
+    if data is None:
+        return []
+    types, objects = data
+    return [
+        (obj.get("name", ""), _property_value(obj, "Label") or obj.get("name", ""))
+        for obj in objects
+        if types.get(obj.get("name", "")) == FRAME_TYPE
+    ]
+
+
+def link_targets(fcstd: Path) -> dict[str, str]:
+    """``{link object name: path it links to}`` for every App::Link in a document.
+
+    An assembly holds each part as a link. The path is written relative to the
+    assembly, as FreeCAD saved it. Empty for an unreadable file.
+    """
+    data = _object_data(fcstd)
+    if data is None:
+        return {}
+    _, objects = data
+    found: dict[str, str] = {}
+    for obj in objects:
+        for prop in obj.findall("./Properties/Property"):
+            if prop.get("name") != "LinkedObject":
+                continue
+            for link in prop.iter("XLink"):
+                if link.get("file"):
+                    found[obj.get("name", "")] = link.get("file", "")
+    return found
+
+
+def joint_targets(fcstd: Path) -> list[tuple[str, str, str, str]]:
+    """``(joint label, reference property, link name, sub-name)`` per reference.
+
+    Like ``joint_references``, plus the name of the object the reference
+    starts from: the App::Link that holds the part in the assembly, or an
+    object of the assembly itself. ``resolve_joint_target`` turns the pair into
+    a file and an object name.
+    """
+    data = _object_data(fcstd)
+    if data is None:
+        return []
+    _, objects = data
+    found: list[tuple[str, str, str, str]] = []
+    for obj in objects:
+        props = {p.get("name"): p for p in obj.findall("./Properties/Property")}
+        if "JointType" not in props:
+            continue
+        label = _property_value(obj, "Label") or obj.get("name", "")
+        for ref in JOINT_REFERENCES:
+            prop = props.get(ref)
+            if prop is None:
+                continue
+            for link in prop.iter("XLink"):
+                subs = [link.get("sub")] if link.get("sub") is not None else []
+                subs += [sub.get("value", "") for sub in link.iter("Sub")]
+                found.extend((label, ref, link.get("name", ""), sub) for sub in subs)
+    return found
+
+
+def resolve_joint_target(assembly: Path, link_name: str, sub: str) -> tuple[Path, str]:
+    """The file and the object name a joint reference ends on.
+
+    ``Frame001.XY_Plane003.`` on the link ``base`` means object ``Frame001``
+    in the file that ``base`` links to. A reference to an object of the
+    assembly itself (no link) resolves to the assembly file. Nothing is read
+    from the target file here, so the result may name a file that is missing.
+    """
+    first = sub.split(".", 1)[0] if sub else ""
+    target = link_targets(assembly).get(link_name)
+    if target is None:
+        return Path(assembly), first or link_name
+    return (Path(assembly).parent / target), first
+
+
 def is_assembly_path(fcstd: Path) -> bool:
     """True when the document lives under a ``cad/assemblies/`` folder."""
     parts = Path(fcstd).parts
@@ -371,11 +486,6 @@ def cad_documents(root: Path) -> list[Path]:
         and not is_under_parts_library(p, root)
     ]
 
-
-#: A mounting frame: a named coordinate system inside a part's Part container.
-#: Assembly joints attach to these, never to a face, an edge or a point.
-#: See docs/decisions/2026-10-06_joints-attach-to-frames.md.
-FRAME_TYPE = "Part::LocalCoordinateSystem"
 
 #: Every mounting frame label starts with this, like ``IF_mount_bottom``.
 FRAME_PREFIX = "IF_"
