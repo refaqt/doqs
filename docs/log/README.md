@@ -28,3 +28,4 @@ Write entries in B2 English. Follow `.agents/rules/communication.md`.
 | 2026-10-06 | [Every dimension now has a reason](2026-10-06_every-dimension-has-a-source.md) | software | 0 |
 | 2026-10-06 | [Assembly joints now attach to named mounting frames](2026-10-06_joints-attach-to-frames.md) | software | 0 |
 | 2026-10-06 | [The shared agent kit moves to its newest version](2026-10-06_agent-kit-update.md) | software | 0 |
+| 2026-10-07 | [Frames can be read from a saved file, and open visible](2026-10-07_frames-readable-and-visible.md) | software | 0 |

@@ -286,8 +286,11 @@ def legacy_tool_copies(root: Path) -> list[str]:
                     f"{stale.relative_to(root)} is a stale copy of a DOQS tool. "
                     f"Delete it — {replacement} is used automatically."
                 )
-        build = cad_dir / "build_model.py"
-        if build.is_file():
+        # One seed per module in `cad/`, or one per part in `cad/parts/<part>/`.
+        scripts = [cad_dir / "build_model.py", *sorted(cad_dir.glob("parts/*/build_model.py"))]
+        for build in scripts:
+            if not build.is_file():
+                continue
             try:
                 body = build.read_text(encoding="utf-8")
             except OSError:

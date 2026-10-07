@@ -25,10 +25,15 @@ from cad_rules import (  # noqa: E402
     document_tree,
     file_digest,
     fingerprint_path,
+    frames,
     is_assembly_path,
     is_topology_reference,
     joint_references,
+    joint_targets,
     joints_on_topology,
+    link_targets,
+    object_labels,
+    resolve_joint_target,
     load_fingerprint,
     missing_guard_rules,
     normalise,
@@ -451,6 +456,12 @@ class TestVisibilityFor(unittest.TestCase):
                         "Assembly::AssemblyObject", "App::Link"):
             self.assertIs(visibility_for(type_id), True, type_id)
 
+    def test_imported_solids_and_frames_are_shown(self):
+        # A supplier's STEP comes in as Part::Feature objects, and a mounting
+        # frame is what a designer must see to place it. Both opened hidden.
+        for type_id in ("Part::Feature", "Part::LocalCoordinateSystem"):
+            self.assertIs(visibility_for(type_id), True, type_id)
+
     def test_the_coordinate_system_is_hidden(self):
         for type_id in ("App::Origin", "App::Line", "App::Plane", "App::Point"):
             self.assertIs(visibility_for(type_id), False, type_id)
@@ -470,3 +481,108 @@ class TestFingerprintPath(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def _write_document(path, objects, links=None, joints=None):
+    """A Document.xml with labels, links and joints, as FreeCAD saves them.
+
+    ``objects`` is ``[(name, type_id, label)]``; ``links`` is
+    ``{link name: file}``; ``joints`` is ``[(name, label, {ref: (link, [subs])})]``.
+    """
+    links = links or {}
+    joints = joints or []
+    listed = "".join(f'<Object type="{t}" name="{n}" id="{i}"/>'
+                     for i, (n, t, _) in enumerate(objects))
+    listed += "".join(f'<Object type="App::FeaturePython" name="{j[0]}" id="{100 + i}"/>'
+                      for i, j in enumerate(joints))
+    data = ""
+    for name, _, label in objects:
+        props = ""
+        if label is not None:
+            props += ('<Property name="Label" type="App::PropertyString">'
+                      f'<String value="{label}"/></Property>')
+        if name in links:
+            props += ('<Property name="LinkedObject" type="App::PropertyXLink">'
+                      f'<XLink file="{links[name]}" stamp="" name="Part"/></Property>')
+        data += f'<Object name="{name}"><Properties>{props}</Properties></Object>'
+    for name, label, refs in joints:
+        props = ('<Property name="JointType" type="App::PropertyEnumeration">'
+                 '<Integer value="0"/></Property>'
+                 '<Property name="Label" type="App::PropertyString">'
+                 f'<String value="{label}"/></Property>')
+        for ref, (link, subs) in refs.items():
+            items = "".join(f'<Sub value="{s}"/>' for s in subs)
+            props += (f'<Property name="{ref}" type="App::PropertyXLinkSub">'
+                      f'<XLink file="" stamp="" name="{link}" count="{len(subs)}">'
+                      f'{items}</XLink></Property>')
+        data += f'<Object name="{name}"><Properties>{props}</Properties></Object>'
+    count = len(objects) + len(joints)
+    xml = ('<?xml version="1.0" encoding="utf-8"?><Document SchemaVersion="4">'
+           f'<Objects Count="{count}">{listed}</Objects>'
+           f'<ObjectData Count="{count}">{data}</ObjectData></Document>')
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("Document.xml", xml)
+
+
+WRAPPER = [
+    ("Part", "App::Part", "HGL15"),
+    ("Part__Feature001", "Part::Feature", "HIWIN_HGL15"),
+    ("LCS", "Part::LocalCoordinateSystem", "IF_rail"),
+    ("Frame", "Part::LocalCoordinateSystem", None),
+    ("X_Axis001", "App::Line", "X-axis001"),
+]
+
+
+class TestFrameReaders(unittest.TestCase):
+    """Labels, frames and joint targets are read from a saved file, without FreeCAD."""
+
+    def setUp(self):
+        self._tmp = Path(tempfile.mkdtemp(prefix="doqs-frames-"))
+        self.addCleanup(shutil.rmtree, self._tmp, ignore_errors=True)
+        self.part = self._tmp / "m" / "cad" / "parts" / "block" / "block.FCStd"
+        _write_document(self.part, WRAPPER)
+
+    def test_labels_fall_back_to_the_name(self):
+        labels = object_labels(self.part)
+        self.assertEqual(labels["LCS"], "IF_rail")
+        self.assertEqual(labels["Part__Feature001"], "HIWIN_HGL15")
+        self.assertEqual(labels["Frame"], "Frame")
+
+    def test_frames_lists_only_coordinate_systems_in_order(self):
+        self.assertEqual(frames(self.part), [("LCS", "IF_rail"), ("Frame", "Frame")])
+
+    def test_joint_targets_resolve_through_the_link_to_the_part_file(self):
+        assembly = self._tmp / "m" / "cad" / "assemblies" / "stage" / "stage.FCStd"
+        _write_document(
+            assembly,
+            [("Assembly", "Assembly::AssemblyObject", "stage"),
+             ("block", "App::Link", "block"),
+             ("IF_local", "Part::LocalCoordinateSystem", "IF_local")],
+            links={"block": "../../parts/block/block.FCStd"},
+            joints=[("Joint", "Fixed block", {
+                "Reference1": ("block", ["LCS.XY_Plane001."]),
+                "Reference2": ("IF_local", ["IF_local."]),
+            })],
+        )
+        self.assertEqual(link_targets(assembly), {"block": "../../parts/block/block.FCStd"})
+        targets = joint_targets(assembly)
+        self.assertEqual(targets, [
+            ("Fixed block", "Reference1", "block", "LCS.XY_Plane001."),
+            ("Fixed block", "Reference2", "IF_local", "IF_local."),
+        ])
+        file, name = resolve_joint_target(assembly, "block", "LCS.XY_Plane001.")
+        self.assertEqual(file.resolve(), self.part.resolve())
+        self.assertEqual(name, "LCS")
+        self.assertEqual(object_labels(file)[name], "IF_rail")
+        file, name = resolve_joint_target(assembly, "IF_local", "IF_local.")
+        self.assertEqual(file, assembly)
+        self.assertEqual(name, "IF_local")
+
+    def test_an_unreadable_file_reads_as_empty(self):
+        stub = self._tmp / "stub.FCStd"
+        stub.write_bytes(b"not a zip")
+        self.assertEqual(object_labels(stub), {})
+        self.assertEqual(frames(stub), [])
+        self.assertEqual(link_targets(stub), {})
+        self.assertEqual(joint_targets(stub), [])
