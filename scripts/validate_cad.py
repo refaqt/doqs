@@ -73,6 +73,8 @@ import re
 
 from cad_rules import (
     DENIED_MCP_TOOLS,
+    FRAME_PREFIX,
+    FRAME_TYPE,
     OWN_BUILD_SUFFIX,
     FingerprintError,
     bodies_outside_part,
@@ -80,12 +82,17 @@ from cad_rules import (
     document_tree,
     file_digest,
     fingerprint_path,
+    frames as read_frames,
     hook_is_registered,
     is_assembly_path,
+    is_topology_reference,
     joint_references,
+    joint_targets,
     joints_on_topology,
     load_fingerprint,
     missing_guard_rules,
+    object_labels,
+    resolve_joint_target,
 )
 from intake_rules import OWN_MODEL_DIR
 import parametric_rules
@@ -255,6 +262,63 @@ def report_joints(documents: list[Path], root: Path, strict: bool) -> bool:
     print(f"{'FAIL' if strict else 'WARN'}  joints: {len(findings)} use a face, an edge or "
           "a point, so they break when that part changes. Attach them to a mounting "
           "frame (IF_...) in the part; see doqs/docs/agent-cad.md#joints-attach-to-mounting-frames")
+    for line in findings:
+        print(f"      {line}")
+    return not strict
+
+
+def frame_findings(documents: list[Path], root: Path) -> list[str]:
+    """Frames without the ``IF_`` name, and joints that end on something else.
+
+    A coordinate system in a part is a mounting frame, so its label starts
+    with ``IF_``; a plain ``LCS`` is the default label nobody changed. A joint
+    reference like ``Frame001.XY_Plane003.`` on a link is followed into the
+    linked file: the object must be a frame with an ``IF_`` label. Faces,
+    edges and points are reported by ``joints_on_topology`` already.
+    """
+    findings: list[str] = []
+    for fcstd in documents:
+        rel = fcstd.relative_to(root).as_posix()
+        if not is_assembly_path(fcstd.relative_to(root)):
+            for name, label in read_frames(fcstd):
+                if not label.startswith(FRAME_PREFIX):
+                    findings.append(f"{rel}: coordinate system {name!r} is labelled {label!r}; "
+                                    f"a mounting frame is named {FRAME_PREFIX}<where>")
+            continue
+        seen: set[tuple[str, str]] = set()
+        for joint, ref, link, sub in joint_targets(fcstd):
+            if not sub or is_topology_reference(sub) or (joint, ref) in seen:
+                continue
+            file, name = resolve_joint_target(fcstd, link, sub)
+            if not name:
+                continue
+            try:
+                file = file.resolve()
+            except OSError:
+                pass
+            if not file.is_file():
+                findings.append(f"{rel}: joint {joint!r} {ref} points at {sub} in a file that is "
+                                f"missing: {file}")
+                seen.add((joint, ref))
+                continue
+            types = {n: t for n, t, _ in document_tree(file)}
+            label = object_labels(file).get(name, name)
+            if types.get(name) != FRAME_TYPE or not label.startswith(FRAME_PREFIX):
+                what = types.get(name, "an object") if name in types else "an object that does not exist"
+                findings.append(f"{rel}: joint {joint!r} {ref} ends on {name} ({label}), {what}; "
+                                f"attach it to a mounting frame ({FRAME_PREFIX}...) instead")
+                seen.add((joint, ref))
+    return findings
+
+
+def report_frames(documents: list[Path], root: Path, strict: bool) -> bool:
+    """Print the frame findings. False only when strict and any exist."""
+    findings = frame_findings(documents, root)
+    if not findings:
+        return True
+    print(f"{'FAIL' if strict else 'WARN'}  frames: {len(findings)} findings. A mounting frame is "
+          f"a coordinate system labelled {FRAME_PREFIX}<where>, and a joint ends on one; see "
+          "doqs/docs/agent-cad.md#joints-attach-to-mounting-frames")
     for line in findings:
         print(f"      {line}")
     return not strict
@@ -530,6 +594,8 @@ def main() -> int:
     if not report_parametric([(f, None) for f in documents], root, args.strict_parametric):
         all_ok = False
     if not report_joints(documents, root, args.strict_parametric):
+        all_ok = False
+    if not report_frames(documents, root, args.strict_parametric):
         all_ok = False
     if not documents:
         print("No .FCStd files found (agent-CAD guard not required yet)")

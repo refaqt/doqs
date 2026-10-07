@@ -30,3 +30,6 @@ follows from it. The guide that explains how to use the result lives in `docs/`.
 | 2026-10-06 | [ADR-013 — Assembly joints attach to named mounting frames](2026-10-06_joints-attach-to-frames.md) | Accepted |
 | 2026-10-07 | [ADR-014 — An imported solid and a mounting frame open visible](2026-10-07_imported-solids-and-frames-visible.md) | Accepted |
 | 2026-10-07 | [ADR-015 — A port and a mounting frame share one name](2026-10-07_port-and-frame-share-a-name.md) | Accepted |
+| 2026-10-07 | [ADR-016 — Two new script verbs: `add_` and `use_`](2026-10-07_add-and-use-verbs.md) | Accepted |
+| 2026-10-07 | [ADR-017 — A STEP file is imported in the FreeCAD window, never headless](2026-10-07_step-import-in-the-gui.md) | Accepted |
+| 2026-10-07 | [ADR-018 — A new check warns first](2026-10-07_new-checks-warn-first.md) | Accepted |

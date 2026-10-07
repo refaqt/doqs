@@ -30,3 +30,4 @@ Write entries in B2 English. Follow `.agents/rules/communication.md`.
 | 2026-10-06 | [The shared agent kit moves to its newest version](2026-10-06_agent-kit-update.md) | software | 0 |
 | 2026-10-07 | [Frames can be read from a saved file, and open visible](2026-10-07_frames-readable-and-visible.md) | software | 0 |
 | 2026-10-07 | [Tools can now edit SysML files, manifests and library tables](2026-10-07_sysml-and-manifest-editors.md) | software | 0 |
+| 2026-10-07 | [Six commands add a part to a design without hand work](2026-10-07_add-a-part-commands.md) | software | 0 |
