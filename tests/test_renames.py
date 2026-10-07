@@ -55,7 +55,7 @@ class TestStubs(unittest.TestCase):
 class TestNamingRule(unittest.TestCase):
     """Every command script starts with one of the contract verbs."""
 
-    VERBS = ("validate_", "resolve_", "apply_", "aggregate_", "export_",
+    VERBS = ("validate_", "resolve_", "apply_", "aggregate_", "export_", "add_", "use_",
              "install_", "restore_", "compare_")
 
     def command_scripts(self) -> list[Path]:
@@ -81,7 +81,9 @@ class TestNamingRule(unittest.TestCase):
     def test_libraries_are_named_rules_or_are_the_cad_exception(self):
         for path in sorted(_SCRIPTS.glob("*.py")):
             # A stub has no __main__ block either, and it is not a library.
-            if path.name in RENAMED or path.name == "cli.py":
+            # cli.py is the entry point; doqs_api.py is the import surface for
+            # tools outside doqs (ADR-016). Neither is a <topic>_rules library.
+            if path.name in RENAMED or path.name in ("cli.py", "doqs_api.py"):
                 continue
             if "__main__" in path.read_text(encoding="utf-8"):
                 continue

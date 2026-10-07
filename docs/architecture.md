@@ -988,6 +988,24 @@ mass = 85.0
 tsdc = "MEC"
 ```
 
+Two keys tie the manifest to the architecture, so a check can follow a part from its SysML definition to its file ([ADR-015](decisions/2026-10-07_port-and-frame-share-a-name.md)):
+
+```toml
+# A part we make: `sysml` names its part def in architecture/<module>.sysml.
+[[part]]
+name   = "Base"
+source = ["cad/parts/base/base.FCStd"]
+sysml  = "Base"
+
+# A part we buy: the BOM row that buys it, the library reference, and its part def.
+[[bought-part]]
+bom   = "MEC-001"
+part  = "stoq:hiwin/hgl-block#HGL15CAZBC+E2"
+sysml = "GuideBlock"
+```
+
+`doqs scaffold part` and `doqs use-part` write them. `validate_interfaces.py` checks that each `sysml` name exists and that every port of that part def has its frame in the file.
+
 When a module is extracted to its own repo, update its `repo` field and the `[[hasComponent]]` URL in the parent manifest.
 
 ### Validation Script (`doqs/scripts/validate_okh.py`)

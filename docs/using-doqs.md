@@ -111,11 +111,24 @@ and every `doqs` command will fail with a missing-file error.
 | `doqs restore-private …` | Copies supplier files we may not share from the private library into place, after checking each checksum | Opening a model whose supplier files are `fetch-only` or `private` |
 | `doqs unshare …` | Takes files out of git when their terms change to `fetch-only` or `private`, after checking the private library has the same file. The local copy stays on disk | A brand's terms changed, or a file turns out to be private |
 | `doqs compare-own …` | Compares a model we drew with the brand's model in a headless FreeCAD, and writes only pass, fail or not-confirmed and the method | After building or changing an own model in a parts library |
+| `doqs scaffold …` | Creates a module, an own part, a library brand or a library family, with every folder and file the gates expect | Starting a new module or part |
+| `doqs add-part …` | Takes a supplier's part into the private and the public library: files, rows, checksums, terms review, evidence, `.gitignore` | A new bought part |
+| `doqs wrap …` | Builds a library part's FreeCAD wrapper from its STEP file, in the FreeCAD window, with the brand's colours, a Part on top and `IF_` frames | After `add-part`, before the part is used in an assembly |
+| `doqs use-part …` | Puts a library part into a machine module: BOM row, `[[bought-part]]` entry, SysML part def and usages; can move the library pin to a merged commit | Buying a part for a module |
+| `doqs add-interface …` | Adds one interface from one request: SysML port def, ports and connection, the `okh.toml` entry, and a mounting frame in each part file | Two parts touch |
+| `doqs mirror …` | Compares the public and the private library file by file; with `--apply`, copies allowed files from private to public | After changing either library |
 | `doqs run <script> …` | Runs any script in `doqs/scripts/` by name | Something the commands above do not cover |
 | `doqs list` | Every command, and the scripts each one runs | When you forget |
 
 `doqs check` runs seven read-only gates, then three checks that your committed
-generated files match what the resolvers produce today.
+generated files match what the resolvers produce today, then one advisory check
+that SysML ports, `okh.toml` entries and FreeCAD frames agree. The advisory check
+warns until you pass `--strict-interfaces`.
+
+The commands from `scaffold` to `mirror` write files. Each takes `--dry-run`
+(report only) and `--json` (a report a tool can read), and changes nothing on
+a rerun. They are what the fabriq design tool calls; an agent can call them
+directly. See [Adding a part](#8-buying-a-part).
 
 `python doqs/scripts/validate_all.py` still works and still runs the same **seven**
 gates, without the three staleness checks. Repositories that have not moved their
@@ -215,6 +228,43 @@ number you wrote beside it.
 the job, holding the requirements and one line saying what fills the job today.
 Changing brand is then one line of text, and nothing above the role moves. See
 [roles.md](roles.md).
+
+### Adding a part, step by step
+
+The commands below do the whole chain. Each one reports what it wrote and what
+to do next, takes `--dry-run` to show the plan first, and changes nothing on a
+rerun. The private library comes first, then the public one, then the machine.
+
+```bash
+# 1. The supplier's files into both libraries: rows, checksums, terms review, evidence.
+python doqs/doqs.py add-part --private ../stoq-private --public ../stoq \
+    --brand hiwin --family hgl-block --pn HGL15CAZBC+E2 \
+    --description "HGL15 flange block, long" --spec "size 15" --mass-g 180 \
+    --step ~/Downloads/HGL15CAZBC+E2.step --datasheet ~/Downloads/hgl.pdf \
+    --terms-pdf ~/Downloads/terms.pdf --source-url https://... --terms-url https://... \
+    --decision customers --basis terms --reviewer "First Last"
+
+# 2. The FreeCAD wrapper, in the FreeCAD window, with colours and frames at the origin.
+python doqs/doqs.py wrap --library ../stoq-private --part hiwin/hgl-block#HGL15CAZBC+E2 \
+    --frames IF_rail_mount,IF_carriage_mount --mirror ../stoq
+
+# 3. Open the library pull requests. After the merge, in the machine:
+python doqs/doqs.py use-part --module modules/compact-stage \
+    --part stoq:hiwin/hgl-block#HGL15CAZBC+E2 --qty 4 --name "Guide block" \
+    --category MEC --sysml GuideBlock --usages blockFrontLeft,blockFrontRight \
+    --bump-pin merged --generate
+
+# 4. One interface per pair of parts that touch: SysML, okh.toml, frames.
+python doqs/doqs.py add-interface --module modules/compact-stage --name BlockMount \
+    --a carriageBottom.blockMountFrontLeft --b blockFrontLeft.carriageMount
+
+# 5. Place the frames in FreeCAD, assemble with joints on them, then:
+python doqs/doqs.py check
+```
+
+An own part starts with `doqs scaffold part modules/<module> <part>`, which writes the
+build script, the empty document with its `Params` sheet, the `[[part]]` entry and the
+SysML part def. The fabriq design tool runs the same commands from a browser.
 
 ## 9. What doqs puts in your repository
 
