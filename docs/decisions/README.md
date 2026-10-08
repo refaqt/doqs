@@ -33,3 +33,4 @@ follows from it. The guide that explains how to use the result lives in `docs/`.
 | 2026-10-07 | [ADR-016 — Two new script verbs: `add_` and `use_`](2026-10-07_add-and-use-verbs.md) | Accepted |
 | 2026-10-07 | [ADR-017 — A STEP file is imported in the FreeCAD window, never headless](2026-10-07_step-import-in-the-gui.md) | Accepted |
 | 2026-10-07 | [ADR-018 — A new check warns first](2026-10-07_new-checks-warn-first.md) | Accepted |
+| 2026-10-08 | [ADR-019 — The agent saves open FreeCAD documents before a pull request](2026-10-08_agent-saves-before-a-pull-request.md) | Accepted |
