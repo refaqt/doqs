@@ -167,6 +167,10 @@ git diff                   # read what generate wrote, then commit it
 
 `generate` writes files. Always read the diff before committing it.
 
+If an agent changed models in the open FreeCAD window, it saves those documents in
+FreeCAD first. Git only sees what is on disk. See
+[agent-cad.md](agent-cad.md#working-with-a-file-open).
+
 ## 6. In CI
 
 ```yaml

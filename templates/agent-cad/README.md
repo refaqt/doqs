@@ -24,8 +24,9 @@ document open will silently overwrite each other on save, with no warning
   your unsaved in-memory document.
 
 Denying both by bare name removes them from the agent's context entirely. With
-them gone, no code path in the addon writes to disk, so the `.FCStd` changes only
-when you press Ctrl+S. Do **not** rely on the OS read-only attribute instead —
+them gone, no code path in the addon writes to disk behind your window. The
+`.FCStd` changes only when a save runs inside the open FreeCAD: you press Ctrl+S,
+or the agent saves the open document before a pull request. Do **not** rely on the OS read-only attribute instead —
 FreeCAD ignores it and saves anyway
 ([FreeCAD#25474](https://github.com/FreeCAD/FreeCAD/issues/25474)).
 

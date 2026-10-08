@@ -37,7 +37,7 @@ with the submodule. That one entry point runs in either context:
 
 | Context | What happens | Saves? |
 | --- | --- | --- |
-| **Interactive** — FreeCAD open | Edits the document you are looking at, in one undo transaction | Never. Yours to save. |
+| **Interactive** — FreeCAD open | Edits the document you are looking at, in one undo transaction | Not during the build. The agent saves before a pull request. |
 | **Headless** — `FreeCADCmd cad/build_model.py` | Opens from disk, rebuilds, saves, fingerprints | Yes. This is the CI path. |
 | **Export** — `export_variant.py`'s macro | Opens from disk, syncs parameters in memory, writes only the STEP | **Never.** The document is not this process's to write. |
 
@@ -135,8 +135,10 @@ visible, not callable.
   it works by closing your in-memory document and reopening from disk — which
   discards your unsaved work.
 
-With both gone, no code path in the addon writes to disk. The `.FCStd` changes
-only when you press Ctrl+S. `validate_cad.py` fails the build if the rules go
+With both gone, no code path in the addon writes to disk behind your window. The
+`.FCStd` changes only when a save runs inside the open FreeCAD: you press Ctrl+S,
+or the agent saves before a pull request (below). Both save the copy you are
+looking at, so there is never a second copy to overwrite. `validate_cad.py` fails the build if the rules go
 missing, so this cannot quietly rot.
 
 Two things worth knowing:
@@ -238,7 +240,13 @@ across platforms, and without that tolerance every rebuild would emit a diff.
    instance to execute it.
 3. The geometry updates in front of you, inside one undo transaction. **Ctrl+Z
    reverts the whole rebuild.** Your unsaved edits are untouched.
-4. When you are happy, **you** save.
+4. Before the agent commits or opens a pull request, it **saves** the open
+   documents it changed. It runs `doc.save()` inside the running FreeCAD, on the
+   same document you are looking at, and tells you which files it saved. Git only
+   sees what is on disk, so an unsaved change never reaches the pull request. The
+   agent saves only documents that already have a file in the repository. A new
+   document with no file name needs a name, so the agent asks you. You may still
+   save yourself at any time.
 5. Before committing, rebuild headless so the fingerprint matches the saved file:
 
 ```powershell
