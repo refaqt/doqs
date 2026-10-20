@@ -112,7 +112,9 @@ def sync_active(doc=None, csv_path=None, cad_dir=None, save=True):
 
     doc.recompute()
     if save:
-        doc.save()
+        import cad_build
+
+        cad_build.save(doc)
     print(f"Synced {len(updated)} parameters: {', '.join(sorted(updated))}"
           + ("" if save else " (document not saved)"))
     return updated
@@ -151,7 +153,9 @@ def sync_table(doc=None, csv_path=None, origin="A1", cad_dir=None):
             sheet.set(f"{chr(col0 + c)}{r}", value)
 
     doc.recompute()
-    doc.save()
+    import cad_build
+
+    cad_build.save(doc)
     print(
         f"Wrote a {len(models)}-configuration table at {origin}: "
         f"{', '.join(m[0] for m in models)}.\n"

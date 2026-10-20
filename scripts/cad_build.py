@@ -49,6 +49,7 @@ from cad_rules import (
     bodies_outside_part,
     is_assembly_path,
     visibility_for,
+    write_view_data,
 )
 
 #: Builds that finished in this process: rebuilt, checked, fingerprinted. The
@@ -343,6 +344,23 @@ def check_part_container(doc):
         )
 
 
+def save(doc, path=None):
+    """Save `doc`, to `path` when given, so it opens visible in the window.
+
+    Without the window, FreeCAD saves no view data, and the window then opens
+    every object hidden. So a save without the window writes that view data
+    from the visibility the document stores. Save the fingerprint after this,
+    because it records the checksum of the final file.
+    """
+    if path is None:
+        doc.save()
+    else:
+        doc.saveAs(str(path))
+    if not getattr(sys.modules.get("FreeCAD"), "GuiUp", False):
+        write_view_data(Path(doc.FileName))
+    return doc
+
+
 def run(build_fn, cad_dir=None, document=None):
     """Rebuild via `build_fn`, then fingerprint.
 
@@ -383,7 +401,7 @@ def run(build_fn, cad_dir=None, document=None):
         )
         cad_fingerprint.write(doc, params=params, cad_dir=cad_dir)
     else:
-        doc.save()
+        save(doc)
         cad_fingerprint.write(doc, params=params, cad_dir=cad_dir)
         print(f"Rebuilt and saved {doc.Name}")
     _builds_done += 1

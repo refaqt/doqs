@@ -77,7 +77,7 @@ for row, (alias, value, unit) in enumerate({aliases!r}, start=1):
     sheet.set("B%d" % row, (value + " " + unit).strip() if unit else value)
     sheet.setAlias("B%d" % row, alias)
 doc.recompute()
-doc.saveAs({path!r})
+cad_build.save(doc, {path!r})
 try:
     cad_fingerprint.write(doc, params={params!r}, cad_dir={cad_dir!r})
 except Exception as exc:

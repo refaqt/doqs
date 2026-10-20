@@ -14,6 +14,7 @@ import sys
 import tempfile
 import types
 import unittest
+import zipfile
 from pathlib import Path
 from unittest import mock
 
@@ -789,6 +790,41 @@ class TestRunChecksTheTree(unittest.TestCase):
         doc, err = self._run(lambda d, p: cad_build.body(d))
         self.assertIsNone(err)
         self.assertEqual(doc.journal, ["open", "commit", "save"])
+
+
+class TestSaveWritesViewData(unittest.TestCase):
+    """A save without the window adds view data; the window writes its own."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory(prefix="doqs-save-")
+        self.addCleanup(self._tmp.cleanup)
+        self.fcstd = Path(self._tmp.name) / "rail.FCStd"
+        with zipfile.ZipFile(self.fcstd, "w") as archive:
+            archive.writestr(
+                "Document.xml",
+                '<Document><Objects><Object type="App::Part" name="Part"/></Objects>'
+                '<ObjectData><Object name="Part"><Properties>'
+                '<Property name="Visibility" type="App::PropertyBool">'
+                '<Bool value="true"/></Property></Properties></Object></ObjectData>'
+                '</Document>')
+        self.doc = mock.Mock(FileName=str(self.fcstd))
+
+    def test_headless_save_writes_view_data(self):
+        with mock.patch.dict(sys.modules, {"FreeCAD": types.SimpleNamespace(GuiUp=False)}):
+            cad_build.save(self.doc)
+        self.doc.save.assert_called_once_with()
+        self.assertTrue(cad_rules.has_view_data(self.fcstd))
+
+    def test_save_as_writes_view_data_to_the_new_file(self):
+        with mock.patch.dict(sys.modules, {"FreeCAD": types.SimpleNamespace(GuiUp=False)}):
+            cad_build.save(self.doc, self.fcstd)
+        self.doc.saveAs.assert_called_once_with(str(self.fcstd))
+        self.assertTrue(cad_rules.has_view_data(self.fcstd))
+
+    def test_save_in_the_window_leaves_the_file_to_freecad(self):
+        with mock.patch.dict(sys.modules, {"FreeCAD": types.SimpleNamespace(GuiUp=True)}):
+            cad_build.save(self.doc)
+        self.assertFalse(cad_rules.has_view_data(self.fcstd))
 
 
 if __name__ == "__main__":
