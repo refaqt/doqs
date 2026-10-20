@@ -295,7 +295,14 @@ def module_root_of(path: Path) -> Path:
     return path.parent
 
 
-def check_vendor_index(root: Path, index_path: Path) -> list[Finding]:
+def check_vendor_index(root: Path, index_path: Path,
+                       placeholders: list[str] | None = None) -> list[Finding]:
+    """Rows, terms and checksums of one vendor index.
+
+    A Git LFS placeholder is not hashed. Its path goes into ``placeholders``
+    when the caller passes a list, so many of them make one warning. With no
+    list, each one is a warning of its own.
+    """
     findings: list[Finding] = []
     rel = index_path.relative_to(root).as_posix()
     reader = csv_reader_skipping_comments(index_path.read_text(encoding="utf-8"))
@@ -323,6 +330,14 @@ def check_vendor_index(root: Path, index_path: Path) -> list[Finding]:
         # unnoticed. See docs/decisions/2026-09-18_parts-library.md.
         recorded = (row.get("sha256") or "").strip().lower()
         if not recorded:
+            continue
+        if cad_rules.is_lfs_pointer(target):
+            target_rel = target.relative_to(root).as_posix()
+            if placeholders is None:
+                findings.append(Finding(rel, cad_rules.lfs_placeholder_warning(
+                    [target_rel], "checksum"), warning=True))
+            else:
+                placeholders.append(target_rel)
             continue
         actual = hashlib.sha256(target.read_bytes()).hexdigest()
         if actual != recorded:
@@ -833,10 +848,16 @@ def check_all(root: Path, *, strict_parametric: bool = False) -> tuple[list[Find
         add(check_sources(root, okh.parent))
         add(check_role(root, okh))
 
+    placeholders: list[str] = []
     for index in sorted(root.rglob(VENDOR_INDEX)):
         if is_under_tooling_submodule(index, root):
             continue
-        add(check_vendor_index(root, index))
+        add(check_vendor_index(root, index, placeholders))
+    if placeholders:
+        warnings.append(Finding(
+            "Git LFS placeholders",
+            cad_rules.lfs_placeholder_warning(placeholders, "checksum"),
+            warning=True))
 
     for table in sorted(root.rglob(f"bom/{PARTS_TABLE_NAME}")):
         if is_under_tooling_submodule(table, root):

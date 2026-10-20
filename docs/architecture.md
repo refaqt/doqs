@@ -1562,6 +1562,13 @@ Track `*.step` in family repos: supplier geometry under `cad/vendor/` is committ
 
 LFS must be configured in each extracted module repo individually.
 
+A clone without LFS content holds small text placeholders in place of these files. Cloud
+sessions work like this on purpose, to save LFS bandwidth. `validate_cad.py` and
+`validate_variants.py` do not compare a placeholder's checksum. They print one warning line
+that names the placeholders, and the check still passes. CI runs `git lfs pull` before the
+checks, so it compares the real files. See
+[docs/mistakes/2026-10-20_lfs-placeholders-failed-the-checks.md](mistakes/2026-10-20_lfs-placeholders-failed-the-checks.md).
+
 **Exports after significant changes:** `.step` (geometry interchange), `.dxf` (2D drawings), `.stl` (GitHub 3D browser preview). Commit alongside the `.FCStd`.
 
 ### Top-down design and master sketches

@@ -104,6 +104,50 @@ def normalise(data):
     raise FingerprintError(f"cannot normalise {type(data).__name__}")
 
 
+#: The first line of every Git LFS pointer file (the LFS specification, v1).
+LFS_POINTER_PREFIX = b"version https://git-lfs.github.com/spec/v1"
+
+#: The LFS specification keeps pointer files below this size.
+LFS_POINTER_MAX_BYTES = 1024
+
+#: How many placeholders a grouped warning names before it says "and N more".
+LFS_NAMES_SHOWN = 3
+
+
+def is_lfs_pointer(path: Path) -> bool:
+    """True for a Git LFS placeholder: the small text file left without `git lfs pull`.
+
+    A clone made without LFS content (for example a cloud session, which must
+    not spend LFS bandwidth) has these in place of CAD files. Their checksum
+    can never match, so the checks skip them and warn instead. CI runs
+    `git lfs pull` first, so it still checks the real files.
+    """
+    try:
+        if path.stat().st_size >= LFS_POINTER_MAX_BYTES:
+            return False
+        with open(path, "rb") as f:
+            return f.read(len(LFS_POINTER_PREFIX)) == LFS_POINTER_PREFIX
+    except OSError:
+        return False
+
+
+def lfs_placeholder_warning(paths: list[str], what: str) -> str:
+    """One short line for every placeholder a check skipped.
+
+    ``what`` names the value that was not compared, for example "checksum".
+    """
+    paths = sorted(paths)
+    shown = ", ".join(paths[:LFS_NAMES_SHOWN])
+    more = len(paths) - LFS_NAMES_SHOWN
+    if more > 0:
+        shown += f" and {more} more"
+    if len(paths) == 1:
+        return (f"{shown} is a Git LFS placeholder, so its {what} was not checked. "
+                "CI checks it after git lfs pull.")
+    return (f"{len(paths)} files are Git LFS placeholders, so their {what}s were "
+            f"not checked: {shown}. CI checks them after git lfs pull.")
+
+
 def file_digest(path: Path) -> str:
     """SHA-256 of a file, used to tie a fingerprint to the bytes it describes."""
     digest = hashlib.sha256()

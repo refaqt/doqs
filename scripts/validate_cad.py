@@ -13,7 +13,9 @@ Three gates, in order of how much damage they prevent:
 2. **Fingerprint currency.** Every committed `.FCStd` needs a fingerprint whose
    recorded digest matches the file. A mismatch means geometry moved without a
    rebuild, so the committed measurements describe a model that no longer
-   exists.
+   exists. A Git LFS placeholder is not compared: a clone without LFS content
+   (a cloud session) gets one warning line for all of them. CI runs
+   `git lfs pull` first, so it compares the real files.
 
 3. **Geometric regression.** Because fingerprints are committed, a change that
    moves a volume or a bounding box shows up as a reviewable text diff in the
@@ -84,11 +86,13 @@ from cad_rules import (
     fingerprint_path,
     frames as read_frames,
     hook_is_registered,
+    is_lfs_pointer,
     is_assembly_path,
     is_topology_reference,
     joint_references,
     joint_targets,
     joints_on_topology,
+    lfs_placeholder_warning,
     load_fingerprint,
     missing_guard_rules,
     object_labels,
@@ -195,6 +199,8 @@ def validate_document(fcstd: Path, root: Path, build_script: Path | None = None)
     recorded = sources.get(fcstd.name)
     if recorded is None:
         errors.append(f"{fp_path.relative_to(root)}: records no digest for {fcstd.name}")
+    elif is_lfs_pointer(fcstd):
+        pass  # lfs_placeholders() reports it as a warning, not a failure
     elif recorded != file_digest(fcstd):
         errors.append(
             f"{rel} changed since its fingerprint was written — the committed "
@@ -208,6 +214,8 @@ def validate_document(fcstd: Path, root: Path, build_script: Path | None = None)
         export = fcstd.parent / name
         if not export.is_file():
             errors.append(f"{rel}: fingerprinted export {name} is missing")
+        elif is_lfs_pointer(export):
+            pass  # lfs_placeholders() reports it as a warning, not a failure
         elif file_digest(export) != digest:
             errors.append(f"{rel}: export {name} is stale relative to the fingerprint")
 
@@ -215,6 +223,27 @@ def validate_document(fcstd: Path, root: Path, build_script: Path | None = None)
         errors.append(f"{rel}: recorded at build time — {recorded_error}")
 
     return errors
+
+
+def lfs_placeholders(fcstd: Path, root: Path) -> list[str]:
+    """The document and its fingerprinted exports that are Git LFS placeholders.
+
+    A clone without LFS content has these in place of CAD files. A cloud
+    session must not spend LFS bandwidth, so the digest is not compared there.
+    CI runs `git lfs pull` first and still compares it.
+    """
+    try:
+        sources = load_fingerprint(fingerprint_path(fcstd)).get("sources") or {}
+    except FingerprintError:
+        sources = {}
+    files = [fcstd] + [fcstd.parent / name for name in sorted(sources) if name != fcstd.name]
+    return [f.relative_to(root).as_posix() for f in files if is_lfs_pointer(f)]
+
+
+def report_lfs_placeholders(placeholders: list[str]) -> None:
+    """One warning line for every placeholder the run skipped. It never fails."""
+    if placeholders:
+        print(f"WARN  {lfs_placeholder_warning(placeholders, 'fingerprint digest')}")
 
 
 def parametric_findings(fcstd: Path, root: Path, build_script: Path | None = None) -> list[str]:
@@ -470,16 +499,20 @@ def tracked_junk(root: Path) -> list[str]:
 def validate_parts_library(root: Path, strict_parametric: bool = False) -> bool:
     """Our own models in a library. Supplier files are checked by checksum."""
     all_ok = True
+    placeholders: list[str] = []
     for fcstd in own_model_documents(root):
         rel = fcstd.relative_to(root).as_posix()
         errs = validate_own_model(fcstd, root)
+        skipped = lfs_placeholders(fcstd, root)
+        placeholders += skipped
         if errs:
             all_ok = False
             print(f"FAIL  {rel}")
             for e in errs:
                 print(f"      {e}")
-        else:
+        elif not skipped:
             print(f"ok    {rel}")
+    report_lfs_placeholders(placeholders)
     for label, errs in (
         ("own-model build scripts", builds_without_model(root)),
         ("files tracked by git", tracked_junk(root)),
@@ -581,16 +614,20 @@ def main() -> int:
         else:
             print(f"ok    {SETTINGS_PATH} (agent-CAD guard in place)")
 
+    placeholders: list[str] = []
     for fcstd in documents:
         rel = fcstd.relative_to(root)
         errs = validate_document(fcstd, root)
+        skipped = lfs_placeholders(fcstd, root)
+        placeholders += skipped
         if errs:
             all_ok = False
             print(f"FAIL  {rel}")
             for e in errs:
                 print(f"      {e}")
-        else:
+        elif not skipped:
             print(f"ok    {rel}")
+    report_lfs_placeholders(placeholders)
     if not report_parametric([(f, None) for f in documents], root, args.strict_parametric):
         all_ok = False
     if not report_joints(documents, root, args.strict_parametric):
