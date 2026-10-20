@@ -13,3 +13,4 @@ Write entries in B2 English. Follow `.agents/rules/communication.md`.
 | 2026-10-02 | [Our own models of a rail and a block were wrong, and no check saw it](2026-10-02_own-models-were-not-checked.md) |
 | 2026-10-06 | [Models had typed numbers and sketches that could still move](2026-10-06_unlinked-dimensions.md) |
 | 2026-10-06 | [Assemblies broke after small changes to a part](2026-10-06_joints-on-faces.md) |
+| 2026-10-20 | [Checks failed on CAD files that nobody had changed](2026-10-20_lfs-placeholders-failed-the-checks.md) |
