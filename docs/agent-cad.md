@@ -278,6 +278,7 @@ python doqs/scripts/validate_cad.py --check-clean
 | Own models in a parts library | A model under `cad/own/` with no build script, no parameters, no current fingerprint, or a Body on top; a tracked `.FCBak` or `__pycache__/` |
 | Every dimension is linked | A sketch that can still move, or a size typed in as a number. A warning; a failure with `--strict-parametric` |
 | Joints attach to mounting frames | An Assembly joint that uses a face, an edge or a point of a solid. A warning; a failure with `--strict-parametric` |
+| A document opens visible | A `.FCStd` without view data, which the FreeCAD window opens with every object hidden. A warning; a failure with `--strict-parametric` |
 | `--check-clean` | An agent session left a `.FCStd` modified on disk |
 
 The guard check applies only once a repository actually contains a `.FCStd` —
@@ -373,9 +374,18 @@ switches that object on, together with the last feature of each new Body. The
 coordinate system of a Part, a Body or an Assembly (the origin axes, planes
 and point) stays hidden. A mounting frame shows its axes and planes, because
 they are the frame. Objects that existed before the build keep the visibility
-you gave them. Visibility is stored in the document itself, so a headless
-build gets it right too. See
+you gave them. See
 [ADR-014](decisions/2026-10-07_imported-solids-and-frames-visible.md).
+
+The FreeCAD window does not read visibility from the document itself. It reads
+it from the view data in the file (`GuiDocument.xml`). A save without the
+window writes no view data, and the window then opens every object hidden. So
+`cad_build.save()` writes the view data after a headless save, from the
+visibility the document stores. Every doqs tool that saves a file uses it. If
+your own script saves a document, call `cad_build.save(doc)` or
+`cad_build.save(doc, path)`, never `doc.save()`. `validate_cad.py` warns about
+a committed file without view data. See
+[the mistake note](mistakes/2026-10-20_headless-builds-opened-hidden.md).
 
 The rule is checked twice. `run()` stops and undoes the build when a Body is left
 outside a Part, so the mistake never reaches your screen or the file.

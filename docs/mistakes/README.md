@@ -14,4 +14,5 @@ Write entries in B2 English. Follow `.agents/rules/communication.md`.
 | 2026-10-06 | [Models had typed numbers and sketches that could still move](2026-10-06_unlinked-dimensions.md) |
 | 2026-10-06 | [Assemblies broke after small changes to a part](2026-10-06_joints-on-faces.md) |
 | 2026-10-20 | [Checks failed on CAD files that nobody had changed](2026-10-20_lfs-placeholders-failed-the-checks.md) |
+| 2026-10-20 | [Models built without the FreeCAD window opened hidden](2026-10-20_headless-builds-opened-hidden.md) |
 | 2026-10-22 | [Adding a part crashed the open FreeCAD window, and the checks looked in the wrong library](2026-10-22_wrap-crashed-the-open-freecad.md) |

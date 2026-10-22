@@ -36,3 +36,10 @@ The rule lives in one place: `SHOWN_TYPES` in `scripts/cad_rules.py`, read by
 - A frame a person hid on purpose stays hidden on the next rebuild.
 - Tools that import STEP files or add frames (the planned `doqs wrap` and
   `doqs add-interface`) rely on this rule and add nothing of their own.
+
+## Correction (2026-10-20)
+
+A headless build did not get visibility right in the FreeCAD window. The window reads
+visibility from the view data in the file, and a save without the window wrote none. Since
+2026-10-20, `cad_build.save()` writes that view data. See
+[the mistake note](../mistakes/2026-10-20_headless-builds-opened-hidden.md).

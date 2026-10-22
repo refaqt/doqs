@@ -61,7 +61,7 @@ doc.commitTransaction()
 if open_already:
     print("DOQS_SAVED=false")
 else:
-    doc.save()
+    cad_build.save(doc)
     if {fingerprint!r}:
         try:
             params = cad_fingerprint.read_params(path=cad_build.params_path({cad_dir!r}, fcstd=path))

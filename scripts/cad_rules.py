@@ -349,6 +349,85 @@ def visibility_for(type_id: str):
     return None
 
 
+#: The part of a `.FCStd` that holds what the FreeCAD window shows. A save
+#: without the window (FreeCADCmd) does not write it, and the window then opens
+#: every object hidden, whatever `Visibility` says in Document.xml.
+#: See docs/mistakes/2026-10-20_headless-builds-opened-hidden.md.
+VIEW_DATA = "GuiDocument.xml"
+
+
+def saved_visibility(fcstd: Path) -> list[tuple[str, bool]]:
+    """``(name, visible)`` for every object that stores a ``Visibility``.
+
+    Read from Document.xml, so no FreeCAD is needed. Empty for a file that is
+    not a readable FreeCAD document.
+    """
+    data = _object_data(fcstd)
+    if data is None:
+        return []
+    _, objects = data
+    states = []
+    for obj in objects:
+        for prop in obj.findall("./Properties/Property"):
+            if prop.get("name") == "Visibility":
+                flag = prop.find("Bool")
+                if flag is not None:
+                    states.append((obj.get("name", ""), flag.get("value") == "true"))
+                break
+    return states
+
+
+def view_data_xml(states: list[tuple[str, bool]]) -> str:
+    """The smallest view data that makes the window show what Document.xml says.
+
+    One view provider per object, with only its ``Visibility``. The window
+    gives every other display setting its default value.
+    """
+    root = ET.Element("Document", SchemaVersion="1")
+    providers = ET.SubElement(root, "ViewProviderData", Count=str(len(states)))
+    for name, visible in states:
+        provider = ET.SubElement(providers, "ViewProvider", name=name)
+        props = ET.SubElement(provider, "Properties", Count="1")
+        prop = ET.SubElement(
+            props, "Property", name="Visibility", type="App::PropertyBool", status="1"
+        )
+        ET.SubElement(prop, "Bool", value="true" if visible else "false")
+    return "<?xml version='1.0' encoding='utf-8'?>\n" + ET.tostring(root, encoding="unicode")
+
+
+def has_view_data(fcstd: Path) -> bool:
+    """True when the window will read view data from this file."""
+    try:
+        with zipfile.ZipFile(fcstd) as archive:
+            return VIEW_DATA in archive.namelist()
+    except (zipfile.BadZipFile, OSError):
+        return False
+
+
+def write_view_data(fcstd: Path) -> int:
+    """Write view data into a `.FCStd` saved without the window. Returns the count.
+
+    The visibility comes from the file's own Document.xml, so the window shows
+    exactly what the build set. Any view data already there is replaced: it
+    may describe objects an earlier build made. Every other part of the file
+    is copied unchanged.
+    """
+    fcstd = Path(fcstd)
+    states = saved_visibility(fcstd)
+    if not states:
+        return 0
+    tmp = fcstd.with_name(fcstd.name + ".tmp")
+    with zipfile.ZipFile(fcstd) as source, zipfile.ZipFile(
+        tmp, "w", zipfile.ZIP_DEFLATED
+    ) as target:
+        for item in source.infolist():
+            if item.filename != VIEW_DATA:
+                target.writestr(item, source.read(item.filename))
+        target.writestr(VIEW_DATA, view_data_xml(states))
+    tmp.replace(fcstd)
+    return len(states)
+
+
 def bodies_outside_part(objects) -> list[str]:
     """Bodies that no Part container holds, in document order.
 

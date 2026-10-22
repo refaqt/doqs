@@ -41,8 +41,10 @@ from cad_rules import (  # noqa: E402
     visibility_for,
     write_fingerprint,
 )
+import cad_rules  # noqa: E402
 from validate_cad import (  # noqa: E402
     report_joints,
+    report_view_data,
     validate_document,
     validate_guard,
     validate_part_container,
@@ -586,3 +588,101 @@ class TestFrameReaders(unittest.TestCase):
         self.assertEqual(frames(stub), [])
         self.assertEqual(link_targets(stub), {})
         self.assertEqual(joint_targets(stub), [])
+
+
+def _visibility_document_xml(states):
+    """A Document.xml whose objects store ``Visibility``: ``[(name, visible)]``."""
+    listed = "".join(f'<Object type="App::Part" name="{n}" id="{i}"/>'
+                     for i, (n, _) in enumerate(states))
+    data = "".join(
+        f'<Object name="{n}"><Properties Count="1">'
+        '<Property name="Visibility" type="App::PropertyBool" status="1">'
+        f'<Bool value="{"true" if v else "false"}"/></Property></Properties></Object>'
+        for n, v in states
+    )
+    return (
+        '<?xml version="1.0" encoding="utf-8"?><Document SchemaVersion="4">'
+        f'<Objects Count="{len(states)}">{listed}</Objects>'
+        f'<ObjectData Count="{len(states)}">{data}</ObjectData></Document>'
+    )
+
+
+class TestViewData(unittest.TestCase):
+    """A file saved without the window gets view data, so it opens visible."""
+
+    STATES = [("Part", True), ("Origin", False), ("Body", True)]
+
+    def setUp(self):
+        self._tmp = Path(tempfile.mkdtemp(prefix="doqs-view-"))
+        self.addCleanup(shutil.rmtree, self._tmp, ignore_errors=True)
+        self.fcstd = self._tmp / "cad" / "own" / "part.FCStd"
+        self.fcstd.parent.mkdir(parents=True)
+        with zipfile.ZipFile(self.fcstd, "w") as archive:
+            archive.writestr("Document.xml", _visibility_document_xml(self.STATES))
+            archive.writestr("Body.Shape.brp", "shape data")
+
+    def view_states(self):
+        import xml.etree.ElementTree as ET
+
+        with zipfile.ZipFile(self.fcstd) as archive:
+            root = ET.fromstring(archive.read(cad_rules.VIEW_DATA))
+        return [
+            (vp.get("name"), vp.find("./Properties/Property/Bool").get("value") == "true")
+            for vp in root.iter("ViewProvider")
+        ]
+
+    def test_saved_visibility_reads_document_xml(self):
+        self.assertEqual(cad_rules.saved_visibility(self.fcstd), self.STATES)
+
+    def test_write_adds_view_data_that_matches_the_document(self):
+        self.assertFalse(cad_rules.has_view_data(self.fcstd))
+        self.assertEqual(cad_rules.write_view_data(self.fcstd), 3)
+        self.assertTrue(cad_rules.has_view_data(self.fcstd))
+        self.assertEqual(self.view_states(), self.STATES)
+
+    def test_write_keeps_every_other_part_of_the_file(self):
+        cad_rules.write_view_data(self.fcstd)
+        with zipfile.ZipFile(self.fcstd) as archive:
+            self.assertEqual(archive.read("Body.Shape.brp"), b"shape data")
+            self.assertEqual(
+                archive.read("Document.xml").decode(), _visibility_document_xml(self.STATES))
+
+    def test_write_replaces_old_view_data(self):
+        with zipfile.ZipFile(self.fcstd, "a") as archive:
+            archive.writestr(cad_rules.VIEW_DATA, cad_rules.view_data_xml([("Gone", False)]))
+        cad_rules.write_view_data(self.fcstd)
+        with zipfile.ZipFile(self.fcstd) as archive:
+            self.assertEqual(archive.namelist().count(cad_rules.VIEW_DATA), 1)
+        self.assertEqual(self.view_states(), self.STATES)
+
+    def test_a_file_that_is_not_a_document_is_left_alone(self):
+        stub = self._tmp / "stub.FCStd"
+        stub.write_text("ORIGINAL\n", encoding="utf-8")
+        self.assertEqual(cad_rules.write_view_data(stub), 0)
+        self.assertEqual(stub.read_text(encoding="utf-8"), "ORIGINAL\n")
+        self.assertFalse(cad_rules.has_view_data(stub))
+
+    def test_check_warns_about_a_file_without_view_data(self):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertTrue(report_view_data([self.fcstd], self._tmp, strict=False))
+        self.assertIn("WARN  view data: 1 documents", out.getvalue())
+        self.assertIn("cad/own/part.FCStd", out.getvalue())
+
+    def test_check_fails_when_strict(self):
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertFalse(report_view_data([self.fcstd], self._tmp, strict=True))
+
+    def test_check_passes_after_the_view_data_is_written(self):
+        cad_rules.write_view_data(self.fcstd)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertTrue(report_view_data([self.fcstd], self._tmp, strict=True))
+        self.assertEqual(out.getvalue(), "")
+
+    def test_check_skips_an_lfs_placeholder(self):
+        self.fcstd.write_text(
+            "version https://git-lfs.github.com/spec/v1\noid sha256:" + "0" * 64
+            + "\nsize 1234\n", encoding="utf-8")
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertTrue(report_view_data([self.fcstd], self._tmp, strict=True))

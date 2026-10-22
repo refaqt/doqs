@@ -48,7 +48,7 @@ def wrap(step: str, out: str, label: str, frames: list[str]) -> dict:
         cad_build.frame(doc, frame_label, container=container)
     doc.recompute()
     cad_build.show_new_objects(doc, before)
-    doc.saveAs(out)
+    cad_build.save(doc, out)
     tree = cad_build.tree(doc)
     labels = {o.Name: getattr(o, "Label", o.Name) for o in doc.Objects}
     FreeCAD.closeDocument(doc.Name)

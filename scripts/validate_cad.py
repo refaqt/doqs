@@ -59,6 +59,12 @@ Three gates, in order of how much damage they prevent:
    ``--strict-parametric``. See
    docs/decisions/2026-10-06_joints-attach-to-frames.md.
 
+10. **A document opens visible.** A `.FCStd` saved without the FreeCAD window
+    has no view data (``GuiDocument.xml``), and the window then opens every
+    object hidden. A link to such a part shows nothing in an assembly. A
+    warning, and a failure with ``--strict-parametric``. See
+    docs/mistakes/2026-10-20_headless-builds-opened-hidden.md.
+
 Run from the machine repository root:
 
     python doqs/scripts/validate_cad.py
@@ -85,6 +91,8 @@ from cad_rules import (
     file_digest,
     fingerprint_path,
     frames as read_frames,
+    has_view_data,
+    saved_visibility,
     hook_is_registered,
     is_lfs_pointer,
     is_assembly_path,
@@ -353,6 +361,34 @@ def report_frames(documents: list[Path], root: Path, strict: bool) -> bool:
     return not strict
 
 
+def documents_without_view_data(documents: list[Path], root: Path) -> list[str]:
+    """Documents the FreeCAD window opens with every object hidden.
+
+    A save without the window writes no view data. A file that is not a
+    readable FreeCAD document, like a Git LFS placeholder, is left alone: the
+    window cannot open it either way.
+    """
+    return [
+        fcstd.relative_to(root).as_posix()
+        for fcstd in documents
+        if saved_visibility(fcstd) and not has_view_data(fcstd)
+    ]
+
+
+def report_view_data(documents: list[Path], root: Path, strict: bool) -> bool:
+    """Print the documents that open hidden. False only when strict and any exist."""
+    findings = documents_without_view_data(documents, root)
+    if not findings:
+        return True
+    print(f"{'FAIL' if strict else 'WARN'}  view data: {len(findings)} documents open with every "
+          "object hidden in the FreeCAD window, so a link to them shows nothing. They were "
+          "saved without the window by an older doqs. Rebuild them with this doqs; see "
+          "doqs/docs/agent-cad.md#the-model-tree-of-a-part")
+    for line in findings:
+        print(f"      {line}")
+    return not strict
+
+
 #: Tools that used to be copied into a module's `cad/`, and where they live now.
 LEGACY_TOOL_COPIES = {
     "fingerprint.py": "doqs/scripts/cad_fingerprint.py",
@@ -525,6 +561,8 @@ def validate_parts_library(root: Path, strict_parametric: bool = False) -> bool:
     own = [(f, f.with_name(f.stem + OWN_BUILD_SUFFIX)) for f in own_model_documents(root)]
     if not report_parametric(own, root, strict_parametric):
         all_ok = False
+    if not report_view_data([f for f, _ in own], root, strict_parametric):
+        all_ok = False
     print("ok    parts library: supplier files are checked by their checksums")
     return all_ok
 
@@ -562,7 +600,7 @@ def main() -> int:
         "--strict-parametric",
         action="store_true",
         help="Fail, not warn, on a free sketch, a size typed in as a number, "
-        "or a joint on a face, an edge or a point.",
+        "a joint on a face, an edge or a point, or a document that opens hidden.",
     )
     args = parser.parse_args()
     root = args.root.resolve() if args.root else repo_root_from_script()
@@ -633,6 +671,8 @@ def main() -> int:
     if not report_joints(documents, root, args.strict_parametric):
         all_ok = False
     if not report_frames(documents, root, args.strict_parametric):
+        all_ok = False
+    if not report_view_data(documents, root, args.strict_parametric):
         all_ok = False
     if not documents:
         print("No .FCStd files found (agent-CAD guard not required yet)")
