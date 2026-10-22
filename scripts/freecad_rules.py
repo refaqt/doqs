@@ -21,7 +21,6 @@ import os
 import shutil
 import subprocess
 import tempfile
-import time
 import xmlrpc.client
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -111,12 +110,18 @@ def render_macro(scripts: Path, body: str, close_gui: bool = False) -> str:
     """The macro text: a fixed header, the body, and the done marker.
 
     ``scripts`` is put on ``sys.path`` explicitly, so nothing in the body
-    has to infer a location from ``__file__``. With ``close_gui`` the macro
-    closes the FreeCAD window at the end, for a window started for the job.
+    has to infer a location from ``__file__``. The macro first forgets every
+    doqs module the window imported before: an open FreeCAD keeps them, and
+    they may be older, or come from another copy of doqs. With ``close_gui``
+    the macro closes the FreeCAD window at the end, for a window started for
+    the job.
     """
+    names = sorted(p.stem for p in Path(scripts).glob("*.py"))
     head = (
         "import sys\n"
         f"sys.path.insert(0, {str(scripts)!r})\n"
+        f"for _name in {names!r}:\n"
+        "    sys.modules.pop(_name, None)\n"
         "import FreeCAD\n"
     )
     tail = f"\nprint({DONE_MARKER!r})\nsys.stdout.flush()\n"
@@ -133,46 +138,29 @@ def render_macro(scripts: Path, body: str, close_gui: bool = False) -> str:
     return head + body.rstrip("\n") + "\n" + tail
 
 
-def rpc_run(code: str, url: str = RPC_URL, timeout: float = 600.0,
-            poll: float = 0.5) -> MacroResult:
+def rpc_run(code: str, url: str = RPC_URL, timeout: float = 600.0) -> MacroResult:
     """Run ``code`` in the open FreeCAD window and wait for it to finish.
 
-    Uses the add-on's asynchronous call when it has one, so a long import
-    does not hit the synchronous call's time limit.
+    Always the add-on's synchronous ``execute_code``, which runs the code on
+    the GUI thread. Never ``execute_code_async``: that runs on a worker
+    thread, and a macro that makes, imports, saves or closes a document from
+    there races the GUI and can crash FreeCAD (it did twice on 2026-10-22).
+    The add-on stops waiting for the GUI after about 90 seconds; a job that
+    needs longer must use a window started for the job.
     """
     proxy = xmlrpc.client.ServerProxy(url, allow_none=True)
-    try:
-        with _socket_timeout(max(timeout, 5.0)):
-            started = proxy.execute_code_async(code)
-    except xmlrpc.client.Fault:
-        started = None
-    except Exception as exc:  # noqa: BLE001
-        return MacroResult(False, "rpc", error=f"RPC call failed: {exc}")
-    if isinstance(started, dict) and started.get("job_id"):
-        job = started["job_id"]
-        deadline = time.monotonic() + timeout
-        while time.monotonic() < deadline:
-            try:
-                status = proxy.get_async_status(job)
-            except Exception as exc:  # noqa: BLE001
-                return MacroResult(False, "rpc", error=f"RPC status failed: {exc}")
-            state = str(status.get("status", "")).lower() if isinstance(status, dict) else ""
-            if state in ("done", "completed", "finished", "success", "error", "failed"):
-                output = str(status.get("output", status.get("message", "")))
-                ok = state not in ("error", "failed") and status.get("success", True) is not False
-                return MacroResult(ok and DONE_MARKER in output, "rpc", output=output,
-                                   error=None if ok else output)
-            time.sleep(poll)
-        return MacroResult(False, "rpc", error=f"timed out after {timeout:.0f} s")
     try:
         with _socket_timeout(max(timeout, 5.0)):
             result = proxy.execute_code(code)
     except Exception as exc:  # noqa: BLE001
         return MacroResult(False, "rpc", error=f"RPC call failed: {exc}")
-    output = str(result.get("message", result.get("output", ""))) if isinstance(result, dict) else str(result)
-    ok = bool(result.get("success", True)) if isinstance(result, dict) else True
-    return MacroResult(ok and DONE_MARKER in output, "rpc", output=output,
-                       error=None if ok else output)
+    if isinstance(result, dict):
+        output = str(result.get("message", result.get("output", "")))
+        ok = bool(result.get("success", True))
+        error = None if ok else str(result.get("error") or output)
+    else:
+        output, ok, error = str(result), True, None
+    return MacroResult(ok and DONE_MARKER in output, "rpc", output=output, error=error)
 
 
 def run_macro(macro: str, *, mode: str = "auto", freecad: str | None = None,
