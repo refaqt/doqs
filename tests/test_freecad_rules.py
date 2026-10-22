@@ -72,7 +72,9 @@ class TestRenderMacro(unittest.TestCase):
         head = macro.split("import FreeCAD\n", 1)[0]
         stale = types.ModuleType("cad_rules")
         stale.__file__ = "/another/copy/of/doqs/scripts/cad_rules.py"
-        saved_path, saved = list(sys.path), sys.modules.get("cad_rules")
+        # The header drops every doqs module. Put them all back afterwards:
+        # later tests patch the modules they imported, and must find those.
+        saved_path, saved = list(sys.path), dict(sys.modules)
         sys.modules["cad_rules"] = stale
         try:
             exec(head, {})
@@ -80,8 +82,9 @@ class TestRenderMacro(unittest.TestCase):
             self.assertIn("json", sys.modules)
         finally:
             sys.path[:] = saved_path
-            if saved is not None:
-                sys.modules["cad_rules"] = saved
+            sys.modules.pop("cad_rules", None)
+            for name, module in saved.items():
+                sys.modules.setdefault(name, module)
 
 
 if __name__ == "__main__":
