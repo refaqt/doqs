@@ -152,10 +152,14 @@ def _library_roots_cached(root: Path) -> tuple[Path, ...]:
     minutes on a real library. Validators are read-only single passes, so the
     set of mounted libraries cannot change underneath a run. A test that mounts
     a library after calling this must clear the cache.
+
+    Libraries inside `doqs/` or `.agents/` are skipped. doqs carries test
+    fixtures that look like libraries, and `doqs/tests/...` sorts before
+    `modules/stoq`, so a reference would resolve in a fixture.
     """
     found: list[Path] = []
     for marker in sorted(root.rglob(LIBRARY_MARKER)):
-        if marker.parent == root:
+        if marker.parent == root or is_under_tooling_submodule(marker, root):
             continue
         found.append(marker.parent.resolve())
     return tuple(found)

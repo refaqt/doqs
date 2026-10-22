@@ -93,6 +93,8 @@ class _Object:
             self.Shape = shape if shape is not None else _Shape(null_shape)
 
     def addObject(self, obj):
+        if obj is self:
+            raise RuntimeError("Cannot add a group object to itself")
         if obj not in self.Group:
             self.Group.append(obj)
         _journal("group", container=self.Name, member=obj.Name)

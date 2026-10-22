@@ -227,6 +227,23 @@ class TestWrap(_TwoLibraries):
         self.assertIn("modules/hiwin/modules/hgl-block/cad/parts/HGL15CAZBC+E2.FCStd",
                       (self.public / ".gitignore").read_text(encoding="utf-8"))
 
+    def test_the_importers_own_part_becomes_the_wrapper(self):
+        # The ACE TA17-7 STEP imports into its own Part labelled with the part
+        # number. Its Origin and axes are not in Group; they must not count as
+        # more objects on top, or the wrap adds the Part to itself.
+        step = self.family(self.private) / "cad" / "original" / "HGL15CAZBC+E2.step"
+        step.write_text(json.dumps({"solids": ["body", "rod"], "container": "HGL15CAZBC+E2"}),
+                        encoding="utf-8")
+        result = self._wrap(self.private, "--mode", "gui", "--freecad", sys.executable)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        out = self.family(self.private) / "cad" / "parts" / "HGL15CAZBC+E2.FCStd"
+        saved = json.loads(out.read_text(encoding="utf-8"))
+        parts = [o for o in saved["objects"] if o["type"] == "App::Part"]
+        self.assertEqual(len(parts), 1, parts)
+        self.assertEqual(parts[0]["label"], "HGL15CAZBC+E2")
+        self.assertIn("IF_rail", [o["label"] for o in saved["objects"] if o["name"] in parts[0]["group"]])
+        self.assertNotIn(parts[0]["name"], parts[0]["group"])
+
     def test_headless_freecad_is_refused_because_colours_are_lost(self):
         result = self._wrap(self.private, "--mode", "cmd", "--freecad", sys.executable)
         self.assertEqual(result.returncode, 1, result.stdout)

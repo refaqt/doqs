@@ -33,7 +33,9 @@ def wrap(step: str, out: str, label: str, frames: list[str]) -> dict:
     for obj in new:
         for member in getattr(obj, "Group", None) or []:
             held.add(member.Name)
-    tops = [o for o in new if o.Name not in held]
+    # A Part the importer made keeps its Origin and axes outside Group. They
+    # belong to that Part, so they are not more objects on top.
+    tops = [o for o in new if o.Name not in held and o.TypeId not in cad_rules.ORIGIN_TYPES]
     if len(tops) == 1 and tops[0].TypeId == cad_rules.PART_TYPE:
         # The importer made its own container; it becomes the part.
         container = tops[0]

@@ -31,6 +31,7 @@ from naming_rules import (  # noqa: E402
     is_parts_library,
     is_under_parts_library,
     csv_reader_skipping_comments,
+    library_roots,
 )
 from validate_names import check_all as check_names  # noqa: E402
 from validate_okh import validate  # noqa: E402
@@ -256,6 +257,29 @@ class TestLibraryLookupIsCached(unittest.TestCase):
             self.assertFalse(is_under_parts_library(probe, root))  # stale on purpose
             forget_library_roots()
             self.assertTrue(is_under_parts_library(probe, root))
+
+
+class TestLibrariesInToolingAreSkipped(unittest.TestCase):
+    """doqs carries fixture libraries. A machine must never resolve parts in them."""
+
+    def setUp(self) -> None:
+        forget_library_roots()
+        self.addCleanup(forget_library_roots)
+
+    def test_a_reference_resolves_in_the_machines_own_library(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "machine"
+            shutil.copytree(MACHINE, root)
+            alone = [f"{f.path}: {f.message}" for f in check_all(root)[0]]
+            forget_library_roots()
+            # The doqs submodule holds a fixture library without the din family.
+            # `doqs/...` sorts before `modules/stoq`, so it was found first.
+            fixture = root / "doqs" / "tests" / "fixtures" / "variant-machine" / "modules" / "stoq"
+            shutil.copytree(MACHINE / "modules" / "stoq", fixture)
+            shutil.rmtree(fixture / "modules" / "din")
+            self.assertEqual(library_roots(root), [(root / "modules" / "stoq").resolve()])
+            errors, _ = check_all(root)
+            self.assertEqual([f"{f.path}: {f.message}" for f in errors], alone)
 
 
 class TestCommentedTemplates(unittest.TestCase):
