@@ -108,6 +108,13 @@ class TestSettingsMerge(unittest.TestCase):
             merged["permissions"]["deny"], _TEMPLATE_SETTINGS["permissions"]["deny"]
         )
 
+    def test_the_agent_may_start_freecad_without_asking(self):
+        existing = {"permissions": {"allow": ["Bash(ls:*)"]}, "enabledMcpjsonServers": ["mine"]}
+        merged = merge_settings(existing, _TEMPLATE_SETTINGS)
+        self.assertIn("Bash(bash doqs.sh freecad:*)", merged["permissions"]["allow"])
+        self.assertEqual(merged["enabledMcpjsonServers"], ["mine", "freecad"])
+        self.assertEqual(merge_settings(merged, _TEMPLATE_SETTINGS), merged)
+
     def test_keys_doqs_knows_nothing_about_survive(self):
         existing = {
             "model": "opus",
@@ -115,7 +122,7 @@ class TestSettingsMerge(unittest.TestCase):
         }
         merged = merge_settings(existing, _TEMPLATE_SETTINGS)
         self.assertEqual(merged["model"], "opus")
-        self.assertEqual(merged["permissions"]["allow"], ["Bash(ls:*)"])
+        self.assertEqual(merged["permissions"]["allow"][0], "Bash(ls:*)")
         # Nothing is ever removed, and what was there stays first.
         self.assertEqual(merged["permissions"]["deny"][0], "something_of_mine")
 

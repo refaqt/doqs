@@ -89,9 +89,10 @@ unsure which folder is yours:
 FreeCADCmd -c "import FreeCAD; print(FreeCAD.getUserAppDataDir())"
 ```
 
-Restart FreeCAD, select the **MCP Addon** workbench, and click **Start RPC
-Server** in the **FreeCAD MCP** toolbar. **Auto-Start Server** in the same menu
-makes that automatic.
+Restart FreeCAD. You do not need to start the RPC server by hand. The first time an
+agent needs FreeCAD, it switches on **Auto-Start Server** for you
+(`bash doqs.sh freecad autostart`). From then on, the server starts each time
+FreeCAD starts. See [Headless or MCP: the agent decides](#headless-or-mcp-the-agent-decides).
 
 Leave **Remote Connections** off. The RPC server executes arbitrary Python and
 must stay bound to `localhost`.
@@ -110,6 +111,51 @@ overwrite them:
 
 * `.mcp.json` — registers the FreeCAD MCP server
 * `.claude/settings.json` — the guard, below
+
+## Headless or MCP: the agent decides
+
+An agent can edit a model in two ways:
+
+* **MCP**: through the RPC server inside the FreeCAD window, on the document you see.
+* **Headless**: `FreeCADCmd cad/build_model.py`, a separate FreeCAD without a window.
+  It opens the file from disk and saves it.
+
+Headless is only safe when no FreeCAD window has the same file open (see
+[The problem this solves](#the-problem-this-solves)). So before every FreeCAD edit
+the agent asks:
+
+```bash
+bash doqs.sh freecad status --file cad/rail.FCStd
+```
+
+It prints what runs, which files are open, and one advice:
+
+| What the agent finds | Advice | What the agent does |
+| --- | --- | --- |
+| The server answers, the file is open | `mcp` | Edits through MCP. Never headless. |
+| The server answers, the file is not open | `mcp` | Its choice. Headless for a rebuild, a measurement or batch work. MCP when you want to watch, or for a job that needs the window, like a STEP import. |
+| No FreeCAD runs | `headless` | Headless. When the job needs the window, or you want to watch, it starts FreeCAD first: `bash doqs.sh freecad start cad/rail.FCStd`. |
+| FreeCAD runs, the server does not answer | `ask-user` | Asks you to click **Start RPC Server** once. It cannot see which files that window has open, so it does not edit headless. |
+
+What the agent can and cannot do alone:
+
+* `freecad start` starts FreeCAD with the file, after it switches on auto-start, and
+  waits until the server answers. It never starts a second window when FreeCAD
+  already runs: two windows can save over each other.
+* No tool can switch on the server of a window that is already open. That is the
+  only time the agent needs you. Once auto-start is on, it happens only with a
+  window that was opened before.
+* `autostart` changes one key, `auto_start_rpc`, in `freecad_mcp_settings.json` in
+  FreeCAD's user data folder. **Remote Connections** and the allowed addresses stay
+  as you set them.
+
+`setup-tooling.sh` adds allow rules for `bash doqs.sh freecad` to
+`.claude/settings.json`, so the agent does not ask you each time it checks or starts
+FreeCAD. It also turns on the `freecad` server from `.mcp.json`
+(`enabledMcpjsonServers`), so Claude Code does not ask you to approve it.
+
+The headless path is `FreeCADCmd` run by the agent, after this check. The MCP tool
+`execute_code_headless` stays denied: see the guard below.
 
 ## The guard
 

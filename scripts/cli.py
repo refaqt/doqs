@@ -80,6 +80,7 @@ PASSTHROUGH: dict[str, str] = {
     "scaffold": "install_module.py",
     "add-part": "add_part.py",
     "wrap": "export_wrapper.py",
+    "freecad": "freecad_session.py",
     "use-part": "use_part.py",
     "add-interface": "add_interface.py",
     "mirror": "validate_mirror.py",
@@ -191,6 +192,7 @@ def cmd_list() -> int:
         ("use-part …", "Put a library part into a machine module: BOM row, manifest, SysML"),
         ("add-interface …", "Add one interface: SysML port def and ports, okh entry, frames"),
         ("mirror …", "Compare the public and private libraries file by file"),
+        ("freecad …", "Check or start the FreeCAD connection; say if headless or MCP is safe"),
         ("run <script> …", "Any script in doqs/scripts/, by name"),
         ("list", "This list"),
     )

@@ -12,9 +12,16 @@
     ]
   },
   "permissions": {
+    "allow": [
+      "Bash(bash doqs.sh freecad:*)",
+      "Bash(python doqs/scripts/freecad_session.py:*)"
+    ],
     "deny": [
       "mcp__freecad__execute_code_headless",
       "mcp__freecad__reload_document"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "freecad"
+  ]
 }
