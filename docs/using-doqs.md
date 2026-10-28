@@ -117,6 +117,7 @@ and every `doqs` command will fail with a missing-file error.
 | `doqs use-part …` | Puts a library part into a machine module: BOM row, `[[bought-part]]` entry, SysML part def and usages; can move the library pin to a merged commit | Buying a part for a module |
 | `doqs add-interface …` | Adds one interface from one request: SysML port def, ports and connection, the `okh.toml` entry, and a mounting frame in each part file | Two parts touch |
 | `doqs mirror …` | Compares the public and the private library file by file; with `--apply`, copies allowed files from private to public | After changing either library |
+| `doqs freecad …` | `status` says if FreeCAD runs, if its MCP server answers, which files are open, and if a headless or an MCP edit is safe now. `start` starts FreeCAD with its MCP server when no FreeCAD runs. `autostart` makes the server start with FreeCAD every time | Before an agent edits a FreeCAD model — see [agent-cad.md](agent-cad.md#headless-or-mcp-the-agent-decides) |
 | `doqs run <script> …` | Runs any script in `doqs/scripts/` by name | Something the commands above do not cover |
 | `doqs list` | Every command, and the scripts each one runs | When you forget |
 
@@ -294,8 +295,10 @@ Three rules follow from that table:
   `syson.sh` or `.claude/hooks/session-start.sh`; your change is lost on the next
   update. Change them in doqs instead.
 - **`.mcp.json` is yours.** doqs writes it once and never again.
-- **`.claude/settings.json` is shared.** doqs owns two keys in it: the agent-CAD
-  deny rules, and the line that starts the session hook. It adds those if they are
+- **`.claude/settings.json` is shared.** doqs owns four things in it: the agent-CAD
+  deny rules, the allow rules that let an agent check and start FreeCAD without
+  asking you, the switch that turns on the FreeCAD MCP server from `.mcp.json`, and
+  the line that starts the session hook. It adds those if they are
   missing and **removes nothing** — your own keys, and your own order, stay as they
   are. If you delete a deny rule on purpose, the next `setup-tooling.sh` run puts it
   back, and `doqs check` fails while it is gone.

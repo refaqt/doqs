@@ -47,9 +47,10 @@ TOOL_TEMPLATES = (
     ("session-hook/session-start.sh", ".claude/hooks/session-start.sh"),
 )
 
-#: The settings file is shared: doqs owns the agent-CAD deny rules and the
-#: session-hook registration, the user owns everything else. So it is merged,
-#: never copied over. Nothing is ever removed.
+#: The settings file is shared: doqs owns the agent-CAD allow and deny rules,
+#: the FreeCAD MCP server switch and the session-hook registration, the user
+#: owns everything else. So it is merged, never copied over. Nothing is ever
+#: removed.
 SETTINGS_TEMPLATE = "agent-cad/claude-settings.json"
 SETTINGS_DEST = ".claude/settings.json"
 
@@ -118,9 +119,10 @@ def install_tools(root: Path, templates: Path) -> list[str]:
 def merge_settings(existing: dict, template: dict) -> dict:
     """Add what doqs owns to a settings file, and remove nothing.
 
-    Two keys are merged: the `SessionStart` hook registration, and the
-    `permissions.deny` list. Every other key the user has is left untouched, and
-    so is the order of what is already there.
+    Four keys are merged: the `SessionStart` hook registration, the
+    `permissions.allow` and `permissions.deny` lists, and
+    `enabledMcpjsonServers`. Every other key the user has is left untouched,
+    and so is the order of what is already there.
     """
     merged = dict(existing)
 
@@ -133,14 +135,22 @@ def merge_settings(existing: dict, template: dict) -> dict:
             hooks["SessionStart"] = session_start
             merged["hooks"] = hooks
 
-    template_deny = template.get("permissions", {}).get("deny", [])
-    if template_deny:
-        permissions = dict(merged.get("permissions", {}))
-        deny = list(permissions.get("deny", []))
-        added = [rule for rule in template_deny if rule not in deny]
+    for key in ("allow", "deny"):
+        template_rules = template.get("permissions", {}).get(key, [])
+        if template_rules:
+            permissions = dict(merged.get("permissions", {}))
+            rules = list(permissions.get(key, []))
+            added = [rule for rule in template_rules if rule not in rules]
+            if added:
+                permissions[key] = rules + added
+                merged["permissions"] = permissions
+
+    template_servers = template.get("enabledMcpjsonServers", [])
+    if template_servers:
+        servers = list(merged.get("enabledMcpjsonServers", []))
+        added = [name for name in template_servers if name not in servers]
         if added:
-            permissions["deny"] = deny + added
-            merged["permissions"] = permissions
+            merged["enabledMcpjsonServers"] = servers + added
 
     return merged
 

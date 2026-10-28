@@ -59,7 +59,9 @@ class TestNamingRule(unittest.TestCase):
              "install_", "restore_", "compare_")
 
     def command_scripts(self) -> list[Path]:
-        skip = set(RENAMED) | {"cli.py", "syson.py"}
+        # syson.py and freecad_session.py open and drive another program; no
+        # verb fits that (ADR-020).
+        skip = set(RENAMED) | {"cli.py", "syson.py", "freecad_session.py"}
         found = []
         for path in sorted(_SCRIPTS.glob("*.py")):
             if path.name in skip or path.name.endswith("_rules.py"):

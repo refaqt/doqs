@@ -3,14 +3,14 @@
 Copy-once configuration that lets an agent edit FreeCAD models **while you keep
 the files open**, without any path that can silently overwrite your work.
 
-`setup-tooling` installs both files at the machine repository root and never
-overwrites them afterwards — they are yours to edit. `validate_cad.py` gates on
+`setup-tooling` writes `.mcp.json` once and never overwrites it. It merges
+`.claude/settings.json`: it adds what doqs owns and removes nothing. `validate_cad.py` gates on
 the deny rules, so removing them fails CI rather than failing silently.
 
 | Template | Installed as | Purpose |
 | --- | --- | --- |
 | `mcp.json` | `.mcp.json` | Registers the FreeCAD MCP server, screenshots off by default |
-| `claude-settings.json` | `.claude/settings.json` | Denies the two tools that write a `.FCStd` behind an open document |
+| `claude-settings.json` | `.claude/settings.json` | Denies the two tools that write a `.FCStd` behind an open document. Lets the agent check and start FreeCAD (`bash doqs.sh freecad`) and use the `freecad` MCP server without asking |
 
 ## Why these two tools are denied
 
