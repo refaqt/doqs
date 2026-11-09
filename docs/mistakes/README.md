@@ -16,3 +16,4 @@ Write entries in B2 English. Follow `.agents/rules/communication.md`.
 | 2026-10-20 | [Checks failed on CAD files that nobody had changed](2026-10-20_lfs-placeholders-failed-the-checks.md) |
 | 2026-10-20 | [Models built without the FreeCAD window opened hidden](2026-10-20_headless-builds-opened-hidden.md) |
 | 2026-10-22 | [Adding a part crashed the open FreeCAD window, and the checks looked in the wrong library](2026-10-22_wrap-crashed-the-open-freecad.md) |
+| 2026-11-09 | [FreeCADCmd builds did nothing, and turned frames lost their angle](2026-11-09_freecadcmd-builds-skipped-and-frames-lost-their-angle.md) |
