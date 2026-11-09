@@ -653,6 +653,19 @@ class TestPartContainerHelpers(unittest.TestCase):
         cad_build.check_part_container(doc)  # does not raise
 
 
+    def test_a_body_on_a_raw_solid_is_reported(self):
+        doc = _TreeDocument()
+        b = cad_build.body(doc)
+        solid = doc.addObject("Part::Feature", "BlockShape")
+        b.BaseFeature = solid
+        self.assertEqual(cad_build.computed_solid_bodies(doc), [b.Label])
+
+    def test_a_body_without_a_base_is_not_reported(self):
+        doc = _TreeDocument()
+        cad_build.body(doc)
+        self.assertEqual(cad_build.computed_solid_bodies(doc), [])
+
+
 class TestFrameHelper(unittest.TestCase):
     """A mounting frame sits in the Part and is placed by expressions."""
 

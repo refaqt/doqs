@@ -344,6 +344,37 @@ def check_part_container(doc):
         )
 
 
+
+def computed_solid_bodies(doc):
+    """Labels of the Bodies whose base is a raw solid (`Part::Feature`).
+
+    A raw solid hides its sizes: nobody can change it in FreeCAD, and the
+    parameter check cannot see it. Build the part from features instead. An
+    imported bought part is the usual reason to keep one.
+    """
+    found = []
+    for obj in doc.Objects:
+        if getattr(obj, "TypeId", "") != "PartDesign::Body":
+            continue
+        base = getattr(obj, "BaseFeature", None)
+        if base is not None and getattr(base, "TypeId", "") == "Part::Feature":
+            found.append(obj.Label)
+    return found
+
+
+def warn_computed_solids(doc):
+    """Print a warning for each Body built on a raw solid."""
+    found = computed_solid_bodies(doc)
+    if found:
+        print(
+            f"WARNING: Body built on a raw solid: {', '.join(found)}. "
+            "Build it from sketches, Pad, Pocket and Hole with sizes from Params. "
+            "Keep a raw solid only when no feature can make the shape, and say "
+            "why in the build script."
+        )
+    return found
+
+
 def save(doc, path=None):
     """Save `doc`, to `path` when given, so it opens visible in the window.
 
@@ -380,6 +411,7 @@ def run(build_fn, cad_dir=None, document=None):
         build_fn(doc, params)
         doc.recompute()
         check_part_container(doc)
+        warn_computed_solids(doc)
         show_new_objects(doc, before)
     except Exception:
         doc.abortTransaction()

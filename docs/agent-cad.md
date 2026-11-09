@@ -445,6 +445,35 @@ For assembly-driven parts, master sketches belong in a
 dedicated `Body_master` constrained to that Body's own origin planes — see
 [ADR-002](decisions/2026-06-24_freecad-master-sketches-body.md).
 
+### Build from features, not from a computed solid
+
+Build every part as a chain of PartDesign features: fully constrained
+sketches, then Pad, Pocket, Revolution, Groove, Hole, Fillet and patterns.
+Bind each size to `Params` with `dim()` and `bind()`. Do not compute a solid
+with Part maths (`Part.makeBox`, `fuse`, `cut`) and put it in the Body as a
+`Part::Feature` base. Nobody can change such a solid in FreeCAD, and the
+parameter check below cannot see its sizes.
+
+Keep a raw solid only when no feature can make the shape, for example a
+bought part imported from a STEP file. Then write in the build script why.
+`run()` prints a warning for every Body built on a raw solid.
+
+Make the features with `body.newObject(...)`:
+
+```python
+sk = body.newObject("Sketcher::SketchObject", "OutlineSketch")
+xy = next(f for f in body.Origin.OriginFeatures if f.Role == "XY_Plane")
+sk.AttachmentSupport = [(xy, "")]
+sk.MapMode = "FlatFace"
+# ... geometry, relations first, then dim(sk, Sketcher.Constraint(...), "Params.width")
+pad = body.newObject("PartDesign::Pad", "Pad")
+pad.Profile = sk
+bind(pad, "Length", "Params.thickness")
+```
+
+A complete example is the flat sealing strip in AQTUATOR,
+`modules/compact-stage/cad/parts/sealing-strip/build_model.py`.
+
 ### Every dimension has a reason
 
 A number typed into a sketch links to nothing. When the reason behind it
