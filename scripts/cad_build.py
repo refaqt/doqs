@@ -35,6 +35,7 @@ imports cleanly under plain Python and its path handling stays unit-testable.
 """
 
 import atexit
+import importlib
 import os
 import sys
 from pathlib import Path
@@ -324,11 +325,39 @@ def frame(doc, label, x=None, y=None, z=None, angle=None, axis=(0, 0, 1), contai
     if angle is not None:
         import FreeCAD
 
+        # Set the real angle now, not 0. On a rebuild the expression is the
+        # same text as before, so FreeCAD does not evaluate it again on the
+        # next recompute: an angle of 0 here would stay 0, and the assembly
+        # joints on this frame would read the wrong orientation.
         placement = obj.Placement
-        placement.Rotation = FreeCAD.Rotation(FreeCAD.Vector(*axis), 0)
+        placement.Rotation = FreeCAD.Rotation(
+            FreeCAD.Vector(*axis), _angle_in_degrees(obj, angle))
         obj.Placement = placement
         obj.setExpression("Placement.Rotation.Angle", angle)
     return obj
+
+
+def _angle_in_degrees(obj, expr):
+    """The value of the angle expression in degrees, or 0 if FreeCAD cannot read it yet.
+
+    It cannot on a new document, before the first recompute fills the
+    parameter sheet. That recompute then evaluates the new expression.
+    A number without a unit is in degrees, like in the FreeCAD expression.
+    """
+    try:
+        value = obj.evalExpression(expr)
+    except Exception:  # noqa: BLE001 - FreeCAD raises plain Exception types
+        return 0.0
+    to_unit = getattr(value, "getValueAs", None)
+    if to_unit is not None:
+        try:
+            return float(to_unit("deg"))
+        except Exception:  # noqa: BLE001 - a quantity that is not an angle
+            return 0.0
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
 
 
 def check_part_container(doc):
@@ -440,15 +469,52 @@ def run(build_fn, cad_dir=None, document=None):
     return doc
 
 
-def _is_import(namespace):
-    """True when Python is importing the build script, not running it.
+def _is_import(namespace, frame=None):
+    """True when Python code imports the build script, not when FreeCAD runs it.
 
-    Only an import sets `__spec__` to a spec with the module's own name.
-    `python file.py`, `runpy`, the FreeCAD console and FreeCADCmd all leave it
-    unset or None, whatever they put in `__name__`.
+    `python file.py`, `runpy` and the FreeCAD console leave `__spec__` unset,
+    or give it another name than `__name__`. Those runs always build.
+
+    FreeCADCmd 1.1 runs `freecadcmd build_model.py` as a real import, from
+    C++: the module gets a spec with its own name, just like
+    `import build_model`. The difference is the caller. A Python import has a
+    Python frame that asked for it, outside importlib. FreeCADCmd has none:
+    above the script there are only importlib frames.
+
+    ``frame`` is for the tests. By default it is the frame that called us.
     """
     spec = namespace.get("__spec__")
-    return spec is not None and getattr(spec, "name", None) == namespace.get("__name__")
+    if spec is None or getattr(spec, "name", None) != namespace.get("__name__"):
+        return False
+    if frame is None:
+        frame = sys._getframe(1)
+    while frame is not None and not _is_module_frame(frame, namespace):
+        frame = frame.f_back
+    if frame is None:
+        # The script frame is not on the stack: we cannot tell. Keep the
+        # safe answer, so a real import never builds by accident.
+        return True
+    caller = frame.f_back
+    while caller is not None and _is_importlib_frame(caller):
+        caller = caller.f_back
+    return caller is not None
+
+
+def _is_module_frame(frame, namespace):
+    """True for the frame that runs the top level of the script with this namespace."""
+    return frame.f_globals is namespace and frame.f_code.co_name == "<module>"
+
+
+def _is_importlib_frame(frame):
+    """True for a frame inside importlib: the frozen bootstrap or the package."""
+    filename = frame.f_code.co_filename
+    if filename.startswith("<frozen importlib"):
+        return True
+    package = Path(importlib.__file__).resolve().parent
+    try:
+        return Path(filename).resolve().parent == package
+    except (OSError, ValueError):
+        return False
 
 
 def main(build_fn, namespace, cad_dir=None, document=None):

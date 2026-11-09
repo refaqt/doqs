@@ -696,9 +696,100 @@ class TestFrameHelper(unittest.TestCase):
         self.assertEqual(f.Placement.Rotation, ("rot", (1, 0, 0), 0))
         self.assertEqual(f.expressions, {"Placement.Rotation.Angle": "Params.motor_a"})
 
+    def test_a_rebuild_sets_the_angle_it_already_has(self):
+        """On a rebuild the angle expression does not change, so FreeCAD does
+        not evaluate it again. frame() must set the real angle, not 0."""
+        doc = _TreeDocument()
+        fake = types.SimpleNamespace(
+            Vector=lambda *v: v, Rotation=lambda axis, angle: ("rot", axis, angle))
+        quantity = types.SimpleNamespace(getValueAs=lambda unit: {"deg": 90.0}[unit])
+        with mock.patch.dict(sys.modules, {"FreeCAD": fake}):
+            f = cad_build.frame(doc, "IF_fitting_a", angle="90 deg", axis=(0, 1, 0))
+            f.evalExpression = lambda expr: {"90 deg": quantity}[expr]
+            cad_build.frame(doc, "IF_fitting_a", angle="90 deg", axis=(0, 1, 0))
+        self.assertEqual(f.Placement.Rotation, ("rot", (0, 1, 0), 90.0))
+        self.assertEqual(f.expressions, {"Placement.Rotation.Angle": "90 deg"})
+
+    def test_an_angle_without_a_unit_is_in_degrees(self):
+        obj = types.SimpleNamespace(evalExpression=lambda expr: 45.0)
+        self.assertEqual(cad_build._angle_in_degrees(obj, "Params.a"), 45.0)
+
+    def test_an_angle_freecad_cannot_read_yet_is_zero(self):
+        def fails(expr):
+            raise ValueError("Params not computed yet")
+        obj = types.SimpleNamespace(evalExpression=fails)
+        self.assertEqual(cad_build._angle_in_degrees(obj, "Params.a"), 0.0)
+
     def test_a_label_without_the_prefix_is_refused(self):
         with self.assertRaisesRegex(ValueError, "must start with 'IF_'"):
             cad_build.frame(_TreeDocument(), "mount_bottom")
+
+
+def _code(filename, name="<module>"):
+    return types.SimpleNamespace(co_filename=filename, co_name=name)
+
+
+def _frame(filename, f_back=None, f_globals=None, name="<module>"):
+    return types.SimpleNamespace(
+        f_code=_code(filename, name), f_back=f_back, f_globals=f_globals or {})
+
+
+class TestIsImport(unittest.TestCase):
+    """main() builds when FreeCAD runs the script, and skips a Python import."""
+
+    def _script(self, caller, name="build_model"):
+        namespace = {"__name__": name, "__spec__": types.SimpleNamespace(name=name)}
+        script = _frame("/m/cad/build_model.py", caller, namespace)
+        return namespace, script
+
+    def _importlib_frames(self, above=None):
+        frame = _frame("<frozen importlib._bootstrap>", above, name="_find_and_load")
+        frame = _frame("<frozen importlib._bootstrap_external>", frame, name="exec_module")
+        return _frame("<frozen importlib._bootstrap>", frame,
+                      name="_call_with_frames_removed")
+
+    def test_freecadcmd_running_the_file_is_not_an_import(self):
+        # FreeCADCmd 1.1.4 imports the file from C++: the spec has the
+        # module's own name, but no Python frame asked for the import.
+        namespace, script = self._script(self._importlib_frames())
+        self.assertFalse(cad_build._is_import(namespace, script))
+
+    def test_a_python_import_is_an_import(self):
+        caller = _frame("/m/tests/test_x.py", name="test_it")
+        namespace, script = self._script(self._importlib_frames(caller))
+        self.assertTrue(cad_build._is_import(namespace, script))
+
+    def test_the_script_frame_is_found_above_a_helper(self):
+        namespace, script = self._script(self._importlib_frames())
+        helper = _frame("/m/cad/build_model.py", script, namespace, name="helper")
+        self.assertFalse(cad_build._is_import(namespace, helper))
+
+    def test_a_run_without_a_spec_is_not_an_import(self):
+        namespace = {"__name__": "__main__", "__spec__": None}
+        self.assertFalse(cad_build._is_import(namespace, _frame("x.py")))
+
+    def test_runpy_with_another_name_is_not_an_import(self):
+        namespace = {"__name__": "headless_build",
+                     "__spec__": types.SimpleNamespace(name="build_model")}
+        self.assertFalse(cad_build._is_import(namespace, _frame("x.py")))
+
+    def test_a_real_import_and_a_real_run(self):
+        tmp = Path(tempfile.mkdtemp(prefix="doqs-import-"))
+        (tmp / "probe_build.py").write_text(
+            "import sys\n"
+            f"sys.path.insert(0, {str(_SCRIPTS)!r})\n"
+            "import cad_build\n"
+            "print('IMPORT', cad_build._is_import(globals()))\n",
+            encoding="utf-8",
+        )
+        imported = subprocess.run(
+            [sys.executable, "-c", "import probe_build"],
+            capture_output=True, text=True, cwd=tmp)
+        self.assertIn("IMPORT True", imported.stdout, imported.stderr)
+        ran = subprocess.run(
+            [sys.executable, str(tmp / "probe_build.py")],
+            capture_output=True, text=True, cwd=tmp)
+        self.assertIn("IMPORT False", ran.stdout, ran.stderr)
 
 
 class TestNewObjectsAreVisible(unittest.TestCase):
