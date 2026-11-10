@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2025-2026 Refaqt (BE 0804.145.539) and contributors
 # SPDX-License-Identifier: GPL-3.0-or-later
 # The one doqs command. Run from the repo root:
 #   bash doqs.sh check

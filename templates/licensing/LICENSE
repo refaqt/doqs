@@ -1,5 +1,7 @@
 {{PROJECT_NAME}} — Licence overview
 
+{{COPYRIGHT_NOTICE}}
+
 This repository contains hardware designs, firmware/software, and media/
 documentation. Each is licensed separately, under the licence conventionally
 used for that kind of work. The full legal text of each licence is in

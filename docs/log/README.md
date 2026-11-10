@@ -35,3 +35,4 @@ Write entries in B2 English. Follow `.agents/rules/communication.md`.
 | 2026-10-08 | [The agent now saves FreeCAD files before a pull request](2026-10-08_agent-saves-before-a-pull-request.md) | cad, software | 0 |
 | 2026-10-22 | [Wrapping a part works in the open FreeCAD window, and checks find the real library](2026-10-22_wrap-in-the-open-freecad.md) | cad, software | 0 |
 | 2026-10-28 | [The agent can start the FreeCAD connection itself](2026-10-28_agent-starts-freecad.md) | cad, software | 0 |
+| 2026-11-10 | [Licence files now say that Refaqt owns the copyright](2026-11-10_copyright-notice.md) | legal, software | 0 |

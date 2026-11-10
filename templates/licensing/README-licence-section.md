@@ -9,6 +9,8 @@ This repository uses different licences for different kinds of content:
 - **Media & documentation** (`docs/`, `measurement/`) —
   [CC BY-SA 4.0](LICENSES/CC-BY-SA-4.0.txt)
 
+{{COPYRIGHT_NOTICE}}
+
 The {{ORGANISATION}} name and logo, and the {{PROJECT_NAME}} name and logo, are
 trademarks and are not covered by the above — see [TRADEMARKS.md](TRADEMARKS.md).
 

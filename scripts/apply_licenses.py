@@ -20,6 +20,7 @@ from license_rules import (
     advice_any_messages,
     apply_any_repo,
     check_any_generated_files,
+    copyright_findings,
     is_doqs_tools_repo,
     iter_repo_roots,
 )
@@ -68,6 +69,8 @@ def main() -> int:
                     print(f"      {err}")
             else:
                 print(f"ok    {rel} ({kind})")
+            for finding in copyright_findings(repo):
+                print(f"WARN  {rel}: {finding}")
             continue
 
         actions = apply_any_repo(repo)

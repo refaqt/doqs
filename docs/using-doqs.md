@@ -287,7 +287,9 @@ SysML part def. The fabriq design tool runs the same commands from a browser.
 | `variants/*` (9 files) | a family root | Copy per family — see [`templates/variants/README.md`](../templates/variants/README.md) | **You**, per family |
 | `measurement-case.md`, `measurement-summary.md` | a campaign folder | Copy per campaign | **You**, per campaign |
 | `okh-module-with-parts.toml`, `data-index.csv` | wherever you need them | Copy and edit | **You** |
-| `licensing/**` | — | **Never copied.** `apply_licenses.py` renders these files | `doqs generate` |
+| `licensing/**` | — | **Never copied.** `apply_licenses.py` renders these files, with the Refaqt copyright notice | `doqs generate` |
+| `contributing/contributor-agreement.yml` | `.github/workflows/` | Copy once; it calls the shared check in `refaqt/.github` | **You**, at the start |
+| `contributing/CONTRIBUTING.md` | repository root | Copy once, replace `{{PROJECT_NAME}}`, add your own steps | **You**, at the start |
 
 Three rules follow from that table:
 
