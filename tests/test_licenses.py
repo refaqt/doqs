@@ -14,7 +14,13 @@ if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
 from license_rules import (  # noqa: E402
+    COPYRIGHT_HOLDER,
     HARDWARE_LICENSE,
+    add_copyright_notice,
+    copyright_findings,
+    copyright_notice,
+    copyright_years,
+    has_copyright_notice,
     SPDX_MARKER,
     apply_repo,
     apply_tools_repo,
@@ -313,3 +319,63 @@ class TestToolsRepoSpdx(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestCopyrightNotice(unittest.TestCase):
+    """The copyright notice is a new check, so it warns first (ADR-018)."""
+
+    def setUp(self):
+        self._tmp = Path(tempfile.mkdtemp(prefix="doqs-copyright-"))
+        self.addCleanup(shutil.rmtree, self._tmp, ignore_errors=True)
+        self.root = self._tmp / "machine"
+        shutil.copytree(_FIXTURE, self.root)
+
+    def _run(self, script: str, *extra: str) -> subprocess.CompletedProcess[str]:
+        cmd = [sys.executable, str(_SCRIPTS / script), "--root", str(self.root), *extra]
+        return subprocess.run(cmd, capture_output=True, text=True, cwd=_REPO)
+
+    def _strip_notice(self, path: Path) -> None:
+        text = path.read_text(encoding="utf-8")
+        self.assertTrue(has_copyright_notice(text))
+        path.write_text(text.replace(copyright_notice() + "\n\n", ""), encoding="utf-8")
+
+    def test_fixture_has_notice(self):
+        self.assertEqual(copyright_findings(self.root), [])
+
+    def test_missing_notice_warns_and_strict_fails(self):
+        self._strip_notice(self.root / "modules" / "LICENSE")
+        result = self._run("validate_licenses.py")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("WARN", result.stdout)
+        self.assertIn("modules/LICENSE", result.stdout)
+        strict = self._run("validate_licenses.py", "--strict-copyright")
+        self.assertNotEqual(strict.returncode, 0, strict.stdout)
+
+    def test_apply_adds_notice_and_keeps_text(self):
+        root_license = self.root / "LICENSE"
+        self._strip_notice(root_license)
+        before = root_license.read_text(encoding="utf-8")
+        apply = self._run("apply_licenses.py")
+        self.assertEqual(apply.returncode, 0, apply.stdout + apply.stderr)
+        after = root_license.read_text(encoding="utf-8")
+        self.assertTrue(has_copyright_notice(after))
+        title = before.splitlines()[0]
+        self.assertTrue(after.startswith(title + "\n\n" + copyright_notice()))
+        self.assertEqual(after.replace(copyright_notice() + "\n\n", ""), before)
+        self.assertEqual(copyright_findings(self.root), [])
+
+    def test_vendor_stub_never_gets_notice(self):
+        vendor = self.root / "modules" / "drive" / "cad" / "vendor"
+        vendor.mkdir(parents=True)
+        apply = self._run("apply_licenses.py")
+        self.assertEqual(apply.returncode, 0, apply.stdout + apply.stderr)
+        text = (vendor / "LICENSE").read_text(encoding="utf-8")
+        self.assertNotIn(COPYRIGHT_HOLDER, text)
+
+    def test_stub_notice_goes_first(self):
+        text = "Files in this directory are hardware.\n"
+        self.assertTrue(add_copyright_notice(text).startswith(copyright_notice() + "\n\n"))
+
+    def test_years_range(self):
+        self.assertEqual(copyright_years(2025), "2025")
+        self.assertEqual(copyright_years(2027), "2025–2027")

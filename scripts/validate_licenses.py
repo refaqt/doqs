@@ -4,7 +4,12 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from license_rules import check_any_repo, is_doqs_tools_repo, iter_repo_roots
+from license_rules import (
+    check_any_repo,
+    copyright_findings,
+    is_doqs_tools_repo,
+    iter_repo_roots,
+)
 from naming_rules import is_parts_library, is_private_library, repo_root_from_script
 
 
@@ -23,6 +28,12 @@ def main() -> int:
         default=None,
         help="Repo root (default: parent of doqs/ submodule). Pass the doqs "
         "clone root to check the tools-repo kit.",
+    )
+    parser.add_argument(
+        "--strict-copyright",
+        action="store_true",
+        help="Fail when an own licence file has no copyright notice "
+        "(default: print a warning only).",
     )
     args = parser.parse_args()
     root = args.root.resolve() if args.root else repo_root_from_script()
@@ -46,6 +57,12 @@ def main() -> int:
                 print(f"      {err}")
         else:
             print(f"ok    {rel} ({kind})")
+        for finding in copyright_findings(repo):
+            if args.strict_copyright:
+                all_ok = False
+                print(f"FAIL  {rel}: {finding}")
+            else:
+                print(f"WARN  {rel}: {finding}")
     return 0 if all_ok else 1
 
 

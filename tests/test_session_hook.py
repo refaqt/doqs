@@ -149,9 +149,13 @@ class TestHookText(unittest.TestCase):
     def test_both_hooks_keep_the_licence_header(self):
         for name, hook in _HOOKS.items():
             with self.subTest(hook=name):
-                head = hook.read_text(encoding="utf-8").splitlines()[:2]
+                head = hook.read_text(encoding="utf-8").splitlines()[:3]
                 self.assertEqual(head[0], "#!/usr/bin/env bash")
-                self.assertEqual(head[1], "# SPDX-License-Identifier: GPL-3.0-or-later")
+                self.assertEqual(
+                    head[1],
+                    "# SPDX-FileCopyrightText: 2025-2026 Refaqt (BE 0804.145.539) and contributors",
+                )
+                self.assertEqual(head[2], "# SPDX-License-Identifier: GPL-3.0-or-later")
 
 
 if __name__ == "__main__":

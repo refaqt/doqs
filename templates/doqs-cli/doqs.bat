@@ -1,4 +1,5 @@
 @echo off
+REM SPDX-FileCopyrightText: 2025-2026 Refaqt (BE 0804.145.539) and contributors
 REM SPDX-License-Identifier: GPL-3.0-or-later
 REM The one doqs command. Run from the repo root:
 REM   doqs.bat check

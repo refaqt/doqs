@@ -74,6 +74,8 @@ doqs/
 
 ## Licence
 
+Copyright © 2025–2026 Refaqt (BE 0804.145.539) and contributors. Contributions are accepted under the [Refaqt Contributor Licence Agreement](https://github.com/refaqt/.github/blob/main/CLA.md).
+
 This tools repository uses different licences for different kinds of content:
 
 - **Software** (`scripts/`, `schemas/`, `tests/`, `tools/`, and the CI, editor and agent

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import re
 import tomllib
+from datetime import date
 from pathlib import Path
 
 from naming_rules import (
@@ -157,6 +158,17 @@ SPDX_EXEMPT = frozenset({
     "templates/parts-library/cad/own/build.py",
 })
 
+#: The owner of our own work. Contributors keep the copyright in their part and
+#: give Refaqt a licence under the Refaqt Contributor Licence Agreement.
+#: See docs/decisions/2026-11-10_copyright-notice.md.
+COPYRIGHT_HOLDER = "Refaqt (BE 0804.145.539)"
+COPYRIGHT_FIRST_YEAR = 2025
+CLA_URL = "https://github.com/refaqt/.github/blob/main/CLA.md"
+
+#: Stub kinds that hold our own work. `vendor` holds supplier files and
+#: `upstream` holds another project's specification, so they never get our notice.
+OWN_STUB_KINDS = frozenset({"hardware", "software", "media", "own"})
+
 _GITMODULE_PATH = re.compile(r"^\s*path\s*=\s*(.+)$")
 _README_HEADING = re.compile(r"(?im)^#{1,6}\s+licen[cs]e\b")
 _README_LICENSE_LINK = re.compile(r"(?i)\[licen[cs]e\]\(licen[cs]e\)")
@@ -197,9 +209,32 @@ def render(template: str, project_name: str, organisation: str) -> str:
     )
 
 
+def copyright_years(year: int | None = None) -> str:
+    """``2025–2026`` style range, from the first year to ``year`` (default: now)."""
+    year = year or date.today().year
+    if year <= COPYRIGHT_FIRST_YEAR:
+        return str(COPYRIGHT_FIRST_YEAR)
+    return f"{COPYRIGHT_FIRST_YEAR}\u2013{year}"
+
+
+def copyright_notice() -> str:
+    """The notice our own licence files carry, without a trailing newline."""
+    return (
+        f"Copyright \u00a9 {copyright_years()} {COPYRIGHT_HOLDER} and contributors.\n"
+        "Contributions are accepted under the Refaqt Contributor Licence Agreement:\n"
+        f"{CLA_URL}"
+    )
+
+
+def has_copyright_notice(text: str) -> bool:
+    return "Copyright \u00a9" in text and COPYRIGHT_HOLDER in text
+
+
 def read_template(relative: str) -> str:
     path = TEMPLATES_DIR / relative
-    text = path.read_text(encoding="utf-8")
+    text = path.read_text(encoding="utf-8").replace(
+        "{{COPYRIGHT_NOTICE}}", copyright_notice()
+    )
     if not text.endswith("\n"):
         text += "\n"
     return text
@@ -893,12 +928,14 @@ def check_any_generated_files(root: Path) -> list[str]:
 
 def apply_any_repo(root: Path) -> list[str]:
     if is_doqs_tools_repo(root):
-        return apply_tools_repo(root)
-    if is_private_library(root):
-        return apply_private_library_repo(root)
-    if is_parts_library(root):
-        return apply_library_repo(root)
-    return apply_repo(root)
+        actions = apply_tools_repo(root)
+    elif is_private_library(root):
+        actions = apply_private_library_repo(root)
+    elif is_parts_library(root):
+        actions = apply_library_repo(root)
+    else:
+        actions = apply_repo(root)
+    return actions + apply_copyright(root)
 
 
 def advice_any_messages(root: Path) -> list[str]:
@@ -945,4 +982,68 @@ def apply_repo(root: Path) -> list[str]:
         )
         if wrote:
             actions.append(wrote)
+    return actions
+
+
+# ---------------------------------------------------------------------------
+# Copyright notice
+#
+# A new check, so it warns first (ADR-018): `copyright_findings` never feeds the
+# error lists above. `validate_licenses.py --strict-copyright` turns it into a
+# failure for a repository that has adopted it.
+
+
+def own_licence_files(root: Path) -> list[Path]:
+    """Licence files in ``root`` that describe our own work.
+
+    Supplier and upstream folders are left out, and so is a private parts
+    library, which holds supplier material only.
+    """
+    if is_private_library(root):
+        return []
+    if is_doqs_tools_repo(root):
+        dirs = mapped_tools_dirs(root)
+    elif is_parts_library(root):
+        dirs = mapped_library_dirs(root)
+    else:
+        dirs = mapped_dirs(root)
+    files = [root / "LICENSE"]
+    files.extend(d / "LICENSE" for d, kind in dirs if kind in OWN_STUB_KINDS)
+    return [f for f in files if f.is_file()]
+
+
+def copyright_findings(root: Path) -> list[str]:
+    """Own licence files that do not carry the copyright notice yet."""
+    missing = []
+    for path in own_licence_files(root):
+        if not has_copyright_notice(path.read_text(encoding="utf-8")):
+            missing.append(
+                f"{path.relative_to(root).as_posix()} has no copyright notice "
+                f"for {COPYRIGHT_HOLDER}; run apply_licenses.py to add it"
+            )
+    return missing
+
+
+def add_copyright_notice(text: str) -> str:
+    """Put the notice into an existing licence file, keeping its text.
+
+    A root overview starts with a title line and a blank line; the notice goes
+    after them. A directory stub starts with its text; the notice goes first.
+    """
+    notice = copyright_notice()
+    lines = text.splitlines(keepends=True)
+    if len(lines) >= 2 and "licence overview" in lines[0].lower() and not lines[1].strip():
+        return "".join(lines[:2]) + notice + "\n\n" + "".join(lines[2:])
+    return notice + "\n\n" + text
+
+
+def apply_copyright(root: Path) -> list[str]:
+    """Add the notice to every own licence file that lacks it."""
+    actions = []
+    for path in own_licence_files(root):
+        text = path.read_text(encoding="utf-8")
+        if has_copyright_notice(text):
+            continue
+        path.write_text(add_copyright_notice(text), encoding="utf-8")
+        actions.append(f"added copyright notice to {path}")
     return actions

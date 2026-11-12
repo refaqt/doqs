@@ -2,6 +2,20 @@
 
 DOQS is the **tools and specification** repository. Machine design work happens in machine repos (e.g. [qarve](https://github.com/refaqt/qarve)) with this repo as a submodule at `doqs/`.
 
+## Contributor agreement and copyright
+
+The rules for all Refaqt repositories are in the
+[Refaqt contributor manual](https://github.com/refaqt/.github/blob/main/CONTRIBUTING.md). In short:
+
+- On your first pull request, you accept the
+  [Refaqt Contributor Licence Agreement](https://github.com/refaqt/.github/blob/main/CLA.md)
+  by posting one sentence as a comment. The check "Contributor agreement" tells you how. You do
+  this once for all Refaqt repositories.
+- You keep your copyright. Refaqt (BE 0804.145.539) gets a licence to use and license your work.
+- Mark anything that you did not make yourself, and keep its own licence and notice.
+- New text files that we made start with an `SPDX-FileCopyrightText` and an
+  `SPDX-License-Identifier` line. The manual shows how.
+
 ## Working in a machine repository
 
 Everything about *using* doqs — what to run, what gets copied, what each gate

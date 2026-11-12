@@ -1,4 +1,5 @@
 @echo off
+REM SPDX-FileCopyrightText: 2025-2026 Refaqt (BE 0804.145.539) and contributors
 REM SPDX-License-Identifier: GPL-3.0-or-later
 REM Copy to the consumer repo root. Humans on Windows may double-click this file.
 REM Agents must not run it (pause waits for a key). Use: bash setup-tooling.sh

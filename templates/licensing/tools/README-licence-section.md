@@ -15,6 +15,8 @@ belongs to the machine repository. See [`templates/LICENSE`](templates/LICENSE).
 
 Machine repos that include this submodule use a **content-type split** (CERN-OHL-S hardware, GPL-3.0 firmware/software, CC BY-SA docs). See [docs/architecture.md](docs/architecture.md#licensing) and `python doqs/scripts/apply_licenses.py`.
 
+{{COPYRIGHT_NOTICE}}
+
 The REFAQT name and logo, and the DOQS name and logo, are trademarks and are not covered by the above — see [TRADEMARKS.md](TRADEMARKS.md).
 
 See [LICENSE](LICENSE) for the full overview and directory mapping.
