@@ -22,9 +22,13 @@ bash setup-tooling.sh
 `setup-tooling.sh` needs a network. If it fails, say so in your reply, and say that you are
 working without the shared rules.
 
+**In plan mode, run it too.** Plan mode blocks commands that change files, so ask the user to
+approve this one. It only fills the two tooling folders and changes no file that git tracks. Do
+not plan without the rules.
+
 A start-up hook does the same work, but only when the session opens this folder as its project
-folder. A session that opens a parent folder, or that attaches several repositories, never runs
-it and never says so. The check above always works.
+folder. It runs in every mode, plan mode too. A session that attaches several repositories, or a
+thread inside a Claude project, never runs it and never says so. The check above always works.
 
 ## Then
 

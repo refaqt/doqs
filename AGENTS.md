@@ -24,6 +24,10 @@ git submodule update --init --remote --checkout .agents
 `--checkout` is required: `.gitmodules` marks `.agents` as `update = none`, so a plain
 `git submodule update` skips it. See [Shared kit](#shared-kit) for why.
 
+In plan mode, run it too. Plan mode blocks commands that change files, so ask the user to approve
+this one. It only fills the `.agents` folder and changes no file that git tracks. Do not write a
+plan without the rules.
+
 In Claude Code a `SessionStart` hook runs that command for you. It lives in
 [`.claude/hooks/session-start.sh`](.claude/hooks/session-start.sh) and is registered in
 [`.claude/settings.json`](.claude/settings.json). It matters most in a cloud session, where the
@@ -33,8 +37,13 @@ never stops a session: with no network it prints a message and lets the session 
 Do not trust the hook blindly. It runs only when the session opens **this folder** as its
 project folder. Claude Code reads `.claude/settings.json` from that folder only, so a session
 that opens a parent folder, or that attaches several repositories at once, never reads the file,
-never starts the hook, and prints nothing at all. Silence and success look the same. The `ls`
-check above is the only step that works in every session, in every tool.
+never starts the hook, and prints nothing at all. A thread inside a Claude project does not run
+it either, even with one repository. Silence and success look the same.
+
+The permission mode does not matter. A cloud session with one repository, started in plan mode,
+ran the hook and filled all submodules (tested on 2026-11-25). When the folders are empty in plan
+mode, the cause is the session layout, not the mode. The `ls` check above is the only step that
+works in every session, in every tool.
 
 Do **not** copy `setup-tooling.sh` to this root. That helper is a template this repo *ships* for
 machine repos (see [`templates/setup-tooling/`](templates/setup-tooling/)); it runs
