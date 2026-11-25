@@ -20,7 +20,9 @@ settings file does not run it, because that combination looks set up and is not.
 The registration has one limit that no repository can lift. Claude Code reads
 `.claude/settings.json` from the session's own project folder only. A session that
 opens a parent folder, or that attaches several repositories at once, never reads
-that file, so the hook never starts and prints nothing at all. Silence then means
+that file, so the hook never starts and prints nothing at all. A thread inside a
+Claude project does not run it either. The permission mode does not matter: the
+hook runs in plan mode too. Silence then means
 "never ran", not "nothing to report". Root `CLAUDE.md` carries the check that works
 in every session; the template for it is `templates/setup-tooling/CLAUDE.md`.
 

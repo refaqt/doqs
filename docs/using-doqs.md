@@ -69,14 +69,19 @@ The hook has one condition, and it is easy to miss. The session must open **your
 repository root** as its project folder. Claude Code reads `.claude/settings.json`
 from that folder only. A session that opens a parent folder, or that attaches
 several repositories at once, never reads the file, never starts the hook, and
-prints nothing at all. The output cannot tell you, because silence looks the same
-as success. Check the folders instead:
+prints nothing at all. A thread inside a Claude project does not run it either,
+even with one repository. The output cannot tell you, because silence looks the
+same as success. The permission mode does not matter: the hook runs in plan mode
+too. Check the folders instead:
 
 ```bash
 ls .agents/rules/core.md doqs/scripts/validate_all.py
 ```
 
-If either file is missing, run `bash setup-tooling.sh`. Put that check in your root
+If either file is missing, run `bash setup-tooling.sh`. In plan mode, the agent
+must ask you to approve that command, because plan mode blocks commands that
+change files. Approve it: it only fills the two tooling folders and changes no file
+that git tracks. Put that check in your root
 `CLAUDE.md`, because Claude Code reads that file from every repository a session
 attaches. The template is
 [`templates/setup-tooling/CLAUDE.md`](../templates/setup-tooling/CLAUDE.md).
@@ -338,6 +343,7 @@ Read [agent-cad.md](agent-cad.md) before letting an agent touch a model.
 | What you see | What it means |
 | --- | --- |
 | `doqs/` is empty, every command fails | The clone had no submodules. Run `bash setup-tooling.sh` |
+| The folders are empty, and the session is in plan mode | Plan mode is not the cause; the hook runs in every mode. Look at the session layout. Ask the user to approve `bash setup-tooling.sh`: it changes no file that git tracks |
 | The session says nothing at start-up, and it holds several repositories | The session opened the parent folder, so nothing read `.claude/settings.json` and the hook never ran. Run `bash setup-tooling.sh` yourself |
 | `--check` fails on a generated file | Run `doqs generate`, read the diff, commit it |
 | `git status` shows `doqs` and `.agents` modified | Normal after `setup-tooling.sh`. Leave them uncommitted |
