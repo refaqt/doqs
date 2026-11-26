@@ -10,5 +10,8 @@
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "claude-for-manufacturing@synced": false
   }
 }

@@ -6,7 +6,7 @@ Machine repositories (e.g. [qarve](https://github.com/refaqt/qarve)) include thi
 
 ## Use in a machine repo
 
-Clone with submodules, then from the **machine repository root** run `bash setup-tooling.sh` (agents, any OS) so `doqs/` and `.agents/` track latest `main` and root launchers such as `syson.bat` are installed. Humans on Windows may double-click `setup-tooling.bat`. Copy those helpers from [`templates/setup-tooling/`](templates/setup-tooling/) to the consumer root (copy-once bootstrap; do not run them from this templates folder). CI may still check out the recorded pin.
+Clone with submodules, then from the **machine repository root** run `bash setup-tooling.sh` (agents, any OS) so `doqs/` and `.agents/` track latest `main` and root launchers such as `syson.bat` are installed. Humans on Windows may double-click `setup-tooling.bat`. Copy those helpers from [`templates/setup-tooling/`](templates/setup-tooling/) to the consumer root once, to start; after that they keep themselves current (do not run them from this templates folder). CI may still check out the recorded pin.
 
 ```powershell
 git clone --recurse-submodules https://github.com/refaqt/qarve.git
@@ -91,7 +91,7 @@ belongs to the machine repository. See [`templates/LICENSE`](templates/LICENSE).
 
 `spec/otrl.ttl` is GPL-3.0-or-later from [iop-alliance/OpenKnowHow](https://github.com/iop-alliance/OpenKnowHow).
 
-Machine repos that include this submodule use a **content-type split** (CERN-OHL-S hardware, GPL-3.0 firmware/software, CC BY-SA docs). See [docs/architecture.md](docs/architecture.md#licensing) and `python doqs/scripts/apply_licenses.py`.
+Machine repos that include this submodule use a **content-type split** (CERN-OHL-S hardware, GPL-3.0 firmware/software, CC BY-SA docs). See [docs/architecture/modules.md](docs/architecture/modules.md#licensing) and `python doqs/scripts/apply_licenses.py`.
 
 The REFAQT name and logo, and the DOQS name and logo, are trademarks and are not covered by the above — see [TRADEMARKS.md](TRADEMARKS.md).
 

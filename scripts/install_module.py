@@ -39,20 +39,20 @@ DEFAULT_IMPORTS = ("ScalarValues::*", "ISQ::*", "SI::*")
 LOG_INDEX = (
     "# Activity log\n\n"
     "Date-ordered record of work. Entries: `YYYY-MM-DD_topic.md`. Every entry needs **Role(s)**.\n"
-    "Write entries in B2 English. Follow `.agents/rules/communication.md`.\n\n"
+    "Write entries in B2 English. Follow `.agents/rules/core.md`.\n\n"
     "| Date | Topic | Role(s) | Images |\n| ---- | ----- | ------- | -----: |\n"
 )
 DECISIONS_INDEX = (
     "# Decisions\n\n"
     "Records of why a choice was made. One file per decision: `YYYY-MM-DD_topic.md`.\n"
-    "Write entries in B2 English. Follow `.agents/rules/communication.md`.\n\n"
+    "Write entries in B2 English. Follow `.agents/rules/core.md`.\n\n"
     "| Date | Decision |\n| ---- | -------- |\n"
 )
 MISTAKES_INDEX = (
     "# Mistakes\n\n"
     "Incidents worth not repeating. One file per incident: `YYYY-MM-DD_topic.md`.\n"
     "**Read these before starting work.**\n"
-    "Write entries in B2 English. Follow `.agents/rules/communication.md`.\n\n"
+    "Write entries in B2 English. Follow `.agents/rules/core.md`.\n\n"
     "| Date | Entry |\n| ---- | ----- |\n"
 )
 PARAMS_HEADER = (

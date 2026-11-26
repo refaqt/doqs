@@ -110,6 +110,62 @@ class TestTheHookFindsItsOwnRepository(unittest.TestCase):
                 self.assertIn("found no git repository", done.stdout)
 
 
+def _file_git_env() -> dict:
+    """Let git clone from local folders, which newer git refuses by default."""
+    env = dict(os.environ)
+    env.update({"GIT_TERMINAL_PROMPT": "0", "GIT_CONFIG_COUNT": "1",
+                "GIT_CONFIG_KEY_0": "protocol.file.allow", "GIT_CONFIG_VALUE_0": "always"})
+    env.pop("CLAUDE_PROJECT_DIR", None)
+    return env
+
+
+@unittest.skipUnless(_HAS_TOOLS, "needs git and bash")
+class TestTheShippedHookIsShortOnSuccess(unittest.TestCase):
+    """Every line the hook prints is read by every session. Two are enough."""
+
+    def setUp(self):
+        self._tmp = Path(os.path.realpath(tempfile.mkdtemp(prefix="doqs-hook-ok-")))
+        self.addCleanup(shutil.rmtree, self._tmp, ignore_errors=True)
+        self.env = _file_git_env()
+
+    def git(self, cwd: Path, *args: str) -> None:
+        subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *args],
+                       cwd=cwd, env=self.env, check=True, capture_output=True)
+
+    def repo(self, name: str, files: dict[str, str]) -> Path:
+        path = self._tmp / name
+        for rel, text in files.items():
+            (path / rel).parent.mkdir(parents=True, exist_ok=True)
+            (path / rel).write_text(text, encoding="utf-8")
+        self.git(self._tmp, "init", "--quiet", "-b", "main", str(path))
+        self.git(path, "add", ".")
+        self.git(path, "commit", "--quiet", "-m", "first")
+        return path
+
+    def test_two_lines_and_the_skills_are_linked(self):
+        kit = self.repo("kit", {
+            "rules/core.md": "# Core\n",
+            "scripts/link_skills.sh": 'mkdir -p "$1/.claude/skills" && touch "$1/.claude/skills/linked"\n'
+                                      'echo "linked many skills"\n',
+        })
+        tools = self.repo("tools", {"scripts/validate_all.py": "\n"})
+        machine = self.repo("machine", {"README.md": "m\n"})
+        self.git(machine, "submodule", "add", "--quiet", "-b", "main", str(kit), ".agents")
+        self.git(machine, "submodule", "add", "--quiet", "-b", "main", str(tools), "doqs")
+        self.git(machine, "commit", "--quiet", "-m", "tooling")
+
+        installed = _install(_HOOKS["template"], machine)
+        done = subprocess.run(["bash", str(installed)], cwd=machine, env=self.env,
+                              capture_output=True, text=True, timeout=300)
+
+        self.assertEqual(done.returncode, 0, done.stderr)
+        lines = done.stdout.strip().splitlines()
+        self.assertEqual(len(lines), 2, done.stdout)
+        self.assertIn("ready", lines[0])
+        self.assertEqual(lines[1], "Instructions: CLAUDE.md and AGENTS.md (already loaded).")
+        self.assertTrue((machine / ".claude" / "skills" / "linked").is_file())
+
+
 class TestHookText(unittest.TestCase):
     """Rules that live in the file itself, not in a comment about it."""
 

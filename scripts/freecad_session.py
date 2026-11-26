@@ -3,6 +3,7 @@
     python doqs/scripts/freecad_session.py status [--file cad/rail.FCStd] [--json]
     python doqs/scripts/freecad_session.py autostart
     python doqs/scripts/freecad_session.py start [cad/rail.FCStd] [--wait 60]
+    python doqs/scripts/freecad_session.py save [Rail | cad/rail.FCStd] [--root .]
 
 The freecad-mcp add-on runs an RPC server inside the FreeCAD window. No MCP
 tool can start that server, and nothing can reach a window whose server is
@@ -12,6 +13,9 @@ data folder. So an agent can:
 
 * switch that setting on (``autostart``), and
 * start FreeCAD when no FreeCAD runs (``start``), then wait for the server.
+
+``save`` saves the open documents that have unsaved changes, inside the
+window, before a commit or a pull request. Git only sees what is on disk.
 
 It cannot switch on the server of a window that is already open. ``status``
 says so, and says which way to edit is safe now (``advice``):
@@ -59,6 +63,48 @@ _LIST_DOCUMENTS = f"""
 import json, FreeCAD
 print({_DOCS_MARKER!r} + json.dumps(
     [{{"name": d.Name, "file": d.FileName}} for d in FreeCAD.listDocuments().values()]))
+"""
+
+#: Printed by the code that saves documents in the open window.
+_SAVED_MARKER = "DOQS_SAVED_DOCUMENTS="
+
+#: Runs inside the window. WANT and ROOT are replaced by Python literals.
+#: Only documents with unsaved changes are saved: a save rewrites the file, so
+#: saving an unchanged document would make its fingerprint look stale.
+_SAVE_DOCUMENTS = """
+import json, os, FreeCAD
+want = WANT
+root = ROOT
+out = {"saved": [], "unchanged": [], "unnamed": [], "outside": [], "failed": [], "missing": []}
+gui = None
+if getattr(FreeCAD, "GuiUp", False):
+    import FreeCADGui as gui
+matched = False
+for name, doc in FreeCAD.listDocuments().items():
+    path = doc.FileName or ""
+    if want is not None and want not in (name, os.path.basename(path), os.path.normcase(path)):
+        continue
+    matched = True
+    if not path:
+        out["unnamed"].append(name)
+        continue
+    if root and not os.path.normcase(os.path.realpath(path)).startswith(root + os.sep):
+        out["outside"].append(path)
+        continue
+    modified = True
+    if gui is not None:
+        modified = bool(getattr(gui.getDocument(name), "Modified", True))
+    if not modified:
+        out["unchanged"].append(path)
+        continue
+    try:
+        doc.save()
+        out["saved"].append(path)
+    except Exception as exc:
+        out["failed"].append(path + ": " + str(exc))
+if want is not None and not matched:
+    out["missing"].append(want)
+print(MARKER + json.dumps(out))
 """
 
 ASK_USER = (
@@ -155,22 +201,65 @@ def gui_running() -> bool:
                for name in names)
 
 
-def open_documents(url: str = RPC_URL, timeout: float = 10.0) -> list[dict]:
-    """The documents the open window holds, with their file names.
+def _ask_window(code: str, marker: str, url: str, timeout: float):
+    """Run ``code`` in the open window and read the JSON after ``marker``.
 
     Uses the add-on's ``execute_code``, which runs on FreeCAD's main thread.
+    Returns None when the window does not answer or prints no marker.
     """
     proxy = xmlrpc.client.ServerProxy(url, allow_none=True)
     try:
         with _socket_timeout(timeout):
-            result = proxy.execute_code(_LIST_DOCUMENTS)
+            result = proxy.execute_code(code)
     except Exception:  # noqa: BLE001 - the window stopped answering
-        return []
+        return None
     output = str(result.get("message", result.get("output", ""))) if isinstance(result, dict) else str(result)
     for line in output.splitlines():
-        if _DOCS_MARKER in line:
-            return json.loads(line.split(_DOCS_MARKER, 1)[1])
-    return []
+        if marker in line:
+            return json.loads(line.split(marker, 1)[1])
+    return None
+
+
+def open_documents(url: str = RPC_URL, timeout: float = 10.0) -> list[dict]:
+    """The documents the open window holds, with their file names."""
+    return _ask_window(_LIST_DOCUMENTS, _DOCS_MARKER, url, timeout) or []
+
+
+def save_documents(name: str | None = None, root: Path | None = None,
+                   url: str = RPC_URL, timeout: float = 120.0) -> dict | None:
+    """Save the open documents with unsaved changes, in the window itself.
+
+    ``name`` limits the save to one document: its name in FreeCAD, its file
+    name, or its path. ``root`` limits it to files inside that folder. A
+    document with no file name is never saved: it needs a name from the
+    person. Returns lists of paths by outcome, or None when the window does
+    not answer.
+    """
+    if name is not None and name.lower().endswith(".fcstd") and os.sep in str(Path(name)):
+        name = os.path.normcase(str(Path(name).resolve()))
+    root_text = os.path.normcase(str(root.resolve())) if root is not None else None
+    code = (_SAVE_DOCUMENTS.replace("WANT", repr(name)).replace("ROOT", repr(root_text))
+            .replace("MARKER", repr(_SAVED_MARKER)))
+    return _ask_window(code, _SAVED_MARKER, url, timeout)
+
+
+def print_saved(result: dict) -> bool:
+    """Print what ``save_documents`` did. False when something was not saved."""
+    for path in result.get("saved", []):
+        print(f"saved      {path}")
+    for path in result.get("unchanged", []):
+        print(f"unchanged  {path}")
+    for doc in result.get("unnamed", []):
+        print(f"not saved  {doc}: it has no file name yet. Ask the person where to save it.")
+    for path in result.get("outside", []):
+        print(f"left alone {path}: outside this repository")
+    for line in result.get("failed", []):
+        print(f"FAILED     {line}")
+    for want in result.get("missing", []):
+        print(f"FAILED     no open document called {want}")
+    if not any(result.get(key) for key in ("saved", "unchanged", "unnamed", "outside", "failed", "missing")):
+        print("nothing to save: FreeCAD has no document open")
+    return not (result.get("failed") or result.get("missing"))
 
 
 def _same_file(a: str, b: Path) -> bool:
@@ -265,6 +354,10 @@ def main(argv: list[str] | None = None) -> int:
     sa = subs.add_parser("start", help="Start FreeCAD with its RPC server, if none runs")
     sa.add_argument("file", nargs="?", type=Path, help="The .FCStd to open")
     sa.add_argument("--wait", type=float, default=60.0, help="Seconds to wait for the server")
+    sv = subs.add_parser("save", help="Save the open documents with unsaved changes, in the window")
+    sv.add_argument("document", nargs="?", help="Only this document: its name, file name or path")
+    sv.add_argument("--root", type=Path, default=Path.cwd(),
+                    help="Save only files inside this folder (default: the current folder)")
     args = parser.parse_args(argv)
 
     if args.command == "status":
@@ -285,6 +378,17 @@ def main(argv: list[str] | None = None) -> int:
         if changed:
             print("It takes effect the next time FreeCAD starts.")
         return 0
+    if args.command == "save":
+        if not rpc_available(args.url):
+            reason = ASK_USER if gui_running() else f"no FreeCAD answers on {args.url}, so nothing was saved."
+            print(reason, file=sys.stderr)
+            return 1
+        result = save_documents(args.document, args.root, url=args.url)
+        if result is None:
+            print(f"error: FreeCAD on {args.url} did not say what it saved. Save in FreeCAD yourself.",
+                  file=sys.stderr)
+            return 1
+        return 0 if print_saved(result) else 1
     code, message = start(args.file, wait=args.wait, url=args.url, freecad=args.freecad)
     print(message, file=sys.stderr if code else sys.stdout)
     return code

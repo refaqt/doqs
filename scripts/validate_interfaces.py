@@ -175,7 +175,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ok    interfaces agree in {len(modules)} modules (SysML, okh.toml, frames)")
         return 0
     label = "FAIL" if args.strict_interfaces else "WARN"
-    print(f"{label}  interfaces: {len(findings)} findings; see doqs/docs/architecture.md#one-name-for-a-port-a-frame-and-an-okh-entry")
+    print(f"{label}  interfaces: {len(findings)} findings; see doqs/docs/architecture/interfaces.md#one-name-for-a-port-a-frame-and-an-okh-entry")
     for line in findings:
         print(f"      {line}")
     return 1 if args.strict_interfaces else 0

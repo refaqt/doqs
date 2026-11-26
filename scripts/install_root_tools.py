@@ -1,16 +1,32 @@
 """Install consumer-root launchers and agent config from doqs/templates/.
 
 Walks doqs/templates/<tool>/ and copies every *.bat and *.sh to the machine
-repository root (same filename). Skips templates/setup-tooling/ (the bootstrap
-helpers themselves). Does not copy READMEs.
+repository root (same filename). Does not copy READMEs.
+
+The bootstrap helpers `setup-tooling.sh` and `setup-tooling.bat`
+(BOOTSTRAP_HELPERS) are copied to the root too. They are written by atomic
+replace: a new file takes the old name. A running `setup-tooling.sh` keeps
+reading its old copy, so the helper can update itself safely.
 
 Identical destination bytes are left untouched. If the template changed, the
 root file is overwritten (same idea as apply_licenses.py).
 
-Agent configuration in CONFIG_TEMPLATES is different: it is installed **once**
-and never overwritten, because those files are the user's to edit. Removing the
-agent-CAD guard from `.claude/settings.json` is caught by validate_cad.py rather
-than silently restored here.
+`.mcp.json` (CONFIG_TEMPLATES) is installed **once** and never overwritten: it
+is the user's file to edit.
+
+`.claude/settings.json` is **merged on every run**. doqs owns the agent-CAD
+allow and deny rules, the FreeCAD MCP server switch and the session-hook
+registration; the user owns every other key. A rule doqs owns that is missing
+is put back, so a deny rule someone removed returns on the next run. Nothing
+the user added is removed. validate_cad.py still fails a repository whose
+guard is missing, so CI catches it between runs.
+
+`.claude/hooks/session-start.sh` (TOOL_TEMPLATES) is doqs's file and is
+refreshed when its template changes.
+
+At the end, when the shared agent kit has `.agents/scripts/sync_root.py`, the
+kit's script writes the shared root files (CLAUDE.md, AGENTS.md and others).
+Otherwise one hint line says so.
 
 No-op when --root is the DOQS tools repo.
 
@@ -21,6 +37,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -28,9 +46,13 @@ from license_rules import is_doqs_tools_repo
 
 _DOQS_ROOT = Path(__file__).resolve().parent.parent
 #: Template folders the launcher walk must not touch. `setup-tooling` holds the
-#: bootstrap helpers, copied by hand. `session-hook` holds a `.sh` that belongs
-#: in `.claude/hooks/`, not in the repository root.
+#: bootstrap helpers, which BOOTSTRAP_HELPERS copies on its own, by atomic
+#: replace. `session-hook` holds a `.sh` that belongs in `.claude/hooks/`.
 SKIP_TEMPLATE_DIRS = frozenset({"setup-tooling", "session-hook"})
+
+#: The bootstrap helpers, copied to the repository root. Only these two files:
+#: the README and the snippets in that folder are not copied.
+BOOTSTRAP_HELPERS = ("setup-tooling/setup-tooling.sh", "setup-tooling/setup-tooling.bat")
 LAUNCHER_GLOBS = ("*.bat", "*.sh")
 
 #: (template path under doqs/templates/, destination under the machine root).
@@ -190,6 +212,32 @@ def install_settings(root: Path, templates: Path) -> list[str]:
     return [f"updated {SETTINGS_DEST}"]
 
 
+def install_bootstrap_helpers(root: Path, templates: Path) -> list[str]:
+    """Copy setup-tooling.sh and .bat to the root when missing or stale.
+
+    The new bytes go to a temporary file first, which then replaces the old
+    file. The running helper keeps its open copy, so this is safe while
+    `setup-tooling.sh` itself runs this installer.
+    """
+    actions: list[str] = []
+    for rel in BOOTSTRAP_HELPERS:
+        src = templates / rel
+        if not src.is_file():
+            continue
+        dest = root / src.name
+        data = src.read_bytes()
+        existed = dest.is_file()
+        if existed and dest.read_bytes() == data:
+            continue
+        tmp = dest.with_name(f".{dest.name}.new")
+        tmp.write_bytes(data)
+        if src.suffix == ".sh":
+            tmp.chmod(0o755)
+        os.replace(tmp, dest)
+        actions.append(f"{'updated' if existed else 'created'} {src.name}")
+    return actions
+
+
 def install_root_tools(
     root: Path, templates: Path | None = None
 ) -> list[str]:
@@ -211,17 +259,33 @@ def install_root_tools(
             continue
         dest.write_bytes(data)
         actions.append(f"{'updated' if existed else 'created'} {src.name}")
+    actions.extend(install_bootstrap_helpers(root, templates))
     actions.extend(install_tools(root, templates))
     actions.extend(install_configs(root, templates))
     actions.extend(install_settings(root, templates))
     return actions
 
 
+#: The shared kit's script for the root files.
+SYNC_ROOT = Path(".agents") / "scripts" / "sync_root.py"
+
+
+def sync_root(root: Path) -> int:
+    """Run the kit's `sync_root.py` when the kit has it. Returns its exit code."""
+    script = root / SYNC_ROOT
+    if not script.is_file():
+        print(f"skip  shared root files: {SYNC_ROOT.as_posix()} is missing, so CLAUDE.md and "
+              "AGENTS.md were left as they are")
+        return 0
+    return subprocess.run([sys.executable, str(script), "--root", str(root)], cwd=root).returncode
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Copy doqs/templates/<tool>/*.bat and *.sh to the machine repo "
-            "root (except setup-tooling), and install agent config once."
+            "Copy doqs/templates/<tool>/*.bat and *.sh and the setup-tooling "
+            "helpers to the machine repo root, merge agent config, and run the "
+            "shared kit's sync_root.py."
         )
     )
     parser.add_argument(
@@ -249,7 +313,7 @@ def main() -> int:
             print(f"      {line}")
     else:
         print(f"ok    {root} (root launchers and agent config already current)")
-    return 0
+    return sync_root(root)
 
 
 if __name__ == "__main__":

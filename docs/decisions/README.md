@@ -36,3 +36,4 @@ follows from it. The guide that explains how to use the result lives in `docs/`.
 | 2026-10-08 | [ADR-019 — The agent saves open FreeCAD documents before a pull request](2026-10-08_agent-saves-before-a-pull-request.md) | Accepted |
 | 2026-10-28 | [ADR-020 — The agent starts the FreeCAD connection, and picks headless or MCP](2026-10-28_agent-starts-freecad-mcp.md) | Accepted |
 | 2026-11-10 | [ADR-021 — Our licence files name Refaqt as the copyright owner](2026-11-10_copyright-notice.md) | Accepted |
+| 2026-11-26 | [ADR-022 — Agents read less at the start, and run commands instead of prose](2026-11-26_lean-agent-context.md) | Accepted |

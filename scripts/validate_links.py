@@ -18,7 +18,6 @@ MARKDOWN_LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 #: they sit reports failures that are not failures.
 MARKDOWN_SKIP = (
     "templates/licensing/tools/README-licence-section.md",
-    "templates/setup-tooling/CLAUDE.md",
 )
 
 

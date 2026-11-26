@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import tempfile
 import threading
@@ -151,6 +152,68 @@ class TestStart(_DataDir):
             code, message = freecad_session.start(url="http://127.0.0.1:9", wait=0)
         self.assertEqual(code, 1)
         self.assertIn("nothing answered", message)
+
+
+class _FakeSaver:
+    """An add-on that answers a save request with a fixed result."""
+
+    def __init__(self, result: dict):
+        self.result = result
+        self.code: list[str] = []
+
+    def ping(self):
+        return True
+
+    def execute_code(self, code):
+        self.code.append(code)
+        return {"success": True,
+                "message": f"Output: {freecad_session._SAVED_MARKER}{json.dumps(self.result)}\n"}
+
+
+def _serve_saver(test: unittest.TestCase, result: dict) -> tuple[_FakeSaver, str]:
+    saver = _FakeSaver(result)
+    server = SimpleXMLRPCServer(("127.0.0.1", 0), logRequests=False, allow_none=True)
+    server.register_instance(saver)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    test.addCleanup(server.server_close)
+    test.addCleanup(server.shutdown)
+    return saver, f"http://127.0.0.1:{server.server_address[1]}"
+
+
+class TestSave(unittest.TestCase):
+    def test_it_saves_inside_the_window_and_only_under_the_root(self):
+        result = {"saved": ["/m/cad/rail.FCStd"], "unchanged": [], "unnamed": ["Unnamed"],
+                  "outside": [], "failed": [], "missing": []}
+        saver, url = _serve_saver(self, result)
+        root = Path(tempfile.gettempdir())
+        self.assertEqual(freecad_session.save_documents(root=root, url=url), result)
+        code = saver.code[0]
+        # The window does the save, on the document the person sees.
+        self.assertIn("doc.save()", code)
+        self.assertIn(repr(os.path.normcase(str(root.resolve()))), code)
+        # A document without a file name needs a name from the person.
+        self.assertIn('out["unnamed"]', code)
+
+    def test_the_command_fails_when_a_save_failed(self):
+        result = {"saved": [], "unchanged": [], "unnamed": [], "outside": [],
+                  "failed": ["/m/cad/rail.FCStd: disk full"], "missing": []}
+        _, url = _serve_saver(self, result)
+        with mock.patch("sys.stdout"):
+            self.assertEqual(freecad_session.main(["--url", url, "save"]), 1)
+
+    def test_the_command_succeeds_when_everything_was_saved(self):
+        result = {"saved": ["/m/cad/rail.FCStd"], "unchanged": ["/m/cad/block.FCStd"],
+                  "unnamed": [], "outside": [], "failed": [], "missing": []}
+        _, url = _serve_saver(self, result)
+        with mock.patch("sys.stdout"):
+            self.assertEqual(freecad_session.main(["--url", url, "save", "rail"]), 0)
+
+    def test_without_the_server_nothing_is_saved_and_it_says_why(self):
+        with mock.patch.object(freecad_session, "gui_running", return_value=True), \
+                mock.patch("sys.stderr") as err:
+            code = freecad_session.main(["--url", "http://127.0.0.1:9", "save"])
+        self.assertEqual(code, 1)
+        self.assertIn("Start RPC Server", "".join(str(c.args[0]) for c in err.write.call_args_list))
 
 
 if __name__ == "__main__":

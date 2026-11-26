@@ -5,8 +5,8 @@
 #
 # Why this exists: a cloud session clones this repository without
 # --recurse-submodules, so .agents/ and doqs/ stay empty. An agent then cannot
-# read .agents/rules/*.md, .agents/skills/*, or doqs/docs/architecture.md, and
-# cannot run doqs/scripts/validate_all.py. The folders exist, so the failure is
+# read .agents/rules/*.md, .agents/skills/*, or doqs/docs/, and cannot run
+# doqs check. The folders exist, so the failure is
 # silent: an agent that does not look reads no rules and keeps working.
 #
 # What this hook cannot do is start itself. Claude Code reads
@@ -14,7 +14,7 @@
 # that opens a parent folder, or that attaches several repositories at once,
 # never reads that file, so this hook never runs and prints nothing at all.
 # CLAUDE.md carries the check that works in every session. See
-# doqs/docs/using-doqs.md, section 3.
+# doqs/templates/session-hook/README.md, "When the hook does not run".
 #
 # The two git calls mirror setup-tooling.sh and must stay in that order:
 #
@@ -33,6 +33,12 @@
 #
 # --remote leaves the two gitlinks modified on purpose. See AGENTS.md, section
 # "First step (required)": leave them uncommitted unless you mean to set a pin.
+#
+# Once the folders are filled, the kit's link_skills.sh links its skills into
+# .claude/skills/ (gitignored), when this kit has that script.
+#
+# On success the hook prints two lines only. CLAUDE.md already loads the rules,
+# so the hook does not repeat them; every line here costs every session.
 #
 # This hook never stops a session. With no network it prints a message and
 # exits 0.
@@ -110,6 +116,11 @@ missing=""
 [ -f "doqs/scripts/validate_all.py" ] || missing="${missing} doqs"
 
 if [ -z "$missing" ]; then
+  # link_skills.sh always exits 0, but a broken copy must not stop the session
+  # either, and its own output is not worth a line at every start.
+  if [ -f ".agents/scripts/link_skills.sh" ]; then
+    bash .agents/scripts/link_skills.sh "$root" >/dev/null 2>&1 || true
+  fi
   kit="$(git -C .agents rev-parse --short HEAD 2>/dev/null || echo unknown)"
   tools="$(git -C doqs rev-parse --short HEAD 2>/dev/null || echo unknown)"
   echo "Tooling submodules ready in ${root}: .agents/ (${kit}), doqs/ (${tools})."
@@ -117,12 +128,10 @@ if [ -z "$missing" ]; then
   # they hold the recorded pins rather than the latest main. Say so, rather
   # than let a stale kit pass for a fresh one.
   if [ $remote_status -ne 0 ]; then
-    echo "Could not reach the remotes, so both sit at their recorded pins, not the latest main."
-    echo "Once you have a network again, run this from ${root}:"
-    echo "  bash setup-tooling.sh"
+    echo "Could not reach the remotes, so both sit at their recorded pins. Online again: bash setup-tooling.sh"
+  else
+    echo "Instructions: CLAUDE.md and AGENTS.md (already loaded)."
   fi
-  echo "Read .agents/rules/core.md first, then AGENTS.md."
-  echo "Write every reply and every file in B2 English: .agents/rules/communication.md."
   exit 0
 fi
 

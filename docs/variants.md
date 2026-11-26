@@ -4,8 +4,8 @@ How to publish one design in many configurations — several lengths, a few moto
 options, a few feedback options — without the module count exploding, and how a
 machine project consumes one configuration of it.
 
-Read [architecture.md](architecture.md) first for the module layout this builds
-on. The decision behind this page is
+It builds on the module layout in
+[architecture/modules.md](architecture/modules.md). The decision behind this page is
 [ADR: product-family variants](decisions/2026-09-15_product-family-variants.md).
 
 ---
@@ -78,7 +78,7 @@ once. `cad/params/<model>.csv` is a **sparse override**: only the rows that
 differ. Merging replaces matching aliases and inherits `unit`, `basis`,
 `source` and `description`, so an override row can be just `alias,value`.
 `basis` and `source` say where each independent value comes from; see
-[architecture.md](architecture.md#parameter-file-format).
+[architecture/parameters.md](architecture/parameters.md#parameter-file-format).
 
 The thing that makes them genuinely sparse is **derived values**. A `value` that
 starts with `=` is an arithmetic expression over other aliases:
@@ -386,7 +386,7 @@ kinds of thing in it and each one has a clear sync story:
 git submodule update --remote modules/linear-stage        # take the new family
 python doqs/scripts/resolve_instance.py modules/x-stage   # refresh generated files
 # open x-stage.FCStd, refresh the variant link, save
-python doqs/scripts/validate_all.py                       # fails if a step was skipped
+bash doqs.sh check                                        # fails if a step was skipped
 ```
 
 `resolve_instance.py --check` and `validate_variants.py` both fail on stale
@@ -476,7 +476,7 @@ core does not declare, a duplicate name, or a lowercase id.
 5. `python doqs/scripts/resolve_params.py --table`, then `sync_table()` in
    FreeCAD.
 6. `catalog.toml` rows for each composition × length you actually sell.
-7. `python doqs/scripts/validate_all.py`.
+7. `bash doqs.sh check`.
 
 No new module. No new submodule. No new repository.
 
@@ -488,7 +488,7 @@ No new module. No new submodule. No new repository.
 3. A thin composition module combining it, with a `[composition]` table and the
    interfaces that SKU offers.
 4. `catalog.toml` rows.
-5. `python doqs/scripts/validate_all.py`.
+5. `bash doqs.sh check`.
 
 ### Use a family in a machine
 

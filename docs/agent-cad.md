@@ -105,12 +105,14 @@ From the machine repository root:
 bash setup-tooling.sh
 ```
 
-That installs two files from [`templates/agent-cad/`](../templates/agent-cad/),
-**once** — they are yours to edit afterwards and a later update will not
-overwrite them:
+That installs two files from [`templates/agent-cad/`](../templates/agent-cad/):
 
-* `.mcp.json` — registers the FreeCAD MCP server
-* `.claude/settings.json` — the guard, below
+* `.mcp.json` — registers the FreeCAD MCP server. It is written **once**, when it
+  is missing. After that it is yours to edit, and a later run does not change it.
+* `.claude/settings.json` — the guard, below. It is **merged on every run**. doqs
+  owns its allow and deny rules, the FreeCAD server switch and the session hook
+  entry. A rule doqs owns that is missing comes back, so a deny rule you removed
+  returns on the next run. Every other key is yours and stays as you wrote it.
 
 ## Headless or MCP: the agent decides
 
@@ -288,12 +290,15 @@ across platforms, and without that tolerance every rebuild would emit a diff.
    reverts the whole rebuild.** Your unsaved edits are untouched.
 4. Before the agent commits or opens a pull request, it **saves** the open
    documents it changed. It runs `doc.save()` inside the running FreeCAD, on the
-   same document you are looking at, and tells you which files it saved. Git only
+   same document you are looking at, and tells you which files it saved. The
+   command is `bash doqs.sh freecad save`. Git only
    sees what is on disk, so an unsaved change never reaches the pull request. The
    agent saves only documents that already have a file in the repository. A new
    document with no file name needs a name, so the agent asks you. You may still
    save yourself at any time.
-5. Before committing, rebuild headless so the fingerprint matches the saved file:
+5. Before committing, rebuild headless so the fingerprint matches the saved file.
+   `bash doqs.sh pre-pr` does steps 4 and 5 for you, then runs `generate` and
+   `check`. By hand:
 
 ```powershell
 FreeCADCmd cad/build_model.py
@@ -329,7 +334,7 @@ python doqs/scripts/validate_cad.py --check-clean
 
 The guard check applies only once a repository actually contains a `.FCStd` —
 a machine repo with no CAD has nothing to guard. `validate_cad.py` runs as part
-of `validate_all.py`.
+of `doqs check`.
 
 ## Writing a build script
 
@@ -544,7 +549,7 @@ A repository that has cleaned up adds `--strict-parametric` to its CI, so the
 warnings become failures:
 
 ```powershell
-python doqs/scripts/validate_all.py --strict-parametric
+bash doqs.sh check --strict-parametric
 ```
 
 The check reads FreeCAD properties by name. It knows sketches, datums and the

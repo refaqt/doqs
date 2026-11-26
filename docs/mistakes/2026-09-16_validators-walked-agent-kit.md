@@ -35,4 +35,4 @@ gates against a machine fixture that holds sample files under `.agents/`.
 ## Related
 
 - [2026-09-16_tooling-submodule-skip.md](../log/2026-09-16_tooling-submodule-skip.md)
-- [architecture.md, Tooling submodules](../architecture.md)
+- [architecture/git.md, Tooling submodules](../architecture/git.md#tooling-submodules-doqs-agents)

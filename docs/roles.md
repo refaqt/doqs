@@ -2,8 +2,9 @@
 
 How to buy a part without letting the brand's name leak into your design.
 
-Read [architecture.md](architecture.md) first for the module layout this builds
-on, and [parts-library.md](parts-library.md) for where the parts come from. The
+It builds on the module layout in
+[architecture/modules.md](architecture/modules.md).
+[parts-library.md](parts-library.md) says where the parts come from. The
 decision behind this page is
 [ADR-005: role modules](decisions/2026-09-18_role-modules.md).
 
@@ -246,6 +247,6 @@ the selected part, so the record cannot rot into a wrong claim.
 ## Related
 
 - [Parts library](parts-library.md) — where the parts come from
-- [Architecture](architecture.md) — folder layout and interfaces
+- [Architecture: modules](architecture/modules.md) and [interfaces](architecture/interfaces.md) — folder layout and interfaces
 - [Naming](naming.md) — why a role is named after its job
 - [Variants](variants.md) — our own product families, which work differently

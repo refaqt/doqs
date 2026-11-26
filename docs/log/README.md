@@ -38,3 +38,4 @@ Write entries in B2 English. Follow `.agents/rules/communication.md`.
 | 2026-11-10 | [Licence files now say that Refaqt owns the copyright](2026-11-10_copyright-notice.md) | legal, software | 0 |
 | 2026-11-20 | [What AI tools can add to our design work](2026-11-20_ai-tools-review.md) | engineering, cad, simulation, software | 0 |
 | 2026-11-24 | [First monthly review of open-source CAD tools for AI agents](2026-11-24_cad-tools-review.md) | cad | 0 |
+| 2026-11-26 | [Agents read less at the start of a session](2026-11-26_lean-agent-context.md) | software | 0 |

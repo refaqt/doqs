@@ -17,14 +17,46 @@ The file alone does nothing. `.claude/settings.json` is what starts it, and
 you keep in that file. `validate_cad.py` fails when the hook is on disk and the
 settings file does not run it, because that combination looks set up and is not.
 
+When the folders are filled, the hook also runs the kit's `link_skills.sh`, if the
+kit has it. On success it prints two lines: the commits it checked out, and a line
+that says `CLAUDE.md` and `AGENTS.md` are already loaded. When something fails, it
+says which folder is empty, what git said, and which command to run later.
+
+## When the hook does not run
+
+This is the one full explanation. Other pages link here.
+
 The registration has one limit that no repository can lift. Claude Code reads
 `.claude/settings.json` from the session's own project folder only. A session that
 opens a parent folder, or that attaches several repositories at once, never reads
 that file, so the hook never starts and prints nothing at all. A thread inside a
 Claude project does not run it either. The permission mode does not matter: the
 hook runs in plan mode too. Silence then means
-"never ran", not "nothing to report". Root `CLAUDE.md` carries the check that works
-in every session; the template for it is `templates/setup-tooling/CLAUDE.md`.
+"never ran", not "nothing to report". The output cannot tell you, because silence
+looks the same as success.
+
+So check the two marker files instead. An empty folder still exists, so only a file
+inside it proves anything:
+
+```bash
+bash setup-tooling.sh --check     # or: ls .agents/rules/core.md doqs/scripts/validate_all.py
+bash doqs.sh doctor               # the same, plus each folder's commit and its pin
+```
+
+If a file is missing, run `bash setup-tooling.sh`. In plan mode the agent must ask
+the person to approve that command, because plan mode blocks commands that change
+files. It only fills the two tooling folders and changes no file that git tracks.
+`doqs doctor` needs `doqs/` itself, so when `doqs/` is empty only
+`setup-tooling.sh --check` can answer.
+
+Root `CLAUDE.md` carries this check, because Claude Code reads `CLAUDE.md` from
+every repository a session attaches. The shared kit writes it with `.agents/scripts/sync_root.py`.
+
+With no network, the hook says so and the session continues. Until someone runs
+`bash setup-tooling.sh` online, `doqs/` may be empty and every `doqs` command fails
+with a missing-file error.
+
+## How the hook finds the repository
 
 The hook finds the repository root from its own place on disk, not from
 `$CLAUDE_PROJECT_DIR`. In the layout above that variable holds the parent folder,

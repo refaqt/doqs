@@ -22,8 +22,10 @@ Do this once, by hand.
 
 1. Copy `setup-tooling.sh` and `setup-tooling.bat` from
    [`templates/setup-tooling/`](../templates/setup-tooling/) to your **repository
-   root**. Commit them. Do not gitignore them. Do not run them from the templates
-   folder — `dirname` would point at the wrong place.
+   root**, the first time only. Commit them. Do not gitignore them. Do not run them
+   from the templates folder — `dirname` would point at the wrong place. After that,
+   each run of the helper, and the weekly sync job of the shared kit, keep them
+   current.
 2. Add this line to your `.gitattributes`, so Windows cannot store the wrong line
    endings in a shell helper:
 
@@ -35,9 +37,10 @@ Do this once, by hand.
    into your `.gitmodules`, or add the two submodules yourself. Set
    `branch = main` **only** on `doqs` and `.agents`. Modules under `modules/` stay
    pinned to a commit and must never get a branch.
-4. Copy the **First step (required)** block from the
-   [refaqt-agents `templates/AGENTS.md`](https://github.com/refaqt/refaqt-agents/blob/main/templates/AGENTS.md)
-   into your root `AGENTS.md`.
+4. Write `.agents-local/rules/repo.md` with the rules for this machine only. The next step
+   writes `CLAUDE.md` and `AGENTS.md`, and a starting `repo.md` when you have none yet. The
+   name comes from the first heading of your `README.md`. See the kit's
+   [INSTALL.md](https://github.com/refaqt/refaqt-agents/blob/main/INSTALL.md).
 5. From your repository root, run `bash setup-tooling.sh`.
 
 Your clone token needs read access to
@@ -62,29 +65,12 @@ Two things to expect:
   old copy. Replace it from the template.
 
 Claude Code and Cursor run a `SessionStart` hook that does the submodule part for
-you, so a cloud session usually starts with the folders filled. The hook does not
-install the launchers; `setup-tooling.sh` does.
-
-The hook has one condition, and it is easy to miss. The session must open **your
-repository root** as its project folder. Claude Code reads `.claude/settings.json`
-from that folder only. A session that opens a parent folder, or that attaches
-several repositories at once, never reads the file, never starts the hook, and
-prints nothing at all. A thread inside a Claude project does not run it either,
-even with one repository. The output cannot tell you, because silence looks the
-same as success. The permission mode does not matter: the hook runs in plan mode
-too. Check the folders instead:
-
-```bash
-ls .agents/rules/core.md doqs/scripts/validate_all.py
-```
-
-If either file is missing, run `bash setup-tooling.sh`. In plan mode, the agent
-must ask you to approve that command, because plan mode blocks commands that
-change files. Approve it: it only fills the two tooling folders and changes no file
-that git tracks. Put that check in your root
-`CLAUDE.md`, because Claude Code reads that file from every repository a session
-attaches. The template is
-[`templates/setup-tooling/CLAUDE.md`](../templates/setup-tooling/CLAUDE.md).
+you. It does not always run, and when it does not, it prints nothing. So check the
+two folders: `bash doqs.sh doctor`, or `bash setup-tooling.sh --check` when even
+`doqs/` is empty. Both look for `.agents/rules/core.md` and
+`doqs/scripts/validate_all.py`. If one is missing, run `bash setup-tooling.sh`.
+[The session hook README](../templates/session-hook/README.md#when-the-hook-does-not-run)
+explains when the hook does not run, and what to do in plan mode.
 
 `setup-tooling.sh` installs that hook at `.claude/hooks/session-start.sh` and
 registers it in `.claude/settings.json`. The file on its own does nothing — the
@@ -96,10 +82,6 @@ at it:
 { "name": "<your machine>", "install": "bash .claude/hooks/session-start.sh" }
 ```
 
-**No network?** The hook says so and the session continues. Run
-`bash setup-tooling.sh` when you are online again. Until then `doqs/` may be empty,
-and every `doqs` command will fail with a missing-file error.
-
 ## 4. The commands
 
 `bash doqs.sh list` prints this table from the code, so it can never go stale.
@@ -109,6 +91,11 @@ and every `doqs` command will fail with a missing-file error.
 | `doqs check` | Every gate, plus "are the generated files current?" | Before every commit and in CI |
 | `doqs generate` | Writes every generated file, in the right order | After changing parameters, a BOM, an instance, or adding a content folder |
 | `doqs setup` | Installs the root launchers and agent configuration | Rarely: `setup-tooling.sh` already does it |
+| `doqs doctor` | Says if `.agents/` and `doqs/` are filled, which commit each holds, and whether it is ahead of its pin. Names the command to run when a folder is empty | At the start of a session, and when a command fails with a missing file |
+| `doqs pre-pr` | Saves the documents you changed in the open FreeCAD and rebuilds them headless, then runs `generate` and `check`, then prints `git status --short`. Stops at the first step that fails | Before every pull request — see [section 5](#5-before-a-pull-request) |
+| `doqs log new <slug>` | Starts `docs/log/YYYY-MM-DD_<slug>.md` with the four report headings and adds a row to the log index. Never overwrites a file | After a working session worth recording |
+| `doqs mistakes` | Rebuilds the index table in `docs/mistakes/README.md`. `--check` only says whether it is stale | After adding a mistake entry |
+| `doqs context` | Prints how many bytes an agent reads at session start. `--budget N` fails above `N` | When you change `CLAUDE.md`, `AGENTS.md` or the rules they load |
 | `doqs syson …` | Opens or saves `architecture/*.sysml` in SysON | Graphical SysML editing — see [syson.md](syson.md) |
 | `doqs export …` | Exports geometry for one composition and model | Making a STEP file for one variant |
 | `doqs bom …` | Resolves one module's BOM for one model | Checking what one variant is made of |
@@ -122,7 +109,7 @@ and every `doqs` command will fail with a missing-file error.
 | `doqs use-part …` | Puts a library part into a machine module: BOM row, `[[bought-part]]` entry, SysML part def and usages; can move the library pin to a merged commit | Buying a part for a module |
 | `doqs add-interface …` | Adds one interface from one request: SysML port def, ports and connection, the `okh.toml` entry, and a mounting frame in each part file | Two parts touch |
 | `doqs mirror …` | Compares the public and the private library file by file; with `--apply`, copies allowed files from private to public | After changing either library |
-| `doqs freecad …` | `status` says if FreeCAD runs, if its MCP server answers, which files are open, and if a headless or an MCP edit is safe now. `start` starts FreeCAD with its MCP server when no FreeCAD runs. `autostart` makes the server start with FreeCAD every time | Before an agent edits a FreeCAD model — see [agent-cad.md](agent-cad.md#headless-or-mcp-the-agent-decides) |
+| `doqs freecad …` | `status` says if FreeCAD runs, if its MCP server answers, which files are open, and if a headless or an MCP edit is safe now. `start` starts FreeCAD with its MCP server when no FreeCAD runs. `autostart` makes the server start with FreeCAD every time. `save` saves the open documents that have unsaved changes, inside the window | Before an agent edits a FreeCAD model — see [agent-cad.md](agent-cad.md#headless-or-mcp-the-agent-decides) |
 | `doqs run <script> …` | Runs any script in `doqs/scripts/` by name | Something the commands above do not cover |
 | `doqs list` | Every command, and the scripts each one runs | When you forget |
 
@@ -130,6 +117,10 @@ and every `doqs` command will fail with a missing-file error.
 generated files match what the resolvers produce today, then one advisory check
 that SysML ports, `okh.toml` entries and FreeCAD frames agree. The advisory check
 warns until you pass `--strict-interfaces`.
+
+When the shared kit has them, `doqs check` also runs two kit checks that only
+warn: is the `docs/mistakes/` index current, and do the shared root files match the
+kit. An older kit without those scripts skips them.
 
 The commands from `scaffold` to `mirror` write files. Each takes `--dry-run`
 (report only) and `--json` (a report a tool can read), and changes nothing on
@@ -166,16 +157,21 @@ and `validate_cad.py --check-clean` to catch a `.FCStd` an agent left modified.
 ## 5. Before a pull request
 
 ```bash
-bash doqs.sh generate      # write the generated files
-bash doqs.sh check         # prove everything is consistent
+bash doqs.sh pre-pr        # save FreeCAD work, rebuild, generate, check, git status
 git diff                   # read what generate wrote, then commit it
 ```
 
-`generate` writes files. Always read the diff before committing it.
+`pre-pr` runs four steps and stops at the first one that fails:
 
-If an agent changed models in the open FreeCAD window, it saves those documents in
-FreeCAD first. Git only sees what is on disk. See
-[agent-cad.md](agent-cad.md#working-with-a-file-open).
+1. If a FreeCAD window answers, it saves the documents in this repository that have
+   unsaved changes, inside that window. Then it rebuilds each one headless, so its
+   fingerprint matches the saved file. Git only sees what is on disk. See
+   [agent-cad.md](agent-cad.md#working-with-a-file-open).
+2. `doqs generate` writes the generated files.
+3. `doqs check` proves everything is consistent.
+4. `git status --short` shows what changed.
+
+`generate` writes files. Always read the diff before committing it.
 
 ## 6. In CI
 
@@ -285,7 +281,8 @@ SysML part def. The fabriq design tool runs the same commands from a browser.
 | `session-hook/session-start.sh` | `.claude/hooks/session-start.sh` | Overwritten when the template changes | `setup-tooling.sh` |
 | `agent-cad/mcp.json` | `.mcp.json` | Written once, never touched again | `setup-tooling.sh` |
 | `agent-cad/claude-settings.json` | `.claude/settings.json` | **Merged**: what doqs owns is added, nothing is removed | `setup-tooling.sh` |
-| `setup-tooling/setup-tooling.sh`, `.bat` | repository root | Copy once | **You**, at the start |
+| The shared kit's root files: `CLAUDE.md`, `AGENTS.md`, `.cursor/` rules, the pull request template | repository root | Written by `.agents/scripts/sync_root.py`. Skipped, with one hint line, when the kit has no such script. It never writes the session hook | `setup-tooling.sh` |
+| `setup-tooling/setup-tooling.sh`, `.bat` | repository root | Copied once by you at the start, then overwritten when the template changes | `setup-tooling.sh`, and the kit's weekly sync job |
 | `setup-tooling/gitmodules.snippet` | `.gitmodules` | Merge by hand | **You**, at the start |
 | `setup-tooling/gitattributes.snippet` | `.gitattributes` | Merge by hand | **You**, at the start |
 | `cad/build_model.py` | `modules/<module>/cad/` | Copy per module, then write `build()` | **You**, per module |

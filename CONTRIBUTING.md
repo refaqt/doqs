@@ -89,7 +89,13 @@ python doqs.py check --root tests/fixtures/parts-library
 python doqs.py list
 python scripts/resolve_params.py --root tests/fixtures/variant-family --table --check
 python scripts/resolve_instance.py --root tests/fixtures/variant-machine --check
+python .agents/scripts/sync_root.py --check
+python .agents/scripts/mistakes_index.py --check
+python .agents/scripts/context_budget.py --budget 20000
 ```
+
+The last three lines check the shared agent files. They need the kit folder filled first:
+`git submodule update --init --remote --checkout -- .agents`.
 
 `tests/fixtures/variant-family/` is a worked product family (three lengths, two
 drive options, two feedback options, two compositions) and

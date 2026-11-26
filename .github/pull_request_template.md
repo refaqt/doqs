@@ -1,6 +1,6 @@
 <!--
 Write this for a manager, not for a developer.
-Follow .agents/rules/reporting.md. Keep everything above "Notes for reviewers" under 200 words.
+Follow the reporting skill (.agents/skills/reporting/SKILL.md). Keep everything above "Notes for reviewers" under 200 words.
 -->
 
 ## What changed
