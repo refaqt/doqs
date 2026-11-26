@@ -6,7 +6,7 @@ Machine repositories (e.g. [qarve](https://github.com/refaqt/qarve)) include thi
 
 ## Use in a machine repo
 
-Clone with submodules, then from the **machine repository root** run `bash setup-tooling.sh` (agents, any OS) so `doqs/` and `.agents/` track latest `main` and root launchers such as `syson.bat` are installed. Humans on Windows may double-click `setup-tooling.bat`. Copy those helpers from [`templates/setup-tooling/`](templates/setup-tooling/) to the consumer root (copy-once bootstrap; do not run them from this templates folder). CI may still check out the recorded pin.
+Clone with submodules, then from the **machine repository root** run `bash setup-tooling.sh` (agents, any OS) so `doqs/` and `.agents/` track latest `main` and root launchers such as `syson.bat` are installed. Humans on Windows may double-click `setup-tooling.bat`. Copy those helpers from [`templates/setup-tooling/`](templates/setup-tooling/) to the consumer root once, to start; after that they keep themselves current (do not run them from this templates folder). CI may still check out the recorded pin.
 
 ```powershell
 git clone --recurse-submodules https://github.com/refaqt/qarve.git

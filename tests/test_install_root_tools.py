@@ -1,6 +1,7 @@
 """Tests for consumer-root launcher install (no git / no Docker)."""
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -63,14 +64,30 @@ class TestInstallRootTools(unittest.TestCase):
         actions = install_root_tools(self.root)
         self.assertEqual(
             sorted(actions),
-            ["created syson.bat", "created syson.sh"],
+            ["created setup-tooling.bat", "created syson.bat", "created syson.sh"],
         )
         self.assertEqual(
             (self.root / "syson.bat").read_bytes(),
             (self.templates / "syson" / "syson.bat").read_bytes(),
         )
         self.assertFalse((self.root / "README.md").exists())
-        self.assertFalse((self.root / "setup-tooling.bat").exists())
+        self.assertEqual(
+            (self.root / "setup-tooling.bat").read_bytes(),
+            (self.templates / "setup-tooling" / "setup-tooling.bat").read_bytes(),
+        )
+
+    def test_updates_a_stale_setup_helper_by_replacing_it(self):
+        _write(self.templates / "setup-tooling" / "setup-tooling.sh", "#!/bin/sh\necho new\n")
+        _write(self.root / "setup-tooling.sh", "#!/bin/sh\necho old\n")
+        old_inode = (self.root / "setup-tooling.sh").stat().st_ino
+        actions = install_root_tools(self.root)
+        self.assertIn("updated setup-tooling.sh", actions)
+        dest = self.root / "setup-tooling.sh"
+        self.assertEqual(dest.read_text(encoding="utf-8"), "#!/bin/sh\necho new\n")
+        # A new file took the old name, so a running copy keeps its own bytes.
+        self.assertNotEqual(dest.stat().st_ino, old_inode)
+        self.assertTrue(os.access(dest, os.X_OK))
+        self.assertFalse((self.root / ".setup-tooling.sh.new").exists())
 
     def test_skips_identical_bytes(self):
         install_root_tools(self.root)
@@ -129,19 +146,11 @@ class TestInstallRootToolsCli(unittest.TestCase):
         return subprocess.run(cmd, capture_output=True, text=True, cwd=_REPO)
 
     def test_without_the_kit_script_it_prints_one_hint(self):
-        _write(self.root / ".agents-local" / "profile.toml", "")
         result = self._run()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("skip  shared root files: .agents/scripts/sync_root.py is missing", result.stdout)
 
-    def test_without_a_profile_the_kit_script_does_not_run(self):
-        _write(self.root / ".agents" / "scripts" / "sync_root.py", "raise SystemExit(3)\n")
-        result = self._run()
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn(".agents-local/profile.toml is missing", result.stdout)
-
-    def test_with_kit_and_profile_it_runs_sync_root(self):
-        _write(self.root / ".agents-local" / "profile.toml", "")
+    def test_with_the_kit_script_it_runs_sync_root(self):
         _write(self.root / ".agents" / "scripts" / "sync_root.py",
                "import sys\nprint('SYNC', *sys.argv[1:])\nraise SystemExit(3)\n")
         result = self._run()

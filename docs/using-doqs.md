@@ -22,8 +22,10 @@ Do this once, by hand.
 
 1. Copy `setup-tooling.sh` and `setup-tooling.bat` from
    [`templates/setup-tooling/`](../templates/setup-tooling/) to your **repository
-   root**. Commit them. Do not gitignore them. Do not run them from the templates
-   folder — `dirname` would point at the wrong place.
+   root**, the first time only. Commit them. Do not gitignore them. Do not run them
+   from the templates folder — `dirname` would point at the wrong place. After that,
+   each run of the helper, and the weekly sync job of the shared kit, keep them
+   current.
 2. Add this line to your `.gitattributes`, so Windows cannot store the wrong line
    endings in a shell helper:
 
@@ -35,9 +37,10 @@ Do this once, by hand.
    into your `.gitmodules`, or add the two submodules yourself. Set
    `branch = main` **only** on `doqs` and `.agents`. Modules under `modules/` stay
    pinned to a commit and must never get a branch.
-4. Create `.agents-local/profile.toml` (`name = "<machine name>"`, `profile = "doqs"`) and
-   `.agents-local/rules/repo.md`. The next step writes `CLAUDE.md` and `AGENTS.md` from them.
-   See the kit's [INSTALL.md](https://github.com/refaqt/refaqt-agents/blob/main/INSTALL.md).
+4. Write `.agents-local/rules/repo.md` with the rules for this machine only. The next step
+   writes `CLAUDE.md` and `AGENTS.md`, and a starting `repo.md` when you have none yet. The
+   name comes from the first heading of your `README.md`. See the kit's
+   [INSTALL.md](https://github.com/refaqt/refaqt-agents/blob/main/INSTALL.md).
 5. From your repository root, run `bash setup-tooling.sh`.
 
 Your clone token needs read access to
@@ -116,8 +119,8 @@ that SysML ports, `okh.toml` entries and FreeCAD frames agree. The advisory chec
 warns until you pass `--strict-interfaces`.
 
 When the shared kit has them, `doqs check` also runs two kit checks that only
-warn: is the `docs/mistakes/` index current, and do the shared root files match
-`.agents-local/profile.toml`. An older kit without those scripts skips them.
+warn: is the `docs/mistakes/` index current, and do the shared root files match the
+kit. An older kit without those scripts skips them.
 
 The commands from `scaffold` to `mirror` write files. Each takes `--dry-run`
 (report only) and `--json` (a report a tool can read), and changes nothing on
@@ -278,8 +281,8 @@ SysML part def. The fabriq design tool runs the same commands from a browser.
 | `session-hook/session-start.sh` | `.claude/hooks/session-start.sh` | Overwritten when the template changes | `setup-tooling.sh` |
 | `agent-cad/mcp.json` | `.mcp.json` | Written once, never touched again | `setup-tooling.sh` |
 | `agent-cad/claude-settings.json` | `.claude/settings.json` | **Merged**: what doqs owns is added, nothing is removed | `setup-tooling.sh` |
-| The shared kit's root files: `CLAUDE.md`, `AGENTS.md`, `.cursor/` rules, the pull request template | repository root | Written by `.agents/scripts/sync_root.py` from `.agents-local/profile.toml`. Skipped, with one hint line, when either is missing. It never writes the session hook | `setup-tooling.sh` |
-| `setup-tooling/setup-tooling.sh`, `.bat` | repository root | Copy once | **You**, at the start |
+| The shared kit's root files: `CLAUDE.md`, `AGENTS.md`, `.cursor/` rules, the pull request template | repository root | Written by `.agents/scripts/sync_root.py`. Skipped, with one hint line, when the kit has no such script. It never writes the session hook | `setup-tooling.sh` |
+| `setup-tooling/setup-tooling.sh`, `.bat` | repository root | Copied once by you at the start, then overwritten when the template changes | `setup-tooling.sh`, and the kit's weekly sync job |
 | `setup-tooling/gitmodules.snippet` | `.gitmodules` | Merge by hand | **You**, at the start |
 | `setup-tooling/gitattributes.snippet` | `.gitattributes` | Merge by hand | **You**, at the start |
 | `cad/build_model.py` | `modules/<module>/cad/` | Copy per module, then write `build()` | **You**, per module |

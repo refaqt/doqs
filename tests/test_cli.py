@@ -239,7 +239,7 @@ class TestCheckRunsTheKitChecksAsWarnings(_TempRoot):
         _kit_script(self.root, "mistakes_index.py", 1)
         _kit_script(self.root, "sync_root.py", 1)
         _write(self.root / "docs" / "mistakes" / "README.md", "# Mistakes\n")
-        _write(self.root / ".agents-local" / "profile.toml", "")
+        _write(self.root / "CLAUDE.md", "# fixture\n")
         # A new docs/ folder needs its licence file, or the licence gate fails.
         subprocess.run([sys.executable, str(_SCRIPTS / "apply_licenses.py"), "--root", str(self.root)],
                        check=True, capture_output=True)

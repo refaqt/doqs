@@ -109,7 +109,7 @@ KIT_SCRIPTS = Path(".agents") / "scripts"
 KIT_ADVISORY: tuple[tuple[str, tuple[str, ...], str, str], ...] = (
     # (script, arguments, file the check needs, the command that fixes it)
     ("mistakes_index.py", ("--check",), "docs/mistakes/README.md", "doqs mistakes"),
-    ("sync_root.py", ("--check",), ".agents-local/profile.toml", "doqs setup"),
+    ("sync_root.py", ("--check",), "CLAUDE.md", "doqs setup"),
 )
 
 #: The file that proves each tooling folder is filled, not only present.
