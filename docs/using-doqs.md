@@ -109,6 +109,11 @@ and every `doqs` command will fail with a missing-file error.
 | `doqs check` | Every gate, plus "are the generated files current?" | Before every commit and in CI |
 | `doqs generate` | Writes every generated file, in the right order | After changing parameters, a BOM, an instance, or adding a content folder |
 | `doqs setup` | Installs the root launchers and agent configuration | Rarely: `setup-tooling.sh` already does it |
+| `doqs doctor` | Says if `.agents/` and `doqs/` are filled, which commit each holds, and whether it is ahead of its pin. Names the command to run when a folder is empty | At the start of a session, and when a command fails with a missing file |
+| `doqs pre-pr` | Saves the documents you changed in the open FreeCAD and rebuilds them headless, then runs `generate` and `check`, then prints `git status --short`. Stops at the first step that fails | Before every pull request — see [section 5](#5-before-a-pull-request) |
+| `doqs log new <slug>` | Starts `docs/log/YYYY-MM-DD_<slug>.md` with the four report headings and adds a row to the log index. Never overwrites a file | After a working session worth recording |
+| `doqs mistakes` | Rebuilds the index table in `docs/mistakes/README.md`. `--check` only says whether it is stale | After adding a mistake entry |
+| `doqs context` | Prints how many bytes an agent reads at session start. `--budget N` fails above `N` | When you change `CLAUDE.md`, `AGENTS.md` or the rules they load |
 | `doqs syson …` | Opens or saves `architecture/*.sysml` in SysON | Graphical SysML editing — see [syson.md](syson.md) |
 | `doqs export …` | Exports geometry for one composition and model | Making a STEP file for one variant |
 | `doqs bom …` | Resolves one module's BOM for one model | Checking what one variant is made of |
@@ -122,7 +127,7 @@ and every `doqs` command will fail with a missing-file error.
 | `doqs use-part …` | Puts a library part into a machine module: BOM row, `[[bought-part]]` entry, SysML part def and usages; can move the library pin to a merged commit | Buying a part for a module |
 | `doqs add-interface …` | Adds one interface from one request: SysML port def, ports and connection, the `okh.toml` entry, and a mounting frame in each part file | Two parts touch |
 | `doqs mirror …` | Compares the public and the private library file by file; with `--apply`, copies allowed files from private to public | After changing either library |
-| `doqs freecad …` | `status` says if FreeCAD runs, if its MCP server answers, which files are open, and if a headless or an MCP edit is safe now. `start` starts FreeCAD with its MCP server when no FreeCAD runs. `autostart` makes the server start with FreeCAD every time | Before an agent edits a FreeCAD model — see [agent-cad.md](agent-cad.md#headless-or-mcp-the-agent-decides) |
+| `doqs freecad …` | `status` says if FreeCAD runs, if its MCP server answers, which files are open, and if a headless or an MCP edit is safe now. `start` starts FreeCAD with its MCP server when no FreeCAD runs. `autostart` makes the server start with FreeCAD every time. `save` saves the open documents that have unsaved changes, inside the window | Before an agent edits a FreeCAD model — see [agent-cad.md](agent-cad.md#headless-or-mcp-the-agent-decides) |
 | `doqs run <script> …` | Runs any script in `doqs/scripts/` by name | Something the commands above do not cover |
 | `doqs list` | Every command, and the scripts each one runs | When you forget |
 
@@ -130,6 +135,10 @@ and every `doqs` command will fail with a missing-file error.
 generated files match what the resolvers produce today, then one advisory check
 that SysML ports, `okh.toml` entries and FreeCAD frames agree. The advisory check
 warns until you pass `--strict-interfaces`.
+
+When the shared kit has them, `doqs check` also runs two kit checks that only
+warn: is the `docs/mistakes/` index current, and do the shared root files match
+`.agents-local/profile.toml`. An older kit without those scripts skips them.
 
 The commands from `scaffold` to `mirror` write files. Each takes `--dry-run`
 (report only) and `--json` (a report a tool can read), and changes nothing on
@@ -166,16 +175,21 @@ and `validate_cad.py --check-clean` to catch a `.FCStd` an agent left modified.
 ## 5. Before a pull request
 
 ```bash
-bash doqs.sh generate      # write the generated files
-bash doqs.sh check         # prove everything is consistent
+bash doqs.sh pre-pr        # save FreeCAD work, rebuild, generate, check, git status
 git diff                   # read what generate wrote, then commit it
 ```
 
-`generate` writes files. Always read the diff before committing it.
+`pre-pr` runs four steps and stops at the first one that fails:
 
-If an agent changed models in the open FreeCAD window, it saves those documents in
-FreeCAD first. Git only sees what is on disk. See
-[agent-cad.md](agent-cad.md#working-with-a-file-open).
+1. If a FreeCAD window answers, it saves the documents in this repository that have
+   unsaved changes, inside that window. Then it rebuilds each one headless, so its
+   fingerprint matches the saved file. Git only sees what is on disk. See
+   [agent-cad.md](agent-cad.md#working-with-a-file-open).
+2. `doqs generate` writes the generated files.
+3. `doqs check` proves everything is consistent.
+4. `git status --short` shows what changed.
+
+`generate` writes files. Always read the diff before committing it.
 
 ## 6. In CI
 

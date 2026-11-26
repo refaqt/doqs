@@ -34,7 +34,8 @@ def documented_commands() -> set[str]:
 
 class TestPageMatchesCli(unittest.TestCase):
     def test_every_command_is_documented(self):
-        expected = {"check", "generate", "setup", "run", "list"} | set(cli.PASSTHROUGH)
+        expected = ({"check", "generate", "setup", "doctor", "pre-pr", "log", "mistakes", "context",
+                     "run", "list"} | set(cli.PASSTHROUGH))
         self.assertEqual(documented_commands(), expected)
 
     def test_the_page_exists_and_is_not_a_stub(self):
