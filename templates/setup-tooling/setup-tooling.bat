@@ -3,7 +3,9 @@ REM SPDX-FileCopyrightText: 2025-2026 Refaqt (BE 0804.145.539) and contributors
 REM SPDX-License-Identifier: GPL-3.0-or-later
 REM Copy to the consumer repo root. Humans on Windows may double-click this file.
 REM Agents must not run it (pause waits for a key). Use: bash setup-tooling.sh
+REM setup-tooling.bat --check only says whether .agents\ and doqs\ are filled.
 cd /d "%~dp0"
+if /i "%~1"=="--check" goto check
 git submodule sync --recursive
 if errorlevel 1 exit /b 1
 REM Check out every submodule at its recorded pin. Extracted modules under
@@ -17,3 +19,14 @@ if errorlevel 1 exit /b 1
 python doqs\scripts\install_root_tools.py
 if errorlevel 1 exit /b 1
 pause
+exit /b 0
+
+:check
+set "missing="
+if exist ".agents\rules\core.md" (echo ok    .agents\rules\core.md) else (echo FAIL  .agents\rules\core.md is missing& set "missing=1")
+if exist "doqs\scripts\validate_all.py" (echo ok    doqs\scripts\validate_all.py) else (echo FAIL  doqs\scripts\validate_all.py is missing& set "missing=1")
+if defined missing (
+  echo Fill the folders with: setup-tooling.bat
+  exit /b 1
+)
+exit /b 0

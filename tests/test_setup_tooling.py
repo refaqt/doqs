@@ -12,6 +12,9 @@ These guard two rules that are easy to undo by accident:
 from __future__ import annotations
 
 import configparser
+import shutil
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -73,6 +76,41 @@ class TestSetupToolingHelpers(unittest.TestCase):
         for name, text in self._helpers():
             with self.subTest(helper=name):
                 self.assertIn("SPDX-License-Identifier: GPL-3.0-or-later", text)
+
+
+@unittest.skipUnless(shutil.which("bash"), "needs bash")
+class TestCheckFlag(unittest.TestCase):
+    """`--check` only reads the two marker files. It changes nothing."""
+
+    def setUp(self):
+        self._tmp = Path(tempfile.mkdtemp(prefix="doqs-setup-check-"))
+        self.addCleanup(shutil.rmtree, self._tmp, ignore_errors=True)
+        self.helper = self._tmp / "setup-tooling.sh"
+        shutil.copyfile(_HELPERS / "setup-tooling.sh", self.helper)
+
+    def run_check(self) -> subprocess.CompletedProcess:
+        # No git repository here: if --check ran a git command, it would fail.
+        return subprocess.run(["bash", str(self.helper), "--check"], cwd=self._tmp,
+                              capture_output=True, text=True, timeout=60)
+
+    def test_empty_folders_fail_and_name_the_fix(self):
+        (self._tmp / ".agents").mkdir()
+        result = self.run_check()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("FAIL  .agents/rules/core.md is missing", result.stdout)
+        self.assertIn("bash setup-tooling.sh", result.stdout)
+        self.assertEqual(sorted(p.name for p in self._tmp.iterdir()), [".agents", "setup-tooling.sh"])
+
+    def test_filled_folders_pass(self):
+        for marker in (".agents/rules/core.md", "doqs/scripts/validate_all.py"):
+            (self._tmp / marker).parent.mkdir(parents=True)
+            (self._tmp / marker).write_text("x\n", encoding="utf-8")
+        result = self.run_check()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("FAIL", result.stdout)
+
+    def test_the_windows_helper_has_the_flag_too(self):
+        self.assertIn('"%~1"=="--check"', (_HELPERS / "setup-tooling.bat").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
