@@ -17,7 +17,7 @@ Everything else is kept as an ``other`` node with its exact text span, so a
 file round-trips byte for byte. Every ``add_*`` function returns the text
 unchanged when the item is already there, so a rerun is a no-op.
 
-Only the standard library is used. See docs/architecture.md, "Interfaces".
+Only the standard library is used. See docs/architecture/interfaces.md.
 """
 from __future__ import annotations
 

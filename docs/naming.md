@@ -43,7 +43,7 @@ Everything else inside a module is **content**, not a module. The first-level
 folders `bom/`, `cad/`, `architecture/`, `docs/`, `manufacturing/`,
 `simulation/` and `measurement/`, and every folder inside them, hold files for
 the module they belong to. They never need an `okh.toml`. See
-[Architecture — Folder Structure](architecture.md#folder-structure) for the
+[Architecture — Folder Structure](architecture/modules.md#folder-structure) for the
 full list.
 
 `validate_names.py` uses this rule. It warns about a folder in a module
@@ -100,7 +100,7 @@ Folders under `simulation/cases/` and matching `simulation/results/`:
 
 - Same kebab-case charset as module slugs: `carriage-deflection`, `thermal-soak`
 - Name the **study**, not dimensions or materials — put numeric values in case config files
-- See [Architecture — Simulation](architecture.md#simulation) for layout and traceability rules
+- See [Architecture — Simulation](architecture/simulation-and-measurement.md#simulation) for layout and traceability rules
 
 ## Measurement campaign slugs
 
@@ -112,7 +112,7 @@ Folders under `measurement/cases/` and matching `measurement/results/`, and the 
   in the manifest columns and case config, never in the folder name
 - Individual runs inside a campaign are dated directories, `YYYY-MM-DD_NNN[_variant]/`, e.g.
   `2026-05-07_001_stepper` — the date and sequence stay in the run folder, not in the campaign slug
-- See [Architecture — Measurement](architecture.md#measurement) for layout and manifest rules
+- See [Architecture — Measurement](architecture/simulation-and-measurement.md#measurement) for layout and manifest rules
 
 ## BOM part IDs
 
@@ -207,6 +207,6 @@ Flags: `--root PATH`, `--strict-lexicon`, `--warnings-only` (naming), `--expecte
 ## Related
 
 - [Variants](variants.md) — product families, model slugs, SKU catalogue, instance modules
-- [Architecture](architecture.md) — folder layout, BOM columns, design session checklist
+- [Architecture](architecture.md) — overview, with links to the folder layout, BOM columns and design session checklist
 - [CONTRIBUTING.md](../CONTRIBUTING.md) — PR validation gates
 - [Using doqs](using-doqs.md) — what to run, and which page to read for which job

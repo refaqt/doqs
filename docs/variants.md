@@ -4,8 +4,8 @@ How to publish one design in many configurations — several lengths, a few moto
 options, a few feedback options — without the module count exploding, and how a
 machine project consumes one configuration of it.
 
-Read [architecture.md](architecture.md) first for the module layout this builds
-on. The decision behind this page is
+It builds on the module layout in
+[architecture/modules.md](architecture/modules.md). The decision behind this page is
 [ADR: product-family variants](decisions/2026-09-15_product-family-variants.md).
 
 ---
@@ -78,7 +78,7 @@ once. `cad/params/<model>.csv` is a **sparse override**: only the rows that
 differ. Merging replaces matching aliases and inherits `unit`, `basis`,
 `source` and `description`, so an override row can be just `alias,value`.
 `basis` and `source` say where each independent value comes from; see
-[architecture.md](architecture.md#parameter-file-format).
+[architecture/parameters.md](architecture/parameters.md#parameter-file-format).
 
 The thing that makes them genuinely sparse is **derived values**. A `value` that
 starts with `=` is an arithmetic expression over other aliases:

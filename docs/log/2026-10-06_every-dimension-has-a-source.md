@@ -42,4 +42,4 @@ section, to confirm the property names the check reads. Then fill `basis` and
 ## Related
 
 - [agent-cad.md, Every dimension has a reason](../agent-cad.md#every-dimension-has-a-reason)
-- [architecture.md, Parameter File Format](../architecture.md#parameter-file-format)
+- [architecture/parameters.md, Parameter File Format](../architecture/parameters.md#parameter-file-format)

@@ -8,7 +8,7 @@ Write this file in B2 English. Follow `.agents/rules/communication.md`. Keep off
 ## Context
 
 An interface between two parts is written three times. SysML holds a `port def` and a port
-on each part ([Interfaces](../architecture.md#interfaces)). Each part's FreeCAD file holds a
+on each part ([Interfaces](../architecture/interfaces.md#interfaces)). Each part's FreeCAD file holds a
 mounting frame that an assembly joint attaches to ([ADR-013](2026-10-06_joints-attach-to-frames.md)).
 When the interface faces outside the module, `okh.toml` lists it too.
 

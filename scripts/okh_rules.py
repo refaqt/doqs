@@ -7,7 +7,7 @@ whole file. So the edits here work on lines.
 
 Every function takes the text and returns the new text. An entry that is
 already there is left alone, so a rerun changes nothing. Only the standard
-library is used. See docs/architecture.md, "OKH manifests".
+library is used. See docs/architecture/manifests.md.
 """
 from __future__ import annotations
 

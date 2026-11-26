@@ -7,7 +7,7 @@ TRADEMARKS.md.
 
 The DOQS tools repository itself uses GPL-3.0 for software and CC BY-SA 4.0
 for documentation (no CERN-OHL-S; there is no hardware here). See
-docs/architecture.md (Licensing).
+docs/architecture/modules.md (Licensing).
 """
 from __future__ import annotations
 

@@ -2,8 +2,9 @@
 
 One home for the parts we buy, so nobody researches the same rail twice.
 
-Read [architecture.md](architecture.md) first for the module layout this builds
-on, and [roles.md](roles.md) for how a machine uses a part once it is here. The
+It builds on the module layout in
+[architecture/modules.md](architecture/modules.md). [roles.md](roles.md) says how a
+machine uses a part once it is here. The
 decision behind this page is
 [ADR-004: a shared library for parts we buy](decisions/2026-09-18_parts-library.md).
 
@@ -483,7 +484,8 @@ at all. Git does not store this in `.gitmodules`, so it belongs in
 **Split the repository.** When one brand grows big enough,
 `git subtree split --prefix=modules/hiwin` moves it out with its history and it
 returns as a submodule at the same path — the move
-[architecture.md](architecture.md) already documents. The path does not change,
+[architecture/modules.md](architecture/modules.md#migrating-a-module-from-embedded-to-extracted)
+already documents. The path does not change,
 so nothing in a consuming machine breaks.
 
 **What you cannot do:** check out one folder of a repository as a submodule. A
@@ -533,5 +535,5 @@ old part gets a useful warning.
 - [Role modules](roles.md) — how a machine uses a part from here
 - [A private parts library](decisions/2026-09-29_private-parts-library.md) — files that may not be passed on
 - [Money leaves the bill of materials](decisions/2026-09-18_money-out-of-the-bom.md) — why there are no prices here
-- [Architecture](architecture.md) — folder layout and licensing
+- [Architecture: modules](architecture/modules.md) — folder layout and licensing
 - [Variants](variants.md) — our own product families, which work differently

@@ -14,7 +14,7 @@ Each kind of content is licensed separately. Full legal texts are in
 Machine repositories that include this repo as a `doqs/` submodule use a
 different, three-way split (CERN-OHL-S hardware, GPL-3.0 firmware/software,
 CC BY-SA docs). That layout is documented in
-[`docs/architecture.md`](docs/architecture.md#licensing) and written by
+[`docs/architecture/modules.md`](docs/architecture/modules.md#licensing) and written by
 `scripts/apply_licenses.py`. Templates for those files live in
 [`templates/licensing/`](templates/licensing/).
 

@@ -49,11 +49,11 @@ Child parts consume master geometry via `SubShapeBinder` pointing at sketches **
 3. Do **not** place master sketches as loose objects at document root if they will be Binder-referenced by parts that the assembly inserts.
 4. The assembly file inserts **parts**; parts link **down** to master-sketch geometry in the assembly document's Body — never the reverse (parts must not be referenced by objects the assembly itself depends on for layout).
 
-For numeric-only driving dimensions, prefer the existing `params.csv` → Spreadsheet flow ([architecture.md](../architecture.md#linking-csv-parameters-to-freecad)) over geometric Binders where possible.
+For numeric-only driving dimensions, prefer the existing `params.csv` → Spreadsheet flow ([architecture/parameters.md](../architecture/parameters.md#linking-csv-parameters-to-freecad)) over geometric Binders where possible.
 
 ## Consequences
 
 - Assembly `.FCStd` files that drive child parts top-down need a `Body_master` (or equivalent) as a standard structural element, not ad-hoc root-level sketches.
 - When a part fails to appear in Insert, inspect **external links and Binders** in the part file before restructuring containers. A Binder back to the assembly document is the first thing to check.
-- If master sketches must not live in the assembly file at all (e.g. shared across multiple assemblies), extract them to a dedicated skeleton document that both the assembly and parts link into — dependency flows one direction only. See [architecture.md — Top-down design](../architecture.md#top-down-design-and-master-sketches).
+- If master sketches must not live in the assembly file at all (e.g. shared across multiple assemblies), extract them to a dedicated skeleton document that both the assembly and parts link into — dependency flows one direction only. See [architecture.md — Top-down design](../architecture/file-formats.md#top-down-design-and-master-sketches).
 - Copy-paste migration of a Body between files breaks external links; fixing the Binder target or recreating the Body in place is safer than moving geometry across documents when assembly links already exist.

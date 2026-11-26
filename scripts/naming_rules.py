@@ -250,7 +250,7 @@ def repo_root_from_script() -> Path:
 #: Submodules that carry tooling, not machine content. A machine repo mounts
 #: this tools repo at `doqs/` and the shared agent kit at `.agents/`. Neither
 #: holds machine files, so every validator that walks the machine root skips
-#: both. See docs/architecture.md (Tooling submodules).
+#: both. See docs/architecture/git.md (Tooling submodules).
 TOOLING_SUBMODULE_NAMES = frozenset({"doqs", ".agents"})
 
 
