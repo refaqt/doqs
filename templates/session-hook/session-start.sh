@@ -14,7 +14,7 @@
 # that opens a parent folder, or that attaches several repositories at once,
 # never reads that file, so this hook never runs and prints nothing at all.
 # CLAUDE.md carries the check that works in every session. See
-# doqs/docs/using-doqs.md, section 3.
+# doqs/templates/session-hook/README.md, "When the hook does not run".
 #
 # The two git calls mirror setup-tooling.sh and must stay in that order:
 #

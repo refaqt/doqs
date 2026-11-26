@@ -62,29 +62,12 @@ Two things to expect:
   old copy. Replace it from the template.
 
 Claude Code and Cursor run a `SessionStart` hook that does the submodule part for
-you, so a cloud session usually starts with the folders filled. The hook does not
-install the launchers; `setup-tooling.sh` does.
-
-The hook has one condition, and it is easy to miss. The session must open **your
-repository root** as its project folder. Claude Code reads `.claude/settings.json`
-from that folder only. A session that opens a parent folder, or that attaches
-several repositories at once, never reads the file, never starts the hook, and
-prints nothing at all. A thread inside a Claude project does not run it either,
-even with one repository. The output cannot tell you, because silence looks the
-same as success. The permission mode does not matter: the hook runs in plan mode
-too. Check the folders instead:
-
-```bash
-ls .agents/rules/core.md doqs/scripts/validate_all.py
-```
-
-If either file is missing, run `bash setup-tooling.sh`. In plan mode, the agent
-must ask you to approve that command, because plan mode blocks commands that
-change files. Approve it: it only fills the two tooling folders and changes no file
-that git tracks. Put that check in your root
-`CLAUDE.md`, because Claude Code reads that file from every repository a session
-attaches. The template is
-[`templates/setup-tooling/CLAUDE.md`](../templates/setup-tooling/CLAUDE.md).
+you. It does not always run, and when it does not, it prints nothing. So check the
+two folders: `bash doqs.sh doctor`, or `bash setup-tooling.sh --check` when even
+`doqs/` is empty. Both look for `.agents/rules/core.md` and
+`doqs/scripts/validate_all.py`. If one is missing, run `bash setup-tooling.sh`.
+[The session hook README](../templates/session-hook/README.md#when-the-hook-does-not-run)
+explains when the hook does not run, and what to do in plan mode.
 
 `setup-tooling.sh` installs that hook at `.claude/hooks/session-start.sh` and
 registers it in `.claude/settings.json`. The file on its own does nothing — the
@@ -95,10 +78,6 @@ at it:
 ```json
 { "name": "<your machine>", "install": "bash .claude/hooks/session-start.sh" }
 ```
-
-**No network?** The hook says so and the session continues. Run
-`bash setup-tooling.sh` when you are online again. Until then `doqs/` may be empty,
-and every `doqs` command will fail with a missing-file error.
 
 ## 4. The commands
 
