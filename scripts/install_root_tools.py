@@ -7,10 +7,23 @@ helpers themselves). Does not copy READMEs.
 Identical destination bytes are left untouched. If the template changed, the
 root file is overwritten (same idea as apply_licenses.py).
 
-Agent configuration in CONFIG_TEMPLATES is different: it is installed **once**
-and never overwritten, because those files are the user's to edit. Removing the
-agent-CAD guard from `.claude/settings.json` is caught by validate_cad.py rather
-than silently restored here.
+`.mcp.json` (CONFIG_TEMPLATES) is installed **once** and never overwritten: it
+is the user's file to edit.
+
+`.claude/settings.json` is **merged on every run**. doqs owns the agent-CAD
+allow and deny rules, the FreeCAD MCP server switch and the session-hook
+registration; the user owns every other key. A rule doqs owns that is missing
+is put back, so a deny rule someone removed returns on the next run. Nothing
+the user added is removed. validate_cad.py still fails a repository whose
+guard is missing, so CI catches it between runs.
+
+`.claude/hooks/session-start.sh` (TOOL_TEMPLATES) is doqs's file and is
+refreshed when its template changes.
+
+At the end, when the shared agent kit has `.agents/scripts/sync_root.py` and
+the repository has `.agents-local/profile.toml`, the kit's script writes the
+shared root files (CLAUDE.md, AGENTS.md and others). Otherwise one hint line
+says so.
 
 No-op when --root is the DOQS tools repo.
 
@@ -21,6 +34,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -217,11 +231,28 @@ def install_root_tools(
     return actions
 
 
+#: The shared kit's script for the root files, and the file that drives it.
+SYNC_ROOT = Path(".agents") / "scripts" / "sync_root.py"
+PROFILE = Path(".agents-local") / "profile.toml"
+
+
+def sync_root(root: Path) -> int:
+    """Run the kit's `sync_root.py` when it and the profile exist. Returns its exit code."""
+    script, profile = root / SYNC_ROOT, root / PROFILE
+    if not script.is_file() or not profile.is_file():
+        missing = SYNC_ROOT if not script.is_file() else PROFILE
+        print(f"skip  shared root files: {missing.as_posix()} is missing, so CLAUDE.md and "
+              "AGENTS.md were left as they are")
+        return 0
+    return subprocess.run([sys.executable, str(script), "--root", str(root)], cwd=root).returncode
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Copy doqs/templates/<tool>/*.bat and *.sh to the machine repo "
-            "root (except setup-tooling), and install agent config once."
+            "root (except setup-tooling), merge agent config, and run the "
+            "shared kit's sync_root.py when there is a profile."
         )
     )
     parser.add_argument(
@@ -249,7 +280,7 @@ def main() -> int:
             print(f"      {line}")
     else:
         print(f"ok    {root} (root launchers and agent config already current)")
-    return 0
+    return sync_root(root)
 
 
 if __name__ == "__main__":

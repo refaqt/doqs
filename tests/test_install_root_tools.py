@@ -124,6 +124,31 @@ class TestInstallRootToolsCli(unittest.TestCase):
         self.assertEqual(second.returncode, 0, second.stdout + second.stderr)
         self.assertIn("already current", second.stdout)
 
+    def _run(self) -> subprocess.CompletedProcess:
+        cmd = [sys.executable, str(_SCRIPTS / "install_root_tools.py"), "--root", str(self.root)]
+        return subprocess.run(cmd, capture_output=True, text=True, cwd=_REPO)
+
+    def test_without_the_kit_script_it_prints_one_hint(self):
+        _write(self.root / ".agents-local" / "profile.toml", "")
+        result = self._run()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("skip  shared root files: .agents/scripts/sync_root.py is missing", result.stdout)
+
+    def test_without_a_profile_the_kit_script_does_not_run(self):
+        _write(self.root / ".agents" / "scripts" / "sync_root.py", "raise SystemExit(3)\n")
+        result = self._run()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(".agents-local/profile.toml is missing", result.stdout)
+
+    def test_with_kit_and_profile_it_runs_sync_root(self):
+        _write(self.root / ".agents-local" / "profile.toml", "")
+        _write(self.root / ".agents" / "scripts" / "sync_root.py",
+               "import sys\nprint('SYNC', *sys.argv[1:])\nraise SystemExit(3)\n")
+        result = self._run()
+        self.assertIn(f"SYNC --root {self.root.resolve()}", result.stdout)
+        # A failing kit script fails the setup: the root files are not current.
+        self.assertEqual(result.returncode, 3)
+
     def test_cli_tools_repo_noop(self):
         result = subprocess.run(
             [
