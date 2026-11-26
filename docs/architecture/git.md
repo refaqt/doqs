@@ -93,7 +93,7 @@ The committed gitlink remains a pin. Do not commit dirty gitlinks after `--remot
 
 doqs mounts the kit at its own `.agents/` too, so its `.gitmodules` sets `update = none` on that submodule. Git skips `doqs/.agents` in a consumer repo, so the kit is not mounted twice and the `doqs` gitlink does not go dirty. Working on doqs on its own needs `git submodule update --init --remote --checkout .agents`, where `--checkout` overrides that flag.
 
-`AGENTS.md` first-step wording lives in [refaqt-agents templates](https://github.com/refaqt/refaqt-agents/blob/main/templates/AGENTS.md), not in this repository.
+`CLAUDE.md` and `AGENTS.md` are written by the shared kit's `sync_root.py` from [refaqt-agents `templates/root/`](https://github.com/refaqt/refaqt-agents/tree/main/templates/root), not by this repository.
 
 ### Working with Git Submodules
 

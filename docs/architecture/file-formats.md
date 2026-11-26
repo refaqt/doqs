@@ -16,7 +16,7 @@ Used for: activity log, mistakes log, decisions, README files, assembly guides.
 | `docs/mistakes/` | Incidents and prevention rules |
 | `docs/decisions/` | Architecture Decision Records (ADRs) |
 
-Agents follow `.agents/rules/living-docs.md` and the `log` / `mistake-log` skills in [refaqt-agents](https://github.com/refaqt/refaqt-agents) for entry format and update triggers.
+Agents follow the living-docs table in `.agents/rules/core.md` and the `log` / `mistake-log` skills in [refaqt-agents](https://github.com/refaqt/refaqt-agents) for entry format and update triggers.
 
 ### TOML (`.toml`) — OKH Manifests
 

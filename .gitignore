@@ -11,3 +11,6 @@ __pycache__/
 # Generated on demand by doqs/scripts/export_variant.py. Variant geometry is
 # never committed per model: it is regenerated, or pinned under builds/.
 **/cad/exports/
+
+# Skill links made by .agents/scripts/link_skills.sh at the start of each session.
+/.claude/skills/

@@ -19,8 +19,8 @@ Clone tokens must be able to read [refaqt/doqs](https://github.com/refaqt/doqs) 
    ```
 
 3. Merge `gitmodules.snippet` into root `.gitmodules`, or `git submodule add` the tooling remotes if they are missing. Set `branch = main` only on **tooling** submodules (`doqs`, `.agents`). Extracted machine modules under `modules/` stay SHA-pinned without `branch`; the helper names the tooling submodules explicitly so `--remote` cannot reach them.
-4. Copy or adapt the **First step (required)** block from [refaqt-agents `templates/AGENTS.md`](https://github.com/refaqt/refaqt-agents/blob/main/templates/AGENTS.md) into root `AGENTS.md`. That wording lives in refaqt-agents, not here.
-5. Copy `CLAUDE.md` from this folder to the **repository root** and put your machine's name in the title. It holds the check an agent runs before anything else, which matters in sessions where the start-up hook does not run. [The session hook README](../session-hook/README.md#when-the-hook-does-not-run) says when that happens. Adapt this file by hand, unless the shared kit's `sync_root.py` writes it for you from `.agents-local/profile.toml`.
+4. Create `.agents-local/profile.toml` with `name = "<machine name>"` and `profile = "doqs"`, and `.agents-local/rules/repo.md` with the rules for this machine only. See the kit's [INSTALL.md](https://github.com/refaqt/refaqt-agents/blob/main/INSTALL.md), step 2.
+5. Do not write `CLAUDE.md` or `AGENTS.md` by hand. The helper in the next step runs the kit's `sync_root.py`, which writes them. They hold the check an agent runs first, which matters in sessions where the start-up hook does not run. [The session hook README](../session-hook/README.md#when-the-hook-does-not-run) says when that happens.
 6. After clone, from the consumer root:
    - Agents (any OS): `bash setup-tooling.sh`. To only check, without changing anything: `bash setup-tooling.sh --check`.
    - Humans on Windows may double-click `setup-tooling.bat` (`pause` is OK there only). Agents must not run the `.bat`.

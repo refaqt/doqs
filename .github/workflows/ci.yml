@@ -44,3 +44,15 @@ jobs:
         run: |
           python scripts/resolve_params.py --root tests/fixtures/variant-family --table --check
           python scripts/resolve_instance.py --root tests/fixtures/variant-machine --check
+      # The shared agent files (CLAUDE.md, AGENTS.md, Cursor rules) come from the
+      # kit, and agent sessions use the kit's latest main. Check against the same.
+      - name: Shared agent files match the kit
+        run: |
+          git submodule update --init --remote --checkout -- .agents
+          if [ ! -f .agents/scripts/sync_root.py ]; then
+            echo "::notice::The kit has no sync script yet, so this check is skipped."
+            exit 0
+          fi
+          python .agents/scripts/sync_root.py --check
+          python .agents/scripts/mistakes_index.py --check
+          python .agents/scripts/context_budget.py --budget 20000

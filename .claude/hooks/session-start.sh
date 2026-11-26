@@ -86,8 +86,9 @@ status=$?
 # leave .agents/ empty, so an exit code on its own proves nothing.
 if [ -f "$marker" ]; then
   pin="$(git -C .agents rev-parse --short HEAD 2>/dev/null || echo unknown)"
-  echo "Shared agent kit ready in ${root}: .agents/ (commit ${pin}). Read .agents/rules/core.md first."
-  echo "Write every reply and every file in B2 English: .agents/rules/communication.md."
+  echo "Shared agent kit ready in ${root}: .agents/ (commit ${pin}). CLAUDE.md and AGENTS.md hold the rules."
+  # Make the skills visible to Claude Code. Prints one line, never fails.
+  [ -f .agents/scripts/link_skills.sh ] && bash .agents/scripts/link_skills.sh "$root"
   exit 0
 fi
 

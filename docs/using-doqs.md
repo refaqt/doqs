@@ -35,9 +35,9 @@ Do this once, by hand.
    into your `.gitmodules`, or add the two submodules yourself. Set
    `branch = main` **only** on `doqs` and `.agents`. Modules under `modules/` stay
    pinned to a commit and must never get a branch.
-4. Copy the **First step (required)** block from the
-   [refaqt-agents `templates/AGENTS.md`](https://github.com/refaqt/refaqt-agents/blob/main/templates/AGENTS.md)
-   into your root `AGENTS.md`.
+4. Create `.agents-local/profile.toml` (`name = "<machine name>"`, `profile = "doqs"`) and
+   `.agents-local/rules/repo.md`. The next step writes `CLAUDE.md` and `AGENTS.md` from them.
+   See the kit's [INSTALL.md](https://github.com/refaqt/refaqt-agents/blob/main/INSTALL.md).
 5. From your repository root, run `bash setup-tooling.sh`.
 
 Your clone token needs read access to

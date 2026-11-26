@@ -1,0 +1,11 @@
+# Read by .agents/scripts/sync_root.py. See .agents/INSTALL.md, step 2.
+name = "doqs"
+profile = "base"
+# doqs is the tool itself, so it has no setup-tooling.sh and keeps its own hook.
+setup = "git submodule update --init --remote --checkout .agents"
+own_hook = true
+
+[plugins]
+# This repository holds software and specifications, not production work.
+off = ["claude-for-manufacturing@synced"]
+on = []

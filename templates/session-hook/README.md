@@ -50,8 +50,7 @@ files. It only fills the two tooling folders and changes no file that git tracks
 `setup-tooling.sh --check` can answer.
 
 Root `CLAUDE.md` carries this check, because Claude Code reads `CLAUDE.md` from
-every repository a session attaches. The template for it is
-[`templates/setup-tooling/CLAUDE.md`](../setup-tooling/CLAUDE.md).
+every repository a session attaches. The shared kit writes it with `.agents/scripts/sync_root.py`.
 
 With no network, the hook says so and the session continues. Until someone runs
 `bash setup-tooling.sh` online, `doqs/` may be empty and every `doqs` command fails
