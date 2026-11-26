@@ -46,7 +46,7 @@ Part of the doqs specification. Start at the [overview](../architecture.md).
 **Validation & commit:**
 
 - [ ] If this is a new repo or a new first-level content directory, run `doqs/scripts/apply_licenses.py` and add a README Licence section
-- [ ] Run `doqs/scripts/validate_all.py` (it runs all seven gates)
+- [ ] Run `bash doqs.sh pre-pr` (it saves FreeCAD work, then runs `doqs generate` and `doqs check`)
 - [ ] Before tagging: `doqs/scripts/validate_okh.py --expected-version X.Y.Z`
 - [ ] Run `doqs/scripts/resolve_graph.py` — regenerate `graph/usage-graph.json`
 - [ ] Commit with a conventional commit message

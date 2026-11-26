@@ -386,7 +386,7 @@ kinds of thing in it and each one has a clear sync story:
 git submodule update --remote modules/linear-stage        # take the new family
 python doqs/scripts/resolve_instance.py modules/x-stage   # refresh generated files
 # open x-stage.FCStd, refresh the variant link, save
-python doqs/scripts/validate_all.py                       # fails if a step was skipped
+bash doqs.sh check                                        # fails if a step was skipped
 ```
 
 `resolve_instance.py --check` and `validate_variants.py` both fail on stale
@@ -476,7 +476,7 @@ core does not declare, a duplicate name, or a lowercase id.
 5. `python doqs/scripts/resolve_params.py --table`, then `sync_table()` in
    FreeCAD.
 6. `catalog.toml` rows for each composition × length you actually sell.
-7. `python doqs/scripts/validate_all.py`.
+7. `bash doqs.sh check`.
 
 No new module. No new submodule. No new repository.
 
@@ -488,7 +488,7 @@ No new module. No new submodule. No new repository.
 3. A thin composition module combining it, with a `[composition]` table and the
    interfaces that SKU offers.
 4. `catalog.toml` rows.
-5. `python doqs/scripts/validate_all.py`.
+5. `bash doqs.sh check`.
 
 ### Use a family in a machine
 

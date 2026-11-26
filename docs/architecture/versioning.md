@@ -51,7 +51,7 @@ Module slugs, BOM part IDs, display-name lexicon, and version fields are defined
 - `doqs/scripts/validate_okh.py` — semver in `version` (no `v` prefix); optional `--expected-version` before tagging
 - `doqs/scripts/validate_licenses.py` — split-licence files at each Git repo root
 - `doqs/scripts/validate_variants.py` — catalogue, models, compositions, length-table coverage, vendor geometry, instance freshness
-- `doqs/scripts/validate_all.py` — single command running all validation gates
+- `doqs check` (`bash doqs.sh check`) — single command running all validation gates
 
 **Version surfaces:** `okh.toml` `version` is authoritative; Git tags use a `v` prefix; lockfiles pin `vX.Y.Z`; FreeCAD `Comment` points to `okh.toml` without per-release bumps; drawing title blocks get `Rev: X.Y.Z` at export. See ADR [2026-06-04_naming-and-versioning.md](../decisions/2026-06-04_naming-and-versioning.md).
 

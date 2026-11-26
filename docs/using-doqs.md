@@ -299,6 +299,7 @@ SysML part def. The fabriq design tool runs the same commands from a browser.
 | `session-hook/session-start.sh` | `.claude/hooks/session-start.sh` | Overwritten when the template changes | `setup-tooling.sh` |
 | `agent-cad/mcp.json` | `.mcp.json` | Written once, never touched again | `setup-tooling.sh` |
 | `agent-cad/claude-settings.json` | `.claude/settings.json` | **Merged**: what doqs owns is added, nothing is removed | `setup-tooling.sh` |
+| The shared kit's root files: `CLAUDE.md`, `AGENTS.md`, `.cursor/` rules, the pull request template | repository root | Written by `.agents/scripts/sync_root.py` from `.agents-local/profile.toml`. Skipped, with one hint line, when either is missing. It never writes the session hook | `setup-tooling.sh` |
 | `setup-tooling/setup-tooling.sh`, `.bat` | repository root | Copy once | **You**, at the start |
 | `setup-tooling/gitmodules.snippet` | `.gitmodules` | Merge by hand | **You**, at the start |
 | `setup-tooling/gitattributes.snippet` | `.gitattributes` | Merge by hand | **You**, at the start |

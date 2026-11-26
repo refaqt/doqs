@@ -191,7 +191,7 @@ python doqs/scripts/validate_okh.py --expected-version 1.2.0
 From the **machine repository root**:
 
 ```powershell
-python doqs/scripts/validate_all.py
+bash doqs.sh check
 ```
 
 Individual checks:

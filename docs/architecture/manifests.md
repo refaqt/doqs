@@ -204,7 +204,7 @@ It also checks the SPDX licence expression, the paths in `bom` and `readme`, and
 Related validators (documented in their own sections):
 
 - `doqs/scripts/validate_names.py` — module slugs, BOM ids, model slugs, naming lexicon ([naming.md](../naming.md)).
-- `doqs/scripts/validate_all.py` — runs `validate_okh`, `validate_licenses`, `validate_names`, `validate_links`, `validate_build`, `validate_variants` and `validate_cad` in sequence.
+- `doqs check` (`bash doqs.sh check`) — runs `validate_okh`, `validate_licenses`, `validate_names`, `validate_links`, `validate_build`, `validate_variants` and `validate_cad` in sequence, then the staleness checks. `doqs/scripts/validate_all.py` still runs the seven gates alone, for older CI.
 - `doqs/scripts/validate_licenses.py` — split-licence files (`LICENSE`, `LICENSES/`, `TRADEMARKS.md`, directory stubs). Use `apply_licenses.py` to write them.
 - `doqs/scripts/validate_build.py` — checks that lockfiles in `builds/` represent interface-consistent compositions.
 - `doqs/scripts/validate_variants.py` — product families: see [variants.md](../variants.md).
